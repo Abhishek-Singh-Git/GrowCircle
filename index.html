@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GrowCircle — Grow Together</title>
+  <meta name="description" content="GrowCircle: The social accountability platform for couples, friends, and small groups.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div id="device-frame">
+    <!-- GLOBAL ATMOSPHERE (The living background ecosystem) -->
+    <div class="global-atmosphere" id="global-atmosphere">
+      <div class="particle-field" id="global-particles"></div>
+      <div class="atmosphere-glow g1"></div>
+      <div class="atmosphere-glow g2"></div>
+    </div>
+
+    <div id="app">
+      <!-- ========================================== -->
+      <!-- SPLASH SCREEN                              -->
+      <!-- ========================================== -->
+      <section id="screen-splash" class="screen active">
+        <div class="splash-content">
+          <div class="mascot-container" id="splash-mascot">
+            <div class="mascot-orb">
+              <div class="mascot-eye left"></div>
+              <div class="mascot-eye right"></div>
+              <div class="mascot-mouth"></div>
+            </div>
+          </div>
+          <div class="splash-text-group">
+            <h1 class="splash-title">GrowCircle</h1>
+            <p class="splash-subtitle">Your growth is visible.</p>
+          </div>
+          <div class="splash-actions">
+            <button class="btn btn-primary btn-lg btn-full btn-shimmer" id="btn-get-started">Get Started</button>
+            <button class="btn btn-ghost" id="btn-login">I already have an account</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- ONBOARDING (Oath)                          -->
+      <!-- ========================================== -->
+      <section id="screen-onboarding" class="screen">
+        <div class="onboarding-slides" id="onboarding-slides">
+          <div class="onboarding-slide active" data-slide="0">
+            <div class="onboarding-visual">
+              <div class="onb-icon-wrap onb-lonely">
+                <div class="onb-person alone">
+                  <div class="onb-person-head"></div><div class="onb-person-body"></div>
+                </div>
+                <div class="onb-fading-goals">
+                  <span>📚 Read daily</span><span>💪 Workout</span><span>🧘 Meditate</span>
+                </div>
+              </div>
+            </div>
+            <div class="onboarding-text">
+              <h2>Private goals fail.</h2>
+              <p>92% of resolutions fail because nobody knows when you quit.</p>
+            </div>
+          </div>
+          
+          <div class="onboarding-slide" data-slide="1">
+            <div class="onboarding-visual">
+              <div class="onb-icon-wrap onb-connected">
+                <div class="onb-duo">
+                  <div class="onb-person p1"><div class="onb-person-head"></div><div class="onb-person-body"></div></div>
+                  <div class="onb-link-line"></div>
+                  <div class="onb-person p2"><div class="onb-person-head"></div><div class="onb-person-body"></div></div>
+                </div>
+                <div class="onb-live-badge">LIVE</div>
+              </div>
+            </div>
+            <div class="onboarding-text">
+              <h2>What if someone was watching?</h2>
+              <p>Your partner sees every goal you complete — and every one you skip. Real-time. No hiding.</p>
+            </div>
+          </div>
+
+          <!-- The Shared Pact / Oath -->
+          <div class="onboarding-slide" data-slide="2" id="slide-oath">
+            <div class="oath-visual">
+              <div class="shared-pact-icon">🤝</div>
+            </div>
+            <div class="onboarding-text">
+              <h2>The Circle Oath</h2>
+              <p>I commit to my circle. I understand that my progress and my failures will be visible to those I invite.</p>
+            </div>
+            <div class="oath-action">
+              <p class="oath-instruction">Hold to commit</p>
+              <button class="btn-oath-hold" id="btn-oath-hold"></button>
+            </div>
+            <div style="text-align:center; margin-top:16px;">
+               <button class="btn-ghost btn-sm" id="btn-start-solo">Start Solo For Now</button>
+            </div>
+          </div>
+        </div>
+        <div class="onboarding-footer" id="onb-footer">
+          <div class="onboarding-dots" id="onboarding-dots">
+            <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
+          </div>
+          <button class="btn btn-primary btn-lg" id="btn-onboarding-next">Next</button>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- REGISTRATION & SETUP                       -->
+      <!-- ========================================== -->
+      <section id="screen-register" class="screen">
+        <div class="screen-header">
+          <button class="btn-back" id="btn-back-register">←</button>
+          <h2 class="screen-title">Create Account</h2>
+          <div class="spacer"></div>
+        </div>
+        <div class="screen-body scroll-y">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-input" id="reg-name" placeholder="What should we call you?">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="reg-email" placeholder="your@email.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-wrap">
+              <input type="password" class="form-input" id="reg-password" placeholder="Min 8 chars">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-lg btn-full" id="btn-register-submit">Create Account</button>
+        </div>
+      </section>
+
+      <section id="screen-setup" class="screen">
+        <div class="screen-header">
+          <div class="spacer"></div><h2 class="screen-title">Mission 1</h2><div class="spacer"></div>
+        </div>
+        <div class="screen-body scroll-y setup-body">
+          <div class="setup-hero">
+            <div class="shared-pact-icon lg">🛡️</div>
+            <h3>Forge Your Circle</h3>
+            <p>Accountability requires a witness. Invite your first partner to unlock the full potential of GrowCircle.</p>
+          </div>
+          <div class="setup-section">
+            <div class="circle-actions">
+              <button class="btn btn-primary btn-lg btn-full btn-shimmer" id="btn-create-circle">Invite a Partner</button>
+              <button class="btn btn-outline btn-lg btn-full" id="btn-join-circle">Have an Invite Code?</button>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-full" id="btn-setup-complete" style="margin-top:24px">Skip for now</button>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- MAIN APP SHELL                             -->
+      <!-- ========================================== -->
+      <section id="screen-app" class="screen">
+        
+        <!-- OMNIPRESENT ORBIT (Dynamic Island) -->
+        <header class="omnipresent-orbit" id="omnipresent-orbit">
+          <div class="orbit-content" id="orbit-trigger">
+            <div class="orbit-partner-avatar">
+              <div class="avatar-gradient-ring sm"><span class="emoji">👨‍🦱</span></div>
+              <div class="orbit-live-dot" id="orbit-live-dot"></div>
+            </div>
+            <div class="orbit-status">
+              <span class="orbit-name">Aarav</span>
+              <span class="orbit-activity" id="orbit-activity">👀 Viewing your profile</span>
+            </div>
+            <div class="orbit-mini-chart">
+               <svg viewBox="0 0 36 36"><path class="orbit-ring-fill" stroke-dasharray="80, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" /></svg>
+            </div>
+          </div>
+          
+          <div class="daily-countdown" id="daily-countdown">
+            <span class="countdown-icon">⏰</span>
+            <span class="countdown-text" id="countdown-timer">06h 23m</span>
+            <div class="countdown-bar-bg"><div class="countdown-bar-fill" id="countdown-fill"></div></div>
+          </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content" id="main-content">
+
+          <!-- ========================================== -->
+          <!-- TAB: TODAY (My Goals)                      -->
+          <!-- ========================================== -->
+          <div class="tab-view active" id="tab-today">
+            <div class="tab-scroll scroll-y" id="today-scroll">
+              
+              <section class="today-section">
+                <div class="section-header">
+                  <h3>Your Goals</h3>
+                  <div class="mascot-mini-wrapper">
+                    <!-- Mascot responds to progress -->
+                    <div class="mascot-orb mini state-neutral" id="today-mascot">
+                       <div class="mascot-eye left"></div><div class="mascot-eye right"></div><div class="mascot-mouth"></div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Active Goals -->
+                <div class="goal-list" id="active-goal-list">
+                  <!-- Populated via JS -->
+                </div>
+                <button class="btn btn-outline btn-sm btn-full" id="btn-add-goal" style="margin-top:12px">+ Add Goal</button>
+              </section>
+
+              <!-- Fluid Collapsing Drawer for Completed Goals -->
+              <section class="completed-goals-drawer" id="completed-goals-drawer">
+                <button class="drawer-toggle" id="drawer-toggle">
+                  <span class="drawer-title">Completed Today <span class="badge" id="completed-count">0</span></span>
+                  <span class="drawer-chevron">▼</span>
+                </button>
+                <div class="drawer-content" id="completed-goal-list">
+                  <!-- Completed goals slide in here -->
+                </div>
+              </section>
+
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- TAB: GARDEN (Immersive Ecosystem)          -->
+          <!-- ========================================== -->
+          <div class="tab-view" id="tab-garden">
+             <div class="tab-scroll scroll-y">
+               <!-- The actual background handles the atmosphere, this just renders the specific elements -->
+               <div class="garden-hero">
+                  <h2 class="garden-title">The Circle Ecosystem</h2>
+                  <p class="garden-subtitle">Your shared consistency creates life.</p>
+               </div>
+               <div class="full-garden-view" id="full-garden">
+                 <div class="tree-wrapper you thriving">
+                    <div class="tree-trunk"></div><div class="tree-leaves"></div><span class="tree-label">You</span>
+                 </div>
+                 <div class="tree-wrapper partner wilting">
+                    <div class="tree-trunk"></div><div class="tree-leaves"></div><span class="tree-label">Aarav</span>
+                 </div>
+               </div>
+               
+               <div class="garden-stats-grid">
+                  <div class="glass-card g-stat">
+                    <h4>Circle Streak</h4>
+                    <div class="g-stat-value">🔥 14</div>
+                  </div>
+                  <div class="glass-card g-stat">
+                    <h4>Ecosystem Health</h4>
+                    <div class="g-stat-value text-success">86%</div>
+                  </div>
+               </div>
+             </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- TAB: CHALLENGES (Tug of War)               -->
+          <!-- ========================================== -->
+          <div class="tab-view" id="tab-challenges">
+            <div class="tab-scroll scroll-y">
+              <div class="tab-sub-nav">
+                <button class="sub-tab active">Active Battles</button>
+                <button class="sub-tab">History</button>
+              </div>
+              <div class="challenges-list" id="challenges-list">
+                <!-- Tug of War Battle Card -->
+                <div class="challenge-card battle-card active">
+                  <div class="cc-header">
+                    <div>
+                      <h3 class="cc-title">7-Day Consistency War</h3>
+                      <p class="cc-desc">First to complete all daily goals for 7 days wins.</p>
+                    </div>
+                    <div class="cc-time pulse">⏰ 2 days left</div>
+                  </div>
+                  
+                  <div class="tug-of-war-arena">
+                    <div class="tug-competitor left">
+                      <div class="avatar-gradient-ring sm"><span class="emoji">😎</span></div>
+                      <span>You (5)</span>
+                    </div>
+                    
+                    <div class="tug-rope-container">
+                      <div class="tug-rope"></div>
+                      <div class="tug-node" style="left: 60%;"></div> <!-- Moving physically based on score -->
+                    </div>
+
+                    <div class="tug-competitor right">
+                      <span>Aarav (4)</span>
+                      <div class="avatar-gradient-ring sm"><span class="emoji">👨‍🦱</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-lg btn-full" id="btn-create-challenge" style="margin-top:16px">⚔️ Declare War</button>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- TAB: PROFILE                               -->
+          <!-- ========================================== -->
+          <div class="tab-view" id="tab-profile">
+            <div class="tab-scroll scroll-y">
+              
+              <div class="profile-header">
+                <div class="avatar-gradient-ring lg" id="profile-avatar-ring">
+                  <span class="emoji">😎</span>
+                </div>
+                <h2 class="profile-name">Abhishek</h2>
+                <div class="level-badge">Lv.5</div>
+              </div>
+
+              <!-- Triple Activity Ring (Goals, Streak, XP) -->
+              <div class="activity-rings-container">
+                <svg viewBox="0 0 100 100" class="triple-rings">
+                  <circle class="ring-bg" cx="50" cy="50" r="40"/><circle class="ring-fill goals-ring" cx="50" cy="50" r="40" stroke-dasharray="251" stroke-dashoffset="50"/>
+                  <circle class="ring-bg" cx="50" cy="50" r="30"/><circle class="ring-fill streak-ring" cx="50" cy="50" r="30" stroke-dasharray="188" stroke-dashoffset="60"/>
+                  <circle class="ring-bg" cx="50" cy="50" r="20"/><circle class="ring-fill xp-ring" cx="50" cy="50" r="20" stroke-dasharray="125" stroke-dashoffset="20"/>
+                </svg>
+              </div>
+
+              <div class="radar-chart-card glass-card">
+                <h3>Growth Matrix</h3>
+                <svg viewBox="0 0 200 200" id="radar-chart"></svg>
+              </div>
+
+              <div class="streak-calendar-card glass-card">
+                <h3>Consistency Heatmap</h3>
+                <div class="calendar-grid" id="calendar-grid"></div>
+              </div>
+
+              <div class="profile-actions" style="margin-top:24px;">
+                <button class="btn btn-outline btn-full" id="btn-settings">⚙️ Settings</button>
+              </div>
+            </div>
+          </div>
+
+        </main>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="bottom-nav" id="bottom-nav">
+          <button class="nav-tab active" data-tab="today" id="nav-today">
+            <span class="nav-tab-icon">✅</span>
+            <span class="nav-tab-label">Today</span>
+          </button>
+          <button class="nav-tab" data-tab="garden" id="nav-garden">
+            <span class="nav-tab-icon">🌱</span>
+            <span class="nav-tab-label">Garden</span>
+          </button>
+          <button class="nav-tab" data-tab="challenges" id="nav-challenges">
+            <span class="nav-tab-icon">⚔️</span>
+            <span class="nav-tab-label">Battle</span>
+          </button>
+          <button class="nav-tab" data-tab="profile" id="nav-profile">
+            <span class="nav-tab-icon">👤</span>
+            <span class="nav-tab-label">Profile</span>
+          </button>
+        </nav>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- OMNIPRESENT ORBIT SHEET (Expanded Partner View) -->
+      <!-- ========================================== -->
+      <div class="modal-overlay glass-modal" id="modal-orbit-expanded" style="display:none">
+        <div class="modal-sheet modal-sm">
+          <div class="orbit-sheet-header">
+            <div class="avatar-gradient-ring lg"><span class="emoji">👨‍🦱</span></div>
+            <h3 class="orbit-sheet-name">Aarav</h3>
+            <p class="orbit-sheet-status">Active now</p>
+          </div>
+          <div class="orbit-sheet-actions">
+            <button class="btn-reaction" data-reaction="🔥">🔥 Send Fire</button>
+            <button class="btn-reaction" data-reaction="👀">👀 Nudge</button>
+            <button class="btn-reaction" data-reaction="👏">👏 Praise</button>
+          </div>
+          <button class="btn btn-ghost btn-full" id="btn-close-orbit">Close</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <script src="node_modules/canvas-confetti/dist/confetti.browser.js"></script>
+  <script src="node_modules/countup.js/dist/countUp.umd.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

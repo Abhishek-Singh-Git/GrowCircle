@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "countup.js": "^2.10.0"
+  }
+}

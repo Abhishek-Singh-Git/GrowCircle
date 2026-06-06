@@ -1,0 +1,806 @@
+// GrowCircle — Complete Prisma Schema
+// Mirrors PRD Section 20 Database Schema exactly
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// USERS & AUTH
+// ============================================================================
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String    @db.VarChar(100)
+  email             String?   @unique @db.VarChar(255)
+  phone             String?   @unique @db.VarChar(30)
+  passwordHash      String    @map("password_hash") @db.VarChar(255)
+  avatarUrl         String?   @map("avatar_url") @db.VarChar(500)
+  bio               String?   @db.VarChar(300)
+  timezone          String    @default("UTC") @db.VarChar(50)
+  plan              String    @default("free") @db.VarChar(20)
+  accountStatus     String    @default("active") @map("account_status") @db.VarChar(20)
+  ageVerifiedAt     DateTime? @map("age_verified_at")
+  parentalConsentAt DateTime? @map("parental_consent_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  lastActiveAt      DateTime? @map("last_active_at")
+  deletedAt         DateTime? @map("deleted_at")
+  fcmToken          String?   @map("fcm_token") @db.VarChar(500)
+
+  authTokens              AuthToken[]
+  ownedCircles            Circle[]              @relation("CircleOwner")
+  circleMemberships       CircleMember[]
+  consentRecords          ConsentRecord[]
+  goals                   Goal[]
+  goalInstances           GoalInstance[]
+  activityLogs            ActivityLog[]
+  mediaObjects            MediaObject[]
+  logReactions            LogReaction[]
+  sentNudges              NudgeLog[]            @relation("NudgeSender")
+  receivedNudges          NudgeLog[]            @relation("NudgeRecipient")
+  screenTimeSnapshots     ScreenTimeSnapshot[]
+  appThresholds           AppThreshold[]
+  initiatedInterventions  InterventionLog[]     @relation("InterventionInitiator")
+  receivedInterventions   InterventionLog[]     @relation("InterventionTarget")
+  sentMessages            Message[]
+  initiatedCalls          CallSession[]
+  screenShareRequests     ScreenShareSession[]  @relation("ScreenShareRequester")
+  screenShareShares       ScreenShareSession[]  @relation("ScreenShareSharer")
+  proposedChallenges      Challenge[]           @relation("ChallengeProposer")
+  wonChallenges           Challenge[]           @relation("ChallengeWinner")
+  challengeParticipations ChallengeParticipant[]
+  raisedDisputes          DisputeTicket[]       @relation("DisputeRaiser")
+  resolvedDisputes        DisputeTicket[]       @relation("DisputeResolver")
+  gamificationProfiles    GamificationProfile[]
+  dailyScores             DailyScore[]
+  earnedBadges            UserBadge[]
+  achievementProgress     UserAchievement[]
+  gracePeriods            GracePeriodsUser[]    @relation("GracePeriodUser")
+  giftedGracePeriods      GracePeriodsUser[]    @relation("GracePeriodGifter")
+  notifications           Notification[]
+  preferences             UserPreference?
+  subscriptions           SubscriptionRecord[]
+  actorAuditLogs          AuditLog[]            @relation("AuditActor")
+  targetAuditLogs         AuditLog[]            @relation("AuditTarget")
+  dataExportRequests      DataExportRequest[]
+  chatParticipations      ChatThreadParticipant[]
+  removedMembers          CircleMember[]        @relation("MemberRemovedBy")
+
+  @@map("users")
+}
+
+model AuthToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(255)
+  tokenType String    @map("token_type") @db.VarChar(20)
+  deviceId  String?   @map("device_id") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("auth_tokens")
+}
+
+// ============================================================================
+// CIRCLES & MEMBERSHIP
+// ============================================================================
+
+model Circle {
+  id                      String    @id @default(uuid()) @db.Uuid
+  name                    String    @db.VarChar(100)
+  description             String?   @db.VarChar(300)
+  ownerId                 String    @map("owner_id") @db.Uuid
+  inviteCode              String    @unique @map("invite_code") @db.VarChar(20)
+  inviteLinkToken         String    @unique @map("invite_link_token") @db.VarChar(100)
+  inviteExpiresAt         DateTime? @map("invite_expires_at")
+  privacyLevel            String    @default("private") @map("privacy_level") @db.VarChar(20)
+  timeoutEnabled          Boolean   @default(true) @map("timeout_enabled")
+  timeoutPermissionType   String    @default("mutual") @map("timeout_permission_type") @db.VarChar(30)
+  leaderboardVisibility   String    @default("all_members") @map("leaderboard_visibility") @db.VarChar(30)
+  maxStakeType            String    @default("points_only") @map("max_stake_type") @db.VarChar(30)
+  maxDailyTimeoutsPerMember Int     @default(5) @map("max_daily_timeouts_per_member")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  disbandedAt             DateTime? @map("disbanded_at")
+
+  owner                User                @relation("CircleOwner", fields: [ownerId], references: [id])
+  members              CircleMember[]
+  consentRecords       ConsentRecord[]
+  goals                Goal[]
+  goalInstances        GoalInstance[]
+  activityLogs         ActivityLog[]
+  nudgeLogs            NudgeLog[]
+  appThresholds        AppThreshold[]
+  interventionLogs     InterventionLog[]
+  chatThreads          ChatThread[]
+  callSessions         CallSession[]
+  screenShareSessions  ScreenShareSession[]
+  challenges           Challenge[]
+  gamificationProfiles GamificationProfile[]
+  dailyScores          DailyScore[]
+  leaderboardSnapshots LeaderboardSnapshot[]
+  gracePeriods         GracePeriodsUser[]
+
+  @@map("circles")
+}
+
+model CircleMember {
+  id        String    @id @default(uuid()) @db.Uuid
+  circleId  String    @map("circle_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  role      String    @default("member") @db.VarChar(20)
+  status    String    @default("active") @db.VarChar(20)
+  joinedAt  DateTime  @default(now()) @map("joined_at")
+  leftAt    DateTime? @map("left_at")
+  removedAt DateTime? @map("removed_at")
+  removedBy String?   @map("removed_by") @db.Uuid
+
+  circle    Circle @relation(fields: [circleId], references: [id])
+  user      User   @relation(fields: [userId], references: [id])
+  remover   User?  @relation("MemberRemovedBy", fields: [removedBy], references: [id])
+
+  @@unique([circleId, userId])
+  @@map("circle_members")
+}
+
+model ConsentRecord {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  circleId  String    @map("circle_id") @db.Uuid
+  feature   String    @db.VarChar(50)
+  grantedAt DateTime  @default(now()) @map("granted_at")
+  revokedAt DateTime? @map("revoked_at")
+  deviceId  String?   @map("device_id") @db.VarChar(255)
+  ipAddress String?   @map("ip_address") @db.VarChar(45)
+
+  user   User   @relation(fields: [userId], references: [id])
+  circle Circle @relation(fields: [circleId], references: [id])
+
+  @@map("consent_records")
+}
+
+// ============================================================================
+// GOALS
+// ============================================================================
+
+model Goal {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  circleId           String    @map("circle_id") @db.Uuid
+  name               String    @db.VarChar(200)
+  goalType           String    @map("goal_type") @db.VarChar(20)
+  targetValue        Decimal?  @map("target_value") @db.Decimal(10, 2)
+  targetUnit         String?   @map("target_unit") @db.VarChar(50)
+  scheduleType       String    @map("schedule_type") @db.VarChar(30)
+  scheduleDays       Int[]     @map("schedule_days")
+  scheduleWeeklyFreq Int?      @map("schedule_weekly_freq")
+  scheduleStartDate  DateTime? @map("schedule_start_date") @db.Date
+  scheduleEndDate    DateTime? @map("schedule_end_date") @db.Date
+  category           String    @default("Custom") @db.VarChar(50)
+  categoryEmoji      String?   @map("category_emoji") @db.VarChar(10)
+  difficultyWeight   Int       @default(1) @map("difficulty_weight")
+  requireProof       Boolean   @default(false) @map("require_proof")
+  isSensitive        Boolean   @default(false) @map("is_sensitive")
+  status             String    @default("active") @db.VarChar(20)
+  templateSourceId   String?   @map("template_source_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime? @updatedAt @map("updated_at")
+  pausedAt           DateTime? @map("paused_at")
+  archivedAt         DateTime? @map("archived_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  user           User            @relation(fields: [userId], references: [id])
+  circle         Circle          @relation(fields: [circleId], references: [id])
+  template       GoalTemplate?   @relation(fields: [templateSourceId], references: [id])
+  milestones     GoalMilestone[]
+  instances      GoalInstance[]
+  activityLogs   ActivityLog[]
+  nudgeLogs      NudgeLog[]
+  challenges     Challenge[]     @relation("ChallengeGoal")
+
+  @@map("goals")
+}
+
+model GoalMilestone {
+  id          String   @id @default(uuid()) @db.Uuid
+  goalId      String   @map("goal_id") @db.Uuid
+  label       String   @db.VarChar(200)
+  targetValue Decimal? @map("target_value") @db.Decimal(10, 2)
+  orderIndex  Int      @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  goal Goal @relation(fields: [goalId], references: [id])
+
+  @@map("goal_milestones")
+}
+
+model GoalTemplate {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String   @db.VarChar(200)
+  description    String?  @db.VarChar(500)
+  category       String   @db.VarChar(50)
+  genderTag      String?  @map("gender_tag") @db.VarChar(30)
+  goalsJson      Json     @map("goals_json")
+  isActive       Boolean  @default(true) @map("is_active")
+  locale         String   @default("en") @db.VarChar(10)
+  version        Int      @default(1)
+  createdByAdmin String?  @map("created_by_admin") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime? @updatedAt @map("updated_at")
+
+  clonedGoals Goal[]
+
+  @@map("goal_templates")
+}
+
+model GoalInstance {
+  id          String    @id @default(uuid()) @db.Uuid
+  goalId      String    @map("goal_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  circleId    String    @map("circle_id") @db.Uuid
+  date        DateTime  @db.Date
+  targetValue Decimal?  @map("target_value") @db.Decimal(10, 2)
+  status      String    @default("pending") @db.VarChar(20)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+
+  goal         Goal          @relation(fields: [goalId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  circle       Circle        @relation(fields: [circleId], references: [id])
+  activityLogs ActivityLog[]
+  nudgeLogs    NudgeLog[]
+
+  @@unique([goalId, date])
+  @@index([userId, date])
+  @@index([circleId, date])
+  @@map("goal_instances")
+}
+
+// ============================================================================
+// ACTIVITY LOGGING & MEDIA
+// ============================================================================
+
+model ActivityLog {
+  id                 String    @id @default(uuid()) @db.Uuid
+  clientUuid         String    @unique @map("client_uuid") @db.Uuid
+  goalInstanceId     String    @map("goal_instance_id") @db.Uuid
+  goalId             String    @map("goal_id") @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  circleId           String    @map("circle_id") @db.Uuid
+  date               DateTime  @db.Date
+  targetValue        Decimal?  @map("target_value") @db.Decimal(10, 2)
+  actualValue        Decimal?  @map("actual_value") @db.Decimal(10, 2)
+  completionFraction Decimal   @default(0) @map("completion_fraction") @db.Decimal(5, 4)
+  status             String    @default("completed") @db.VarChar(20)
+  proofUrl           String?   @map("proof_url") @db.VarChar(500)
+  proofType          String?   @map("proof_type") @db.VarChar(20)
+  notes              String?   @db.VarChar(500)
+  loggedAt           DateTime  @default(now()) @map("logged_at")
+  editedAt           DateTime? @map("edited_at")
+  isLateEdit         Boolean   @default(false) @map("is_late_edit")
+  xpAwarded          Int       @default(0) @map("xp_awarded")
+
+  goalInstance GoalInstance  @relation(fields: [goalInstanceId], references: [id])
+  goal         Goal          @relation(fields: [goalId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  circle       Circle        @relation(fields: [circleId], references: [id])
+  mediaObjects MediaObject[]
+  reactions    LogReaction[]
+
+  @@index([userId, date])
+  @@index([circleId, date])
+  @@map("activity_logs")
+}
+
+model MediaObject {
+  id              String    @id @default(uuid()) @db.Uuid
+  ownerUserId     String    @map("owner_user_id") @db.Uuid
+  associatedLogId String?   @map("associated_log_id") @db.Uuid
+  storageKey      String    @map("storage_key") @db.VarChar(500)
+  cdnUrl          String    @map("cdn_url") @db.VarChar(500)
+  fileType        String    @map("file_type") @db.VarChar(50)
+  fileSizeBytes   BigInt    @map("file_size_bytes")
+  durationSeconds Int?      @map("duration_seconds")
+  uploadStatus    String    @default("pending") @map("upload_status") @db.VarChar(20)
+  uploadedAt      DateTime? @map("uploaded_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  owner User         @relation(fields: [ownerUserId], references: [id])
+  log   ActivityLog? @relation(fields: [associatedLogId], references: [id])
+
+  @@map("media_objects")
+}
+
+model LogReaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  logId     String   @map("log_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  emoji     String   @db.VarChar(10)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  log  ActivityLog @relation(fields: [logId], references: [id])
+  user User        @relation(fields: [userId], references: [id])
+
+  @@unique([logId, userId, emoji])
+  @@map("log_reactions")
+}
+
+model NudgeLog {
+  id             String    @id @default(uuid()) @db.Uuid
+  senderId       String    @map("sender_id") @db.Uuid
+  recipientId    String    @map("recipient_id") @db.Uuid
+  circleId       String    @map("circle_id") @db.Uuid
+  goalId         String?   @map("goal_id") @db.Uuid
+  goalInstanceId String?   @map("goal_instance_id") @db.Uuid
+  message        String?   @db.VarChar(200)
+  result         String?   @db.VarChar(30)
+  sentAt         DateTime  @default(now()) @map("sent_at")
+
+  sender       User          @relation("NudgeSender", fields: [senderId], references: [id])
+  recipient    User          @relation("NudgeRecipient", fields: [recipientId], references: [id])
+  circle       Circle        @relation(fields: [circleId], references: [id])
+  goal         Goal?         @relation(fields: [goalId], references: [id])
+  goalInstance GoalInstance? @relation(fields: [goalInstanceId], references: [id])
+
+  @@index([senderId, recipientId, sentAt])
+  @@map("nudge_logs")
+}
+
+// ============================================================================
+// DIGITAL WELLBEING
+// ============================================================================
+
+model ScreenTimeSnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  date           DateTime @db.Date
+  appPackage     String   @map("app_package") @db.VarChar(255)
+  appDisplayName String?  @map("app_display_name") @db.VarChar(255)
+  durationSeconds Int     @map("duration_seconds")
+  openCount      Int?     @map("open_count")
+  isHidden       Boolean  @default(false) @map("is_hidden")
+  platform       String   @db.VarChar(20)
+  syncedAt       DateTime @default(now()) @map("synced_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date, appPackage])
+  @@index([userId, date])
+  @@map("screen_time_snapshots")
+}
+
+model AppThreshold {
+  id               String  @id @default(uuid()) @db.Uuid
+  userId           String  @map("user_id") @db.Uuid
+  circleId         String  @map("circle_id") @db.Uuid
+  appPackage       String  @map("app_package") @db.VarChar(255)
+  thresholdSeconds Int     @map("threshold_seconds")
+  alertEnabled     Boolean @default(true) @map("alert_enabled")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  circle Circle @relation(fields: [circleId], references: [id])
+
+  @@unique([userId, circleId, appPackage])
+  @@map("app_thresholds")
+}
+
+model InterventionLog {
+  id               String    @id @default(uuid()) @db.Uuid
+  initiatorId      String    @map("initiator_id") @db.Uuid
+  targetId         String    @map("target_id") @db.Uuid
+  circleId         String    @map("circle_id") @db.Uuid
+  interventionType String    @map("intervention_type") @db.VarChar(20)
+  appPackage       String?   @map("app_package") @db.VarChar(255)
+  durationSeconds  Int?      @map("duration_seconds")
+  status           String    @db.VarChar(30)
+  overrideAt       DateTime? @map("override_at")
+  overrideReason   String?   @map("override_reason") @db.VarChar(200)
+  initiatedAt      DateTime  @default(now()) @map("initiated_at")
+  expiresAt        DateTime? @map("expires_at")
+
+  initiator User   @relation("InterventionInitiator", fields: [initiatorId], references: [id])
+  target    User   @relation("InterventionTarget", fields: [targetId], references: [id])
+  circle    Circle @relation(fields: [circleId], references: [id])
+
+  @@index([targetId, initiatedAt(sort: Desc)])
+  @@map("intervention_logs")
+}
+
+// ============================================================================
+// COMMUNICATION
+// ============================================================================
+
+model ChatThread {
+  id         String   @id @default(uuid()) @db.Uuid
+  circleId   String   @map("circle_id") @db.Uuid
+  threadType String   @map("thread_type") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  circle       Circle                  @relation(fields: [circleId], references: [id])
+  participants ChatThreadParticipant[]
+  messages     Message[]
+
+  @@map("chat_threads")
+}
+
+model ChatThreadParticipant {
+  threadId   String    @map("thread_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  joinedAt   DateTime  @default(now()) @map("joined_at")
+  lastReadAt DateTime? @map("last_read_at")
+
+  thread ChatThread @relation(fields: [threadId], references: [id])
+  user   User       @relation(fields: [userId], references: [id])
+
+  @@id([threadId, userId])
+  @@map("chat_thread_participants")
+}
+
+model Message {
+  id        String    @id @default(uuid()) @db.Uuid
+  threadId  String    @map("thread_id") @db.Uuid
+  senderId  String    @map("sender_id") @db.Uuid
+  content   String?
+  mediaUrl  String?   @map("media_url") @db.VarChar(500)
+  mediaType String?   @map("media_type") @db.VarChar(30)
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  sentAt    DateTime  @default(now()) @map("sent_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  thread ChatThread @relation(fields: [threadId], references: [id])
+  sender User       @relation(fields: [senderId], references: [id])
+
+  @@index([threadId, sentAt(sort: Desc)])
+  @@map("messages")
+}
+
+model CallSession {
+  id           String    @id @default(uuid()) @db.Uuid
+  circleId     String    @map("circle_id") @db.Uuid
+  callType     String    @map("call_type") @db.VarChar(20)
+  initiatedBy  String    @map("initiated_by") @db.Uuid
+  participants String[]  @db.Uuid
+  status       String    @db.VarChar(20)
+  startedAt    DateTime? @map("started_at")
+  endedAt      DateTime? @map("ended_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  circle    Circle @relation(fields: [circleId], references: [id])
+  initiator User   @relation(fields: [initiatedBy], references: [id])
+
+  @@map("call_sessions")
+}
+
+model ScreenShareSession {
+  id             String    @id @default(uuid()) @db.Uuid
+  circleId       String    @map("circle_id") @db.Uuid
+  requesterId    String    @map("requester_id") @db.Uuid
+  sharerId       String    @map("sharer_id") @db.Uuid
+  consentGivenAt DateTime? @map("consent_given_at")
+  status         String    @db.VarChar(20)
+  startedAt      DateTime? @map("started_at")
+  endedAt        DateTime? @map("ended_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  circle    Circle @relation(fields: [circleId], references: [id])
+  requester User   @relation("ScreenShareRequester", fields: [requesterId], references: [id])
+  sharer    User   @relation("ScreenShareSharer", fields: [sharerId], references: [id])
+
+  @@map("screen_share_sessions")
+}
+
+// ============================================================================
+// CHALLENGES
+// ============================================================================
+
+model Challenge {
+  id                   String    @id @default(uuid()) @db.Uuid
+  circleId             String    @map("circle_id") @db.Uuid
+  proposerId           String    @map("proposer_id") @db.Uuid
+  title                String    @db.VarChar(200)
+  conditionDescription String    @map("condition_description")
+  conditionType        String    @map("condition_type") @db.VarChar(30)
+  conditionGoalId      String?   @map("condition_goal_id") @db.Uuid
+  conditionTarget      Decimal?  @map("condition_target") @db.Decimal(10, 2)
+  stakeType            String    @map("stake_type") @db.VarChar(20)
+  stakeDescription     String?   @map("stake_description") @db.VarChar(500)
+  stakePoints          Int?      @map("stake_points")
+  proofRequired        Boolean   @default(false) @map("proof_required")
+  tieBreakRule         String    @default("extend_7_days") @map("tie_break_rule") @db.VarChar(30)
+  deadline             DateTime
+  status               String    @default("pending") @db.VarChar(20)
+  winnerId             String?   @map("winner_id") @db.Uuid
+  outcomeType          String?   @map("outcome_type") @db.VarChar(30)
+  resolvedAt           DateTime? @map("resolved_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  circle       Circle                 @relation(fields: [circleId], references: [id])
+  proposer     User                   @relation("ChallengeProposer", fields: [proposerId], references: [id])
+  winner       User?                  @relation("ChallengeWinner", fields: [winnerId], references: [id])
+  conditionGoal Goal?                 @relation("ChallengeGoal", fields: [conditionGoalId], references: [id])
+  participants ChallengeParticipant[]
+  disputes     DisputeTicket[]
+
+  @@map("challenges")
+}
+
+model ChallengeParticipant {
+  id          String    @id @default(uuid()) @db.Uuid
+  challengeId String    @map("challenge_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  status      String    @default("pending") @db.VarChar(20)
+  acceptedAt  DateTime? @map("accepted_at")
+  withdrawnAt DateTime? @map("withdrawn_at")
+
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([challengeId, userId])
+  @@map("challenge_participants")
+}
+
+model DisputeTicket {
+  id           String    @id @default(uuid()) @db.Uuid
+  challengeId  String    @map("challenge_id") @db.Uuid
+  raisedBy     String    @map("raised_by") @db.Uuid
+  description  String
+  evidenceUrls String[]  @map("evidence_urls") @db.VarChar(500)
+  status       String    @default("open") @db.VarChar(20)
+  adminNotes   String?   @map("admin_notes")
+  resolvedBy   String?   @map("resolved_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+  resolvedAt   DateTime? @map("resolved_at")
+
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+  raiser    User      @relation("DisputeRaiser", fields: [raisedBy], references: [id])
+  resolver  User?     @relation("DisputeResolver", fields: [resolvedBy], references: [id])
+
+  @@map("dispute_tickets")
+}
+
+// ============================================================================
+// GAMIFICATION
+// ============================================================================
+
+model GamificationProfile {
+  userId                  String @map("user_id") @db.Uuid
+  circleId                String @map("circle_id") @db.Uuid
+  totalXp                 Int    @default(0) @map("total_xp")
+  currentLevel            Int    @default(0) @map("current_level")
+  currentStreak           Int    @default(0) @map("current_streak")
+  longestStreak           Int    @default(0) @map("longest_streak")
+  streakFreezeCount       Int    @default(0) @map("streak_freeze_count")
+  graceDaysUsedThisMonth  Int    @default(0) @map("grace_days_used_this_month")
+  graceDaysGiftedReceived Int    @default(0) @map("grace_days_gifted_received")
+  graceResetMonth         Int?   @map("grace_reset_month")
+  lastStreakUpdateDate    DateTime? @map("last_streak_update_date") @db.Date
+  updatedAt               DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  circle Circle @relation(fields: [circleId], references: [id])
+
+  @@id([userId, circleId])
+  @@map("gamification_profiles")
+}
+
+model DailyScore {
+  id                    String   @id @default(uuid()) @db.Uuid
+  userId                String   @map("user_id") @db.Uuid
+  circleId              String   @map("circle_id") @db.Uuid
+  date                  DateTime @db.Date
+  dailyPerformanceScore Decimal? @map("daily_performance_score") @db.Decimal(5, 2)
+  consistencyScore      Decimal? @map("consistency_score") @db.Decimal(5, 2)
+  growthScore           Decimal? @map("growth_score") @db.Decimal(5, 2)
+  disciplineScore       Decimal? @map("discipline_score") @db.Decimal(5, 2)
+  accountabilityScore   Decimal? @map("accountability_score") @db.Decimal(5, 2)
+  goalsActive           Int?     @map("goals_active")
+  goalsCompleted        Int?     @map("goals_completed")
+  xpEarnedToday         Int      @default(0) @map("xp_earned_today")
+  computedAt            DateTime @default(now()) @map("computed_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  circle Circle @relation(fields: [circleId], references: [id])
+
+  @@unique([userId, circleId, date])
+  @@index([userId, date(sort: Desc)])
+  @@map("daily_scores")
+}
+
+model Badge {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @unique @db.VarChar(100)
+  description  String   @db.VarChar(300)
+  category     String   @db.VarChar(30)
+  iconUrl      String?  @map("icon_url") @db.VarChar(500)
+  criteriaType String   @map("criteria_type") @db.VarChar(50)
+  criteriaValue Json?   @map("criteria_value")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  earnedBy     UserBadge[]
+  achievements Achievement[] @relation("AchievementBadge")
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id       String   @id @default(uuid()) @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  badgeId  String   @map("badge_id") @db.Uuid
+  earnedAt DateTime @default(now()) @map("earned_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model Achievement {
+  id            String  @id @default(uuid()) @db.Uuid
+  name          String  @db.VarChar(200)
+  description   String  @db.VarChar(500)
+  stepsJson     Json    @map("steps_json")
+  rewardXp      Int     @default(0) @map("reward_xp")
+  rewardBadgeId String? @map("reward_badge_id") @db.Uuid
+  isActive      Boolean @default(true) @map("is_active")
+
+  rewardBadge   Badge?            @relation("AchievementBadge", fields: [rewardBadgeId], references: [id])
+  userProgress  UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  achievementId String    @map("achievement_id") @db.Uuid
+  currentStep   Int       @default(0) @map("current_step")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime? @updatedAt @map("updated_at")
+
+  user        User        @relation(fields: [userId], references: [id])
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model LeaderboardSnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  circleId     String   @map("circle_id") @db.Uuid
+  date         DateTime @db.Date
+  metric       String   @db.VarChar(50)
+  rankingsJson Json     @map("rankings_json")
+  computedAt   DateTime @default(now()) @map("computed_at")
+
+  circle Circle @relation(fields: [circleId], references: [id])
+
+  @@unique([circleId, date, metric])
+  @@map("leaderboard_snapshots")
+}
+
+model GracePeriodsUser {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  circleId      String    @map("circle_id") @db.Uuid
+  durationDays  Int       @map("duration_days")
+  giftedBy      String?   @map("gifted_by") @db.Uuid
+  activatedAt   DateTime  @default(now()) @map("activated_at")
+  endsAt        DateTime  @map("ends_at")
+  deactivatedAt DateTime? @map("deactivated_at")
+
+  user   User    @relation("GracePeriodUser", fields: [userId], references: [id])
+  circle Circle  @relation(fields: [circleId], references: [id])
+  gifter User?   @relation("GracePeriodGifter", fields: [giftedBy], references: [id])
+
+  @@map("grace_periods")
+}
+
+// ============================================================================
+// NOTIFICATIONS & PREFERENCES
+// ============================================================================
+
+model Notification {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  type          String    @db.VarChar(50)
+  title         String    @db.VarChar(200)
+  body          String    @db.VarChar(500)
+  metadata      Json?
+  isRead        Boolean   @default(false) @map("is_read")
+  sentAt        DateTime  @default(now()) @map("sent_at")
+  readAt        DateTime? @map("read_at")
+  actionTakenAt DateTime? @map("action_taken_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead, sentAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model UserPreference {
+  userId                    String   @id @map("user_id") @db.Uuid
+  notifyPartnerLog          Boolean  @default(true) @map("notify_partner_log")
+  notifyNudge               Boolean  @default(true) @map("notify_nudge")
+  notifyFocusAlert          Boolean  @default(true) @map("notify_focus_alert")
+  notifyTimeout             Boolean  @default(true) @map("notify_timeout")
+  notifyChallenge           Boolean  @default(true) @map("notify_challenge")
+  notifyDailyRecap          Boolean  @default(true) @map("notify_daily_recap")
+  notifyDailyRecapTime      String   @default("21:00:00") @map("notify_daily_recap_time") @db.VarChar(8)
+  notifyEveningReminder     Boolean  @default(true) @map("notify_evening_reminder")
+  notifyEveningReminderTime String   @default("19:00:00") @map("notify_evening_reminder_time") @db.VarChar(8)
+  notifyBadge               Boolean  @default(true) @map("notify_badge")
+  notifyStreak              Boolean  @default(true) @map("notify_streak")
+  notifyChat                Boolean  @default(true) @map("notify_chat")
+  leaderboardVisible        Boolean  @default(true) @map("leaderboard_visible")
+  scoresVisible             Json?    @map("scores_visible")
+  darkMode                  String   @default("system") @map("dark_mode") @db.VarChar(20)
+  nudgeBlockedUsers         String[] @map("nudge_blocked_users") @db.Uuid
+  shareLateNightActivity    Boolean  @default(false) @map("share_late_night_activity")
+  updatedAt                 DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("user_preferences")
+}
+
+// ============================================================================
+// SUBSCRIPTIONS & COMPLIANCE
+// ============================================================================
+
+model SubscriptionRecord {
+  id                     String    @id @default(uuid()) @db.Uuid
+  userId                 String    @map("user_id") @db.Uuid
+  plan                   String    @db.VarChar(20)
+  status                 String    @db.VarChar(20)
+  startedAt              DateTime  @map("started_at")
+  endsAt                 DateTime? @map("ends_at")
+  paymentProvider        String?   @map("payment_provider") @db.VarChar(50)
+  externalSubscriptionId String?   @map("external_subscription_id") @db.VarChar(255)
+  createdAt              DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("subscription_records")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  actorId      String?  @map("actor_id") @db.Uuid
+  targetUserId String?  @map("target_user_id") @db.Uuid
+  action       String   @db.VarChar(100)
+  resourceType String?  @map("resource_type") @db.VarChar(50)
+  resourceId   String?  @map("resource_id") @db.Uuid
+  metadata     Json?
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  actor  User? @relation("AuditActor", fields: [actorId], references: [id])
+  target User? @relation("AuditTarget", fields: [targetUserId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model DataExportRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  status      String    @default("pending") @db.VarChar(20)
+  downloadUrl String?   @map("download_url") @db.VarChar(500)
+  expiresAt   DateTime? @map("expires_at")
+  requestedAt DateTime  @default(now()) @map("requested_at")
+  completedAt DateTime? @map("completed_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("data_export_requests")
+}

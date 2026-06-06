@@ -1,0 +1,319 @@
+/* DESIGN TOKENS: These values are sacred. Changing a primary color must update the entire emotion map. */
+:root {
+  --c-bg-base: #0B0F19; /* Deep space navy */
+  --c-bg-card: rgba(25, 33, 48, 0.6); /* Glassmorphic base */
+  --c-text-main: #FFFFFF;
+  --c-text-muted: #94A3B8;
+  --c-accent-primary: #8B5CF6; /* Violet */
+  --c-accent-secondary: #C084FC;
+  --c-accent-glow: rgba(139, 92, 246, 0.3);
+  --c-success: #10B981; /* Green */
+  --c-success-glow: rgba(16, 185, 129, 0.3);
+  --c-warning: #F59E0B; /* Amber/Orange */
+  --c-danger: #EF4444; /* Red */
+  
+  --grad-primary: linear-gradient(135deg, #7C3AED 0%, #A855F7 50%, #C084FC 100%);
+  --grad-gold: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 0.2s;
+  --t-med: 0.4s;
+  --t-slow: 0.8s;
+  
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 32px;
+  --radius-pill: 99px;
+  --nav-height: 80px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: #000;
+  color: var(--c-text-main);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+}
+h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
+button { font-family: inherit; cursor: pointer; border: none; outline: none; background: none; }
+input, textarea { font-family: inherit; }
+
+#device-frame {
+  width: 393px;
+  height: 852px;
+  background: var(--c-bg-base);
+  border-radius: 48px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 12px #1E293B, 0 0 60px rgba(139, 92, 246, 0.15);
+}
+#app { width: 100%; height: 100%; position: relative; z-index: 10; }
+.screen {
+  position: absolute; inset: 0;
+  display: none; flex-direction: column;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity var(--t-med) var(--ease-out), transform var(--t-med) var(--spring);
+  z-index: 10;
+}
+.screen.active { display: flex; opacity: 1; transform: translateY(0); z-index: 20; }
+.scroll-y { overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth; }
+.scroll-y::-webkit-scrollbar { display: none; }
+
+/* ==========================================================================
+   GLOBAL ATMOSPHERE (The Ecosystem Background)
+   ========================================================================== */
+.global-atmosphere { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(circle at 50% -20%, #1a2235 0%, #0B0F19 80%); transition: background 1s; }
+.particle-field { position: absolute; inset: 0; }
+.particle { position: absolute; background: #FFF; border-radius: 50%; opacity: 0.4; filter: blur(1px); animation: drift linear infinite; }
+.atmosphere-glow { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.2; }
+.atmosphere-glow.g1 { width: 400px; height: 400px; background: var(--c-success); top: -150px; left: -100px; animation: pulseGlow 8s infinite alternate; }
+.atmosphere-glow.g2 { width: 300px; height: 300px; background: var(--c-accent-primary); bottom: -100px; right: -100px; animation: pulseGlow 10s infinite alternate-reverse; }
+
+/* ==========================================================================
+   GLASSMORPHISM & COMPONENTS
+   ========================================================================== */
+.glass-card { background: var(--c-bg-card); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-md); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
+.glass-modal { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background: rgba(11, 15, 25, 0.6); }
+
+.btn { border-radius: var(--radius-pill); font-weight: 600; font-size: 15px; transition: transform var(--t-fast) var(--spring), box-shadow var(--t-fast); display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:active { transform: scale(0.96); }
+.btn-primary { background: #FFFFFF; color: #000; padding: 16px 24px; box-shadow: 0 8px 24px rgba(255, 255, 255, 0.2); }
+.btn-outline { background: transparent; color: var(--c-text-main); padding: 16px 24px; border: 1px solid rgba(255,255,255,0.2); }
+.btn-ghost { background: transparent; color: var(--c-text-muted); padding: 16px; }
+.btn-full { width: 100%; }
+.btn-lg { font-size: 17px; padding: 18px; }
+.btn-sm { padding: 10px 16px; font-size: 13px; }
+.btn-shimmer { position: relative; overflow: hidden; }
+.btn-shimmer::after { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent); transform: skewX(-20deg); animation: shimmer 3s infinite; }
+
+.avatar-gradient-ring { padding: 3px; border-radius: 50%; background: var(--grad-primary); display: flex; align-items: center; justify-content: center; position: relative; }
+.avatar-gradient-ring > * { background: var(--c-bg-base); border-radius: 50%; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.avatar-gradient-ring.sm { width: 32px; height: 32px; }
+.avatar-gradient-ring.lg { width: 80px; height: 80px; }
+
+/* ==========================================================================
+   MASCOT
+   ========================================================================== */
+.mascot-container { display: flex; justify-content: center; align-items: center; height: 120px; perspective: 1000px; }
+.mascot-orb { width: 80px; height: 80px; border-radius: 50%; background: var(--grad-primary); box-shadow: 0 0 40px var(--c-accent-glow), inset -10px -10px 20px rgba(0,0,0,0.2); position: relative; transition: transform var(--t-med) var(--spring), background 0.5s; animation: float 4s ease-in-out infinite; }
+.mascot-orb.mini { width: 40px; height: 40px; box-shadow: 0 0 20px var(--c-accent-glow); animation: none; }
+.mascot-eye { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #FFF; top: 30px; animation: blink 4s infinite; transition: all var(--t-fast) var(--spring); }
+.mascot-orb.mini .mascot-eye { width: 6px; height: 6px; top: 15px; }
+.mascot-eye.left { left: 22px; }
+.mascot-eye.right { right: 22px; }
+.mascot-orb.mini .mascot-eye.left { left: 10px; }
+.mascot-orb.mini .mascot-eye.right { right: 10px; }
+.mascot-mouth { position: absolute; width: 20px; height: 10px; border: 3px solid #FFF; border-top: none; border-radius: 0 0 20px 20px; bottom: 20px; left: 50%; transform: translateX(-50%); transition: all var(--t-fast) var(--spring); }
+.mascot-orb.mini .mascot-mouth { width: 10px; height: 5px; border-width: 2px; bottom: 8px; }
+.state-neutral .mascot-mouth { width: 14px; border-radius: 0; border: 3px solid #FFF; border-top:none; border-left:none; border-right:none; bottom: 22px; }
+
+/* ==========================================================================
+   ONBOARDING
+   ========================================================================== */
+.onboarding-slides { flex: 1; position: relative; }
+.onboarding-slide { position: absolute; inset: 0; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.4s; pointer-events: none; padding: 24px; }
+.onboarding-slide.active { opacity: 1; pointer-events: auto; }
+.onboarding-visual { flex: 1; display: flex; align-items: center; justify-content: center; }
+.onboarding-text { padding-bottom: 40px; text-align: center; }
+.onboarding-text h2 { font-size: 28px; margin-bottom: 12px; }
+.onboarding-text p { font-size: 16px; color: var(--c-text-muted); line-height: 1.5; }
+.onboarding-footer { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+.onboarding-dots { display: flex; justify-content: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.2); transition: 0.3s; }
+.dot.active { width: 24px; background: #FFF; }
+
+.shared-pact-icon { font-size: 80px; filter: drop-shadow(0 0 40px var(--c-accent-glow)); animation: float 3s ease-in-out infinite; }
+.shared-pact-icon.lg { font-size: 100px; }
+.oath-action { text-align: center; }
+.btn-oath-hold { width: 80px; height: 80px; border-radius: 40px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); margin: 0 auto; position: relative; overflow: hidden; transition: transform var(--t-fast); }
+.btn-oath-hold::before { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: var(--oath-fill, 0%); background: var(--grad-primary); transition: height 0.05s linear; }
+.btn-oath-hold:active { transform: scale(0.9); }
+.oath-instruction { font-size: 14px; color: var(--c-text-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px; }
+
+/* Setup Forms */
+.screen-header { display: flex; align-items: center; padding: 20px 24px; }
+.screen-title { flex: 1; text-align: center; font-size: 20px; }
+.btn-back, .spacer { width: 40px; }
+.screen-body { padding: 0 24px 40px; flex: 1; }
+.form-group { margin-bottom: 24px; }
+.form-label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--c-text-muted); }
+.form-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 12px; color: #FFF; font-size: 16px; transition: border-color 0.3s; }
+.form-input:focus { border-color: var(--c-accent-primary); outline: none; }
+.setup-hero { text-align: center; margin-bottom: 40px; padding-top: 20px; }
+.setup-hero h3 { font-size: 24px; margin: 16px 0 8px; }
+.setup-hero p { color: var(--c-text-muted); line-height: 1.5; }
+
+/* ==========================================================================
+   APP SHELL & NAVIGATION
+   ========================================================================== */
+.bottom-nav { height: var(--nav-height); padding-bottom: 20px; display: flex; justify-content: space-around; align-items: center; background: rgba(11, 15, 25, 0.7); backdrop-filter: blur(40px); border-top: 1px solid rgba(255,255,255,0.05); position: absolute; bottom: 0; width: 100%; z-index: 50; }
+.nav-tab { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--c-text-muted); transition: color var(--t-fast); width: 64px; }
+.nav-tab.active { color: #FFF; }
+.nav-tab-icon { font-size: 24px; transition: transform var(--t-fast) var(--spring); }
+.nav-tab.active .nav-tab-icon { transform: translateY(-4px) scale(1.1); filter: drop-shadow(0 4px 8px var(--c-accent-glow)); }
+.nav-tab-label { font-size: 11px; font-weight: 500; }
+
+.main-content { height: calc(100% - 90px - var(--nav-height)); position: relative; margin-top: 90px; }
+.tab-view { position: absolute; inset: 0; display: none; opacity: 0; transform: translateY(10px); transition: opacity var(--t-med), transform var(--t-med) var(--spring); }
+.tab-view.active { display: block; opacity: 1; transform: translateY(0); }
+.tab-scroll { height: 100%; padding: 0 20px 20px; }
+
+/* ==========================================================================
+   OMNIPRESENT ORBIT (Dynamic Island)
+   ========================================================================== */
+.omnipresent-orbit { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: calc(100% - 40px); background: rgba(0,0,0,0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-pill); display: flex; justify-content: space-between; align-items: center; padding: 6px 6px 6px 12px; z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,0.3); cursor: pointer; transition: transform var(--t-fast) var(--spring); }
+.omnipresent-orbit:active { transform: translateX(-50%) scale(0.98); }
+.orbit-content { display: flex; align-items: center; gap: 12px; flex: 1; }
+.orbit-partner-avatar { position: relative; }
+.orbit-live-dot { position: absolute; bottom: -2px; right: -2px; width: 12px; height: 12px; background: var(--c-success); border-radius: 50%; border: 2px solid var(--c-bg-base); animation: pulseDanger 2s infinite; }
+.orbit-status { display: flex; flex-direction: column; flex: 1; }
+.orbit-name { font-weight: 700; font-size: 14px; }
+.orbit-activity { font-size: 11px; color: var(--c-accent-primary); font-weight: 600; }
+.orbit-mini-chart { width: 32px; height: 32px; }
+.orbit-ring-fill { fill: none; stroke: var(--c-success); stroke-width: 3; stroke-linecap: round; }
+
+.daily-countdown { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: var(--radius-pill); position: relative; overflow: hidden; }
+.countdown-text { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; z-index: 2; position: relative; }
+.countdown-icon { font-size: 12px; z-index: 2; position: relative; }
+.countdown-bar-bg { position: absolute; inset: 0; z-index: 1; opacity: 0.2; }
+.countdown-bar-fill { height: 100%; width: 100%; background: var(--grad-primary); transform-origin: left; transition: transform 1s linear; }
+
+/* ==========================================================================
+   TODAY TAB (Goals)
+   ========================================================================== */
+.today-section { margin-bottom: 32px; padding-top: 16px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.section-header h3 { font-size: 20px; }
+
+/* Active Goals */
+.goal-list { display: flex; flex-direction: column; gap: 12px; }
+.goal-card-wrapper { position: relative; border-radius: var(--radius-md); overflow: hidden; background: var(--c-success); transition: height var(--t-med) var(--spring), opacity var(--t-fast); }
+.goal-card { position: relative; z-index: 2; padding: 16px; display: flex; align-items: center; gap: 16px; background: var(--c-bg-card); backdrop-filter: blur(12px); border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.08); transition: transform 0s; user-select: none; }
+.goal-card.completed { border-color: var(--c-success); background: rgba(16, 185, 129, 0.1); }
+.goal-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.goal-info { flex: 1; }
+.goal-info h4 { font-size: 16px; margin-bottom: 4px; transition: color var(--t-fast); }
+.goal-info p { font-size: 13px; color: var(--c-text-muted); }
+.goal-action-hint { font-size: 12px; color: rgba(255,255,255,0.3); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Completed Goals Drawer */
+.completed-goals-drawer { margin-top: 24px; }
+.drawer-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 0; color: var(--c-text-muted); font-weight: 600; border-top: 1px solid rgba(255,255,255,0.05); }
+.drawer-title { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.drawer-title .badge { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+.drawer-chevron { transition: transform 0.3s; font-size: 10px; }
+.drawer-content { overflow: hidden; height: 0; opacity: 0; transition: height var(--t-med) var(--spring), opacity var(--t-med); display: flex; flex-direction: column; gap: 8px; }
+.drawer-content.open { height: auto; opacity: 1; padding-top: 12px; }
+.completed-goals-drawer.open .drawer-chevron { transform: rotate(180deg); }
+
+.goal-card-mini { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2); }
+.goal-card-mini .goal-info h4 { text-decoration: line-through; color: var(--c-text-muted); font-size: 14px; margin: 0; }
+.goal-card-mini .goal-icon { width: 32px; height: 32px; font-size: 16px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: var(--c-success); }
+
+/* ==========================================================================
+   GARDEN TAB
+   ========================================================================== */
+.garden-hero { text-align: center; margin-bottom: 32px; padding-top: 20px; }
+.garden-title { font-size: 28px; margin-bottom: 8px; }
+.garden-subtitle { color: var(--c-text-muted); font-size: 14px; }
+.full-garden-view { height: 250px; display: flex; justify-content: space-around; align-items: flex-end; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px; }
+.tree-wrapper { display: flex; flex-direction: column; align-items: center; position: relative; }
+.tree-trunk { width: 16px; height: 60px; background: #8B5A2B; border-radius: 4px; }
+.tree-leaves { position: absolute; bottom: 40px; width: 80px; height: 80px; border-radius: 50%; transition: all var(--t-slow); }
+.tree-wrapper.thriving .tree-leaves { background: var(--c-success); box-shadow: 0 0 40px var(--c-success-glow); transform: scale(1); }
+.tree-wrapper.wilting .tree-leaves { background: #6B7280; transform: scale(0.6); border-radius: 40% 60% 70% 30%; }
+.tree-label { font-size: 12px; font-weight: 700; margin-top: 12px; color: var(--c-text-muted); background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 12px; }
+.garden-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.g-stat { padding: 16px; text-align: center; }
+.g-stat h4 { font-size: 12px; color: var(--c-text-muted); text-transform: uppercase; margin-bottom: 8px; }
+.g-stat-value { font-size: 24px; font-weight: 800; }
+.text-success { color: var(--c-success); text-shadow: 0 0 10px var(--c-success-glow); }
+
+/* ==========================================================================
+   CHALLENGES (Tug of War)
+   ========================================================================== */
+.tab-sub-nav { display: flex; background: rgba(0,0,0,0.3); border-radius: var(--radius-pill); padding: 4px; margin-bottom: 24px; }
+.sub-tab { flex: 1; padding: 10px; border-radius: var(--radius-pill); font-size: 14px; font-weight: 600; color: var(--c-text-muted); transition: 0.3s; }
+.sub-tab.active { background: #FFF; color: #000; }
+
+.challenge-card { background: var(--c-bg-card); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.08); }
+.cc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+.cc-title { font-size: 18px; margin-bottom: 4px; }
+.cc-desc { font-size: 13px; color: var(--c-text-muted); }
+.cc-time { font-size: 12px; font-weight: 600; color: var(--c-danger); }
+.pulse { animation: pulseOpacity 2s infinite; }
+
+.tug-of-war-arena { display: flex; align-items: center; justify-content: space-between; position: relative; padding: 10px 0; }
+.tug-competitor { display: flex; align-items: center; gap: 8px; z-index: 2; font-weight: 600; font-size: 14px; background: var(--c-bg-base); padding: 4px; border-radius: 20px; }
+.tug-rope-container { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 100%; height: 2px; background: rgba(255,255,255,0.2); z-index: 1; }
+.tug-node { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; background: #FFF; border-radius: 50%; box-shadow: 0 0 20px #FFF, 0 0 40px var(--c-accent-primary); transition: left 1s var(--spring); }
+
+/* ==========================================================================
+   PROFILE
+   ========================================================================== */
+.profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 32px; padding-top: 16px; }
+.profile-name { font-size: 28px; margin: 16px 0 8px; }
+.level-badge { background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--c-accent-secondary); }
+
+.activity-rings-container { width: 200px; height: 200px; margin: 0 auto 32px; position: relative; }
+.triple-rings { width: 100%; height: 100%; transform: rotate(-90deg); }
+.triple-rings .ring-bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 8; }
+.triple-rings .ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1.5s var(--spring); }
+.goals-ring { stroke: var(--c-success); }
+.streak-ring { stroke: var(--c-warning); }
+.xp-ring { stroke: var(--c-accent-primary); }
+
+.radar-chart-card, .streak-calendar-card { padding: 24px; margin-bottom: 24px; text-align: center; }
+.radar-chart-card h3, .streak-calendar-card h3 { margin-bottom: 16px; font-size: 16px; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 1px; }
+#radar-chart { width: 100%; max-width: 250px; margin: 0 auto; overflow: visible; }
+.radar-grid { stroke: rgba(255,255,255,0.1); stroke-width: 1; fill: none; }
+.radar-axis { stroke: rgba(255,255,255,0.1); stroke-width: 1; }
+.radar-area { fill: rgba(139, 92, 246, 0.2); stroke: var(--c-accent-primary); stroke-width: 2; }
+
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.cal-day-label { text-align: center; font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 700; margin-bottom: 4px; }
+.cal-cell { aspect-ratio: 1; border-radius: 4px; background: rgba(255,255,255,0.05); transition: background 0.3s; }
+.cal-cell.level-1 { background: rgba(16, 185, 129, 0.3); }
+.cal-cell.level-2 { background: rgba(16, 185, 129, 0.6); }
+.cal-cell.level-3 { background: rgba(16, 185, 129, 1); box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+.cal-cell.today { border: 2px solid #FFF; }
+
+/* ==========================================================================
+   MODALS (Glassmorphic Sheets)
+   ========================================================================== */
+.modal-overlay { position: absolute; inset: 0; z-index: 100; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity var(--t-med); }
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+body.modal-open #screen-app { transform: scale(0.95); filter: blur(4px); border-radius: 32px; overflow: hidden; pointer-events: none; }
+
+.modal-sheet { width: 100%; background: var(--c-bg-base); border-radius: 32px 32px 0 0; border-top: 1px solid rgba(255,255,255,0.1); transform: translateY(100%); transition: transform var(--t-med) var(--spring); display: flex; flex-direction: column; max-height: 90vh; }
+.modal-overlay.active .modal-sheet { transform: translateY(0); }
+.modal-sm { height: auto; padding: 24px; padding-bottom: 40px; }
+
+.orbit-sheet-header { text-align: center; margin-bottom: 32px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.orbit-sheet-name { font-size: 24px; }
+.orbit-sheet-status { color: var(--c-success); font-weight: 600; font-size: 14px; }
+.orbit-sheet-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.btn-reaction { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 16px 8px; font-size: 14px; font-weight: 600; color: #FFF; transition: transform var(--t-fast); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.btn-reaction:active { transform: scale(0.9); background: rgba(255,255,255,0.1); }
+
+/* ==========================================================================
+   ANIMATIONS & UTILITIES
+   ========================================================================== */
+@keyframes pulseGlow { 0% { transform: scale(1); opacity: 0.1; } 100% { transform: scale(1.2); opacity: 0.3; } }
+@keyframes pulseDanger { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+@keyframes pulseOpacity { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes drift { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 0.6; } 90% { opacity: 0.6; } 100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; } }
+
+.xp-flyup { position: absolute; color: var(--c-accent-primary); font-weight: 800; font-size: 24px; pointer-events: none; z-index: 100; animation: xpFly 1s ease-out forwards; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+@keyframes xpFly { 0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; } 20% { transform: translate(-50%, -20px) scale(1.2); opacity: 1; } 100% { transform: translate(-50%, -60px) scale(1); opacity: 0; } }
+
+/* Physics Reaction Cloud */
+.physics-reaction { position: absolute; font-size: 32px; pointer-events: none; z-index: 200; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.6s ease-in; }
+.orbit-bump { animation: bump 0.3s var(--spring); }
+@keyframes bump { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2) rotate(5deg); } }
