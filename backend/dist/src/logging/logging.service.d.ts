@@ -48,8 +48,8 @@ export declare class LoggingService {
         userId: string;
         status: string;
         circleId: string;
-        goalId: string;
         date: Date;
+        goalId: string;
         clientUuid: string;
         goalInstanceId: string;
         actualValue: Prisma.Decimal | null;
@@ -119,8 +119,8 @@ export declare class LoggingService {
         userId: string;
         status: string;
         circleId: string;
-        goalId: string;
         date: Date;
+        goalId: string;
         clientUuid: string;
         goalInstanceId: string;
         actualValue: Prisma.Decimal | null;
@@ -186,8 +186,8 @@ export declare class LoggingService {
                 userId: string;
                 status: string;
                 circleId: string;
-                goalId: string;
                 date: Date;
+                goalId: string;
                 clientUuid: string;
                 goalInstanceId: string;
                 actualValue: Prisma.Decimal | null;
@@ -208,8 +208,8 @@ export declare class LoggingService {
             userId: string;
             status: string;
             circleId: string;
-            goalId: string;
             date: Date;
+            goalId: string;
         })[];
     }[]>;
     private calculateXp;

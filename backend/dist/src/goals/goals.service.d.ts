@@ -37,8 +37,8 @@ export declare class GoalsService {
             id: string;
             createdAt: Date;
             targetValue: Prisma.Decimal | null;
-            orderIndex: number;
             goalId: string;
+            orderIndex: number;
             label: string;
         }[];
     } & {
@@ -72,8 +72,8 @@ export declare class GoalsService {
             id: string;
             createdAt: Date;
             targetValue: Prisma.Decimal | null;
-            orderIndex: number;
             goalId: string;
+            orderIndex: number;
             label: string;
         }[];
         instances: ({
@@ -83,8 +83,8 @@ export declare class GoalsService {
                 userId: string;
                 status: string;
                 circleId: string;
-                goalId: string;
                 date: Date;
+                goalId: string;
                 clientUuid: string;
                 goalInstanceId: string;
                 actualValue: Prisma.Decimal | null;
@@ -105,8 +105,8 @@ export declare class GoalsService {
             userId: string;
             status: string;
             circleId: string;
-            goalId: string;
             date: Date;
+            goalId: string;
         })[];
     } & {
         id: string;
@@ -279,8 +279,8 @@ export declare class GoalsService {
             userId: string;
             status: string;
             circleId: string;
-            goalId: string;
             date: Date;
+            goalId: string;
             clientUuid: string;
             goalInstanceId: string;
             actualValue: Prisma.Decimal | null;
@@ -301,8 +301,8 @@ export declare class GoalsService {
         userId: string;
         status: string;
         circleId: string;
-        goalId: string;
         date: Date;
+        goalId: string;
     })[]>;
     generateInstanceForDate(goalId: string, userId: string, circleId: string, date: Date): Promise<{
         id: string;
@@ -312,8 +312,8 @@ export declare class GoalsService {
         userId: string;
         status: string;
         circleId: string;
-        goalId: string;
         date: Date;
+        goalId: string;
     } | null>;
     generateAllInstancesForDate(userId: string, circleId: string, date: Date): Promise<{
         id: string;
@@ -323,8 +323,8 @@ export declare class GoalsService {
         userId: string;
         status: string;
         circleId: string;
-        goalId: string;
         date: Date;
+        goalId: string;
     }[]>;
     private isScheduledForDate;
 }

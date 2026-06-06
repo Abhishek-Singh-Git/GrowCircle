@@ -92,11 +92,15 @@ export class AuthService {
       });
 
       if (!user) {
+        // Google OAuth users don't use password auth — generate a random hash as placeholder
+        const randomPassword = crypto.randomBytes(32).toString('hex');
+        const placeholderHash = await bcrypt.hash(randomPassword, 12);
         user = await this.prisma.user.create({
           data: {
             email: payload.email,
             name: payload.name || 'New User',
             avatarUrl: payload.picture,
+            passwordHash: placeholderHash,
           },
         });
         

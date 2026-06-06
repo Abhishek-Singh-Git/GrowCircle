@@ -67,12 +67,12 @@ export declare class CirclesController {
         } & {
             id: string;
             userId: string;
-            status: string;
-            circleId: string;
             role: string;
+            status: string;
             joinedAt: Date;
             leftAt: Date | null;
             removedAt: Date | null;
+            circleId: string;
             removedBy: string | null;
         })[];
     } & {

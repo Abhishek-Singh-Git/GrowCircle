@@ -51,12 +51,12 @@ export declare class CirclesService {
         } & {
             id: string;
             userId: string;
-            status: string;
-            circleId: string;
             role: string;
+            status: string;
             joinedAt: Date;
             leftAt: Date | null;
             removedAt: Date | null;
+            circleId: string;
             removedBy: string | null;
         })[];
     } & {
@@ -79,12 +79,12 @@ export declare class CirclesService {
     validateMembership(userId: string, circleId: string): Promise<{
         id: string;
         userId: string;
-        status: string;
-        circleId: string;
         role: string;
+        status: string;
         joinedAt: Date;
         leftAt: Date | null;
         removedAt: Date | null;
+        circleId: string;
         removedBy: string | null;
     }>;
     private generateInviteCode;

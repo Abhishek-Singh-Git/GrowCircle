@@ -76,7 +76,7 @@ let UploadsService = UploadsService_1 = class UploadsService {
                 .rotate()
                 .resize({ width: 1200, withoutEnlargement: true })
                 .jpeg({ quality: 80 })
-                .withMetadata(false)
+                .withMetadata({})
                 .toBuffer();
             const thumbnailBuffer = await (0, sharp_1.default)(processedBuffer)
                 .resize({ width: 300, height: 300, fit: 'cover' })

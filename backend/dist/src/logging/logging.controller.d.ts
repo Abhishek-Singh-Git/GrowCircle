@@ -47,8 +47,8 @@ export declare class LoggingController {
         userId: string;
         status: string;
         circleId: string;
-        goalId: string;
         date: Date;
+        goalId: string;
         clientUuid: string;
         goalInstanceId: string;
         actualValue: import("@prisma/client-runtime-utils").Decimal | null;
@@ -122,8 +122,8 @@ export declare class LoggingController {
         userId: string;
         status: string;
         circleId: string;
-        goalId: string;
         date: Date;
+        goalId: string;
         clientUuid: string;
         goalInstanceId: string;
         actualValue: import("@prisma/client-runtime-utils").Decimal | null;
@@ -201,8 +201,8 @@ export declare class LoggingController {
                 userId: string;
                 status: string;
                 circleId: string;
-                goalId: string;
                 date: Date;
+                goalId: string;
                 clientUuid: string;
                 goalInstanceId: string;
                 actualValue: import("@prisma/client-runtime-utils").Decimal | null;
@@ -223,8 +223,8 @@ export declare class LoggingController {
             userId: string;
             status: string;
             circleId: string;
-            goalId: string;
             date: Date;
+            goalId: string;
         })[];
     }[]>;
 }

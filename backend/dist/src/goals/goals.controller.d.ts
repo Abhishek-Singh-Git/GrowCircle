@@ -42,8 +42,8 @@ export declare class GoalsController {
             id: string;
             createdAt: Date;
             targetValue: import("@prisma/client-runtime-utils").Decimal | null;
-            orderIndex: number;
             goalId: string;
+            orderIndex: number;
             label: string;
         }[];
     } & {
@@ -81,8 +81,8 @@ export declare class GoalsController {
             id: string;
             createdAt: Date;
             targetValue: import("@prisma/client-runtime-utils").Decimal | null;
-            orderIndex: number;
             goalId: string;
+            orderIndex: number;
             label: string;
         }[];
         instances: ({
@@ -92,8 +92,8 @@ export declare class GoalsController {
                 userId: string;
                 status: string;
                 circleId: string;
-                goalId: string;
                 date: Date;
+                goalId: string;
                 clientUuid: string;
                 goalInstanceId: string;
                 actualValue: import("@prisma/client-runtime-utils").Decimal | null;
@@ -114,8 +114,8 @@ export declare class GoalsController {
             userId: string;
             status: string;
             circleId: string;
-            goalId: string;
             date: Date;
+            goalId: string;
         })[];
     } & {
         id: string;
@@ -308,8 +308,8 @@ export declare class GoalsController {
             userId: string;
             status: string;
             circleId: string;
-            goalId: string;
             date: Date;
+            goalId: string;
             clientUuid: string;
             goalInstanceId: string;
             actualValue: import("@prisma/client-runtime-utils").Decimal | null;
@@ -330,7 +330,7 @@ export declare class GoalsController {
         userId: string;
         status: string;
         circleId: string;
-        goalId: string;
         date: Date;
+        goalId: string;
     })[]>;
 }

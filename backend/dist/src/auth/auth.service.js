@@ -109,11 +109,14 @@ let AuthService = class AuthService {
                 where: { email: payload.email },
             });
             if (!user) {
+                const randomPassword = crypto.randomBytes(32).toString('hex');
+                const placeholderHash = await bcrypt.hash(randomPassword, 12);
                 user = await this.prisma.user.create({
                     data: {
                         email: payload.email,
                         name: payload.name || 'New User',
                         avatarUrl: payload.picture,
+                        passwordHash: placeholderHash,
                     },
                 });
                 await this.prisma.userPreference.create({
