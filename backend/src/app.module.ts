@@ -19,23 +19,31 @@ import { UploadsModule } from './uploads/uploads.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
+// Only load BullMQ + Jobs when Redis is configured
+const optionalImports = [];
+if (process.env.REDIS_HOST) {
+  optionalImports.push(
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST,
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+      },
+    }),
+    JobsModule,
+  );
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     EventEmitterModule.forRoot(),
-    BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-      },
-    }),
+    ...optionalImports,
     PrismaModule,
     AuthModule,
     CirclesModule,
     GoalsModule,
     LoggingModule,
     GatewayModule,
-    JobsModule,
     ScreenTimeModule,
     InterventionsModule,
     ChatModule,
@@ -48,3 +56,4 @@ import { AppService } from './app.service';
   providers: [AppService],
 })
 export class AppModule {}
+
