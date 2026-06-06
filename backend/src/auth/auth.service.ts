@@ -97,6 +97,7 @@ export class AuthService {
             email: payload.email,
             name: payload.name || 'New User',
             avatarUrl: payload.picture,
+            passwordHash: '',
           },
         });
         

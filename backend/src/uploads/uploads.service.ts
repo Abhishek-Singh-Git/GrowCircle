@@ -34,7 +34,7 @@ export class UploadsService {
         .rotate() // auto-rotate based on EXIF
         .resize({ width: 1200, withoutEnlargement: true }) // limit max width
         .jpeg({ quality: 80 }) // convert to JPEG and compress
-        .withMetadata(false) // strip EXIF
+        .withMetadata() // strip EXIF
         .toBuffer();
 
       // 3. Generate thumbnail
