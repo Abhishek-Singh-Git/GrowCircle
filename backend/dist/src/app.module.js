@@ -27,6 +27,15 @@ const notifications_module_1 = require("./notifications/notifications.module");
 const uploads_module_1 = require("./uploads/uploads.module");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
+const optionalImports = [];
+if (process.env.REDIS_HOST) {
+    optionalImports.push(bullmq_1.BullModule.forRoot({
+        connection: {
+            host: process.env.REDIS_HOST,
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+        },
+    }), jobs_module_1.JobsModule);
+}
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -35,19 +44,13 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
             event_emitter_1.EventEmitterModule.forRoot(),
-            bullmq_1.BullModule.forRoot({
-                connection: {
-                    host: process.env.REDIS_HOST || 'localhost',
-                    port: parseInt(process.env.REDIS_PORT || '6379'),
-                },
-            }),
+            ...optionalImports,
             prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
             circles_module_1.CirclesModule,
             goals_module_1.GoalsModule,
             logging_module_1.LoggingModule,
             gateway_module_1.GatewayModule,
-            jobs_module_1.JobsModule,
             screen_time_module_1.ScreenTimeModule,
             interventions_module_1.InterventionsModule,
             chat_module_1.ChatModule,
