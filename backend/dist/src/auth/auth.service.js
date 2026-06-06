@@ -114,8 +114,6 @@ let AuthService = class AuthService {
                         email: payload.email,
                         name: payload.name || 'New User',
                         avatarUrl: payload.picture,
-                        authProvider: 'google',
-                        authProviderId: payload.sub,
                     },
                 });
                 await this.prisma.userPreference.create({
@@ -147,6 +145,9 @@ let AuthService = class AuthService {
         });
         if (!user || !user.passwordHash) {
             throw new common_1.UnauthorizedException('Invalid credentials');
+        }
+        if (!dto.password) {
+            throw new common_1.UnauthorizedException('Password is required');
         }
         const isValid = await bcrypt.compare(dto.password, user.passwordHash);
         if (!isValid) {

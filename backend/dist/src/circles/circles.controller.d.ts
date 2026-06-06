@@ -11,8 +11,8 @@ export declare class CirclesController {
         inviteLink: string;
         id: string;
         name: string;
-        createdAt: Date;
         description: string | null;
+        createdAt: Date;
         timeoutEnabled: boolean;
         timeoutPermissionType: string;
         leaderboardVisibility: string;
@@ -67,19 +67,19 @@ export declare class CirclesController {
         } & {
             id: string;
             userId: string;
-            role: string;
             status: string;
+            circleId: string;
+            role: string;
             joinedAt: Date;
             leftAt: Date | null;
             removedAt: Date | null;
-            circleId: string;
             removedBy: string | null;
         })[];
     } & {
         id: string;
         name: string;
-        createdAt: Date;
         description: string | null;
+        createdAt: Date;
         timeoutEnabled: boolean;
         timeoutPermissionType: string;
         leaderboardVisibility: string;

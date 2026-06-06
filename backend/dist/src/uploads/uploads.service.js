@@ -41,13 +41,16 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var UploadsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UploadsService = void 0;
 const common_1 = require("@nestjs/common");
 const client_s3_1 = require("@aws-sdk/client-s3");
 const crypto = __importStar(require("crypto"));
-const sharp = __importStar(require("sharp"));
+const sharp_1 = __importDefault(require("sharp"));
 let UploadsService = UploadsService_1 = class UploadsService {
     s3Client;
     logger = new common_1.Logger(UploadsService_1.name);
@@ -69,13 +72,13 @@ let UploadsService = UploadsService_1 = class UploadsService {
             if (!isSafe) {
                 throw new common_1.BadRequestException('Image flagged for inappropriate content');
             }
-            const processedBuffer = await sharp(file.buffer)
+            const processedBuffer = await (0, sharp_1.default)(file.buffer)
                 .rotate()
                 .resize({ width: 1200, withoutEnlargement: true })
                 .jpeg({ quality: 80 })
                 .withMetadata(false)
                 .toBuffer();
-            const thumbnailBuffer = await sharp(processedBuffer)
+            const thumbnailBuffer = await (0, sharp_1.default)(processedBuffer)
                 .resize({ width: 300, height: 300, fit: 'cover' })
                 .jpeg({ quality: 70 })
                 .toBuffer();

@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import * as crypto from 'crypto';
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 
 @Injectable()
 export class UploadsService {
@@ -18,7 +18,7 @@ export class UploadsService {
     });
   }
 
-  async processAndUploadImage(file: Express.Multer.File, userId: string) {
+  async processAndUploadImage(file: any, userId: string) {
     if (!file) throw new BadRequestException('No file provided');
 
     try {

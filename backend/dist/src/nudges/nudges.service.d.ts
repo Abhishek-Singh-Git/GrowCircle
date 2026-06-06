@@ -14,9 +14,9 @@ export declare class NudgesService {
             avatarUrl: string | null;
         };
     } & {
-        message: string | null;
         id: string;
         result: string | null;
+        message: string | null;
         circleId: string;
         goalId: string | null;
         goalInstanceId: string | null;
@@ -37,9 +37,9 @@ export declare class NudgesService {
                 avatarUrl: string | null;
             };
         } & {
-            message: string | null;
             id: string;
             result: string | null;
+            message: string | null;
             circleId: string;
             goalId: string | null;
             goalInstanceId: string | null;

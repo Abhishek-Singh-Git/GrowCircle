@@ -15,9 +15,10 @@ export declare class AppController {
     }[];
     updateUser(req: any, body: any): Promise<{
         id: string;
+        name: string;
+        createdAt: Date;
         email: string | null;
         phone: string | null;
-        name: string;
         passwordHash: string;
         avatarUrl: string | null;
         bio: string | null;
@@ -26,12 +27,12 @@ export declare class AppController {
         accountStatus: string;
         ageVerifiedAt: Date | null;
         parentalConsentAt: Date | null;
-        createdAt: Date;
         lastActiveAt: Date | null;
         deletedAt: Date | null;
         fcmToken: string | null;
     }>;
     getPreferences(req: any): Promise<{
+        updatedAt: Date;
         userId: string;
         notifyPartnerLog: boolean;
         notifyNudge: boolean;
@@ -50,9 +51,9 @@ export declare class AppController {
         darkMode: string;
         nudgeBlockedUsers: string[];
         shareLateNightActivity: boolean;
-        updatedAt: Date;
     }>;
     updatePreferences(req: any, body: any): Promise<{
+        updatedAt: Date;
         userId: string;
         notifyPartnerLog: boolean;
         notifyNudge: boolean;
@@ -71,6 +72,5 @@ export declare class AppController {
         darkMode: string;
         nudgeBlockedUsers: string[];
         shareLateNightActivity: boolean;
-        updatedAt: Date;
     }>;
 }

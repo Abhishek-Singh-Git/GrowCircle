@@ -20,7 +20,7 @@ export class UploadsController {
       cb(null, true);
     },
   }))
-  async uploadImage(@UploadedFile() file: Express.Multer.File, @Request() req: any) {
+  async uploadImage(@UploadedFile() file: any, @Request() req: any) {
     if (!file) throw new BadRequestException('File is required');
     return this.uploadsService.processAndUploadImage(file, req.user.userId);
   }

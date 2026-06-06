@@ -39,9 +39,9 @@ export declare class AuthService {
     private sanitizeUser;
     validateUser(userId: string): Promise<{
         id: string;
+        name: string;
         email: string | null;
         phone: string | null;
-        name: string;
         avatarUrl: string | null;
         timezone: string;
         plan: string;

@@ -4,147 +4,137 @@ const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 async function main() {
     console.log('Seeding database with templates...');
-    await prisma.templateLibrary.upsert({
-        where: { id: 'template_fitness_1' },
+    await prisma.goalTemplate.upsert({
+        where: { id: '00000000-0000-0000-0000-000000000001' },
         update: {},
         create: {
-            id: 'template_fitness_1',
+            id: '00000000-0000-0000-0000-000000000001',
             category: 'fitness',
-            title: 'Fitness Jumpstart',
+            name: 'Fitness Jumpstart',
             description: 'A 7-day plan to get your heart rate up and build a habit of daily movement.',
-            difficulty: 'beginner',
-            goals: [
+            goalsJson: [
                 {
-                    title: 'Drink 2L of water',
-                    type: 'checklist',
-                    frequency: 'daily',
-                    requiresProof: true,
+                    name: 'Drink 2L of water',
+                    goalType: 'checklist',
+                    scheduleType: 'daily',
+                    requireProof: true,
                 },
                 {
-                    title: '15 Min Cardio',
-                    type: 'duration',
-                    frequency: 'daily',
+                    name: '15 Min Cardio',
+                    goalType: 'duration',
+                    scheduleType: 'daily',
                     targetValue: 15,
-                    unit: 'minutes',
-                    requiresProof: true,
+                    targetUnit: 'minutes',
+                    requireProof: true,
                 },
             ],
-            durationDays: 7,
-            createdBy: 'system',
+            isActive: true,
         },
     });
-    await prisma.templateLibrary.upsert({
-        where: { id: 'template_detox_1' },
+    await prisma.goalTemplate.upsert({
+        where: { id: '00000000-0000-0000-0000-000000000002' },
         update: {},
         create: {
-            id: 'template_detox_1',
+            id: '00000000-0000-0000-0000-000000000002',
             category: 'wellness',
-            title: 'Digital Detox',
+            name: 'Digital Detox',
             description: 'Reduce screen time and be more present in the real world.',
-            difficulty: 'intermediate',
-            goals: [
+            goalsJson: [
                 {
-                    title: 'No phone 1 hour before bed',
-                    type: 'checklist',
-                    frequency: 'daily',
-                    requiresProof: false,
+                    name: 'No phone 1 hour before bed',
+                    goalType: 'checklist',
+                    scheduleType: 'daily',
+                    requireProof: false,
                 },
                 {
-                    title: 'Read 10 pages of a book',
-                    type: 'checklist',
-                    frequency: 'daily',
-                    requiresProof: true,
+                    name: 'Read 10 pages of a book',
+                    goalType: 'checklist',
+                    scheduleType: 'daily',
+                    requireProof: true,
                 },
             ],
-            durationDays: 14,
-            createdBy: 'system',
+            isActive: true,
         },
     });
-    await prisma.templateLibrary.upsert({
-        where: { id: 'template_prod_1' },
+    await prisma.goalTemplate.upsert({
+        where: { id: '00000000-0000-0000-0000-000000000003' },
         update: {},
         create: {
-            id: 'template_prod_1',
+            id: '00000000-0000-0000-0000-000000000003',
             category: 'productivity',
-            title: 'Productivity Hacker',
+            name: 'Productivity Hacker',
             description: 'Master your time with deep work sessions.',
-            difficulty: 'advanced',
-            goals: [
+            goalsJson: [
                 {
-                    title: 'Deep Work Session',
-                    type: 'duration',
-                    frequency: 'daily',
+                    name: 'Deep Work Session',
+                    goalType: 'duration',
+                    scheduleType: 'daily',
                     targetValue: 120,
-                    unit: 'minutes',
-                    requiresProof: false,
+                    targetUnit: 'minutes',
+                    requireProof: false,
                 },
                 {
-                    title: 'Plan tomorrow today',
-                    type: 'checklist',
-                    frequency: 'daily',
-                    requiresProof: true,
+                    name: 'Plan tomorrow today',
+                    goalType: 'checklist',
+                    scheduleType: 'daily',
+                    requireProof: true,
                 },
             ],
-            durationDays: 21,
-            createdBy: 'system',
+            isActive: true,
         },
     });
-    await prisma.templateLibrary.upsert({
-        where: { id: 'template_mind_1' },
+    await prisma.goalTemplate.upsert({
+        where: { id: '00000000-0000-0000-0000-000000000004' },
         update: {},
         create: {
-            id: 'template_mind_1',
+            id: '00000000-0000-0000-0000-000000000004',
             category: 'wellness',
-            title: 'Mindfulness 101',
+            name: 'Mindfulness 101',
             description: 'Daily meditation and gratitude practice.',
-            difficulty: 'beginner',
-            goals: [
+            goalsJson: [
                 {
-                    title: 'Meditate',
-                    type: 'duration',
-                    frequency: 'daily',
+                    name: 'Meditate',
+                    goalType: 'duration',
+                    scheduleType: 'daily',
                     targetValue: 10,
-                    unit: 'minutes',
-                    requiresProof: false,
+                    targetUnit: 'minutes',
+                    requireProof: false,
                 },
                 {
-                    title: 'Write 3 things you are grateful for',
-                    type: 'checklist',
-                    frequency: 'daily',
-                    requiresProof: true,
+                    name: 'Write 3 things you are grateful for',
+                    goalType: 'checklist',
+                    scheduleType: 'daily',
+                    requireProof: true,
                 },
             ],
-            durationDays: 30,
-            createdBy: 'system',
+            isActive: true,
         },
     });
-    await prisma.templateLibrary.upsert({
-        where: { id: 'template_couples_1' },
+    await prisma.goalTemplate.upsert({
+        where: { id: '00000000-0000-0000-0000-000000000005' },
         update: {},
         create: {
-            id: 'template_couples_1',
+            id: '00000000-0000-0000-0000-000000000005',
             category: 'relationship',
-            title: 'Couples Reconnect',
+            name: 'Couples Reconnect',
             description: 'Strengthen your bond with daily intentional actions.',
-            difficulty: 'beginner',
-            goals: [
+            goalsJson: [
                 {
-                    title: 'Give a genuine compliment',
-                    type: 'checklist',
-                    frequency: 'daily',
-                    requiresProof: false,
+                    name: 'Give a genuine compliment',
+                    goalType: 'checklist',
+                    scheduleType: 'daily',
+                    requireProof: false,
                 },
                 {
-                    title: '15 mins undivided attention',
-                    type: 'duration',
-                    frequency: 'daily',
+                    name: '15 mins undivided attention',
+                    goalType: 'duration',
+                    scheduleType: 'daily',
                     targetValue: 15,
-                    unit: 'minutes',
-                    requiresProof: false,
+                    targetUnit: 'minutes',
+                    requireProof: false,
                 },
             ],
-            durationDays: 14,
-            createdBy: 'system',
+            isActive: true,
         },
     });
     console.log('Seeding completed successfully!');

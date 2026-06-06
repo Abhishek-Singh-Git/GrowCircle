@@ -97,8 +97,6 @@ export class AuthService {
             email: payload.email,
             name: payload.name || 'New User',
             avatarUrl: payload.picture,
-            authProvider: 'google',
-            authProviderId: payload.sub,
           },
         });
         
@@ -139,6 +137,10 @@ export class AuthService {
 
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!dto.password) {
+      throw new UnauthorizedException('Password is required');
     }
 
     // Verify password

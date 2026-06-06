@@ -2,7 +2,7 @@ import { UploadsService } from './uploads.service';
 export declare class UploadsController {
     private readonly uploadsService;
     constructor(uploadsService: UploadsService);
-    uploadImage(file: Express.Multer.File, req: any): Promise<{
+    uploadImage(file: any, req: any): Promise<{
         url: string;
         thumbnailUrl: string;
     }>;

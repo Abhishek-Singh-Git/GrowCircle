@@ -7,8 +7,8 @@ export declare class CirclesService {
         inviteLink: string;
         id: string;
         name: string;
-        createdAt: Date;
         description: string | null;
+        createdAt: Date;
         timeoutEnabled: boolean;
         timeoutPermissionType: string;
         leaderboardVisibility: string;
@@ -51,19 +51,19 @@ export declare class CirclesService {
         } & {
             id: string;
             userId: string;
-            role: string;
             status: string;
+            circleId: string;
+            role: string;
             joinedAt: Date;
             leftAt: Date | null;
             removedAt: Date | null;
-            circleId: string;
             removedBy: string | null;
         })[];
     } & {
         id: string;
         name: string;
-        createdAt: Date;
         description: string | null;
+        createdAt: Date;
         timeoutEnabled: boolean;
         timeoutPermissionType: string;
         leaderboardVisibility: string;
@@ -79,12 +79,12 @@ export declare class CirclesService {
     validateMembership(userId: string, circleId: string): Promise<{
         id: string;
         userId: string;
-        role: string;
         status: string;
+        circleId: string;
+        role: string;
         joinedAt: Date;
         leftAt: Date | null;
         removedAt: Date | null;
-        circleId: string;
         removedBy: string | null;
     }>;
     private generateInviteCode;

@@ -22,8 +22,8 @@ export declare class InterventionsService {
         expiresAt: Date | null;
         status: string;
         circleId: string;
-        appPackage: string | null;
         durationSeconds: number | null;
+        appPackage: string | null;
         targetId: string;
         interventionType: string;
         overrideAt: Date | null;
@@ -51,8 +51,8 @@ export declare class InterventionsService {
             expiresAt: Date | null;
             status: string;
             circleId: string;
-            appPackage: string | null;
             durationSeconds: number | null;
+            appPackage: string | null;
             targetId: string;
             interventionType: string;
             overrideAt: Date | null;
