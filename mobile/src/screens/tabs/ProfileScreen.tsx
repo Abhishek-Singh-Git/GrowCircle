@@ -1,0 +1,329 @@
+/**
+ * GrowCircle — Profile Tab
+ * User's personal analytics, badges, streaks, and settings.
+ */
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Switch } from 'react-native';
+import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
+import { useAuthStore } from '../../stores/authStore';
+import { usePreferences } from '../../hooks/usePreferences';
+
+const MOCK_BADGES = [
+  { id: '1', emoji: '🔥', name: 'First Streak', earned: true },
+  { id: '2', emoji: '🌟', name: 'Circle Founder', earned: true },
+  { id: '3', emoji: '💎', name: 'Diamond Hands', earned: false },
+  { id: '4', emoji: '🏆', name: 'Challenge Winner', earned: false },
+  { id: '5', emoji: '📸', name: 'Proof Master', earned: false },
+  { id: '6', emoji: '🌳', name: 'Garden Keeper', earned: false },
+];
+
+export default function ProfileScreen() {
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const { preferences, updatePreference } = usePreferences();
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Avatar & Name */}
+        <View style={styles.header}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarEmoji}>
+              {user?.name ? user.name[0].toUpperCase() : '?'}
+            </Text>
+          </View>
+          <Text style={styles.name}>{user?.name || 'GrowCircle User'}</Text>
+          <Text style={styles.email}>{user?.email || ''}</Text>
+        </View>
+
+        {/* Stats row */}
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>7</Text>
+            <Text style={styles.statLabel}>Streak</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>1,240</Text>
+            <Text style={styles.statLabel}>Total XP</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>Lv.5</Text>
+            <Text style={styles.statLabel}>Level</Text>
+          </View>
+        </View>
+
+        {/* Score dimensions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Scores</Text>
+          <View style={styles.scoresGrid}>
+            {[
+              { name: 'Performance', score: 82, color: Colors.accentPrimary },
+              { name: 'Consistency', score: 71, color: Colors.accentSecondary },
+              { name: 'Growth', score: 65, color: Colors.accentSuccess },
+              { name: 'Discipline', score: 88, color: Colors.accentWarning },
+              { name: 'Accountability', score: 90, color: Colors.accentFire },
+            ].map((dim) => (
+              <View key={dim.name} style={styles.scoreItem}>
+                <View style={styles.scoreBarBg}>
+                  <View
+                    style={[
+                      styles.scoreBarFill,
+                      { width: `${dim.score}%`, backgroundColor: dim.color },
+                    ]}
+                  />
+                </View>
+                <View style={styles.scoreLabels}>
+                  <Text style={styles.scoreName}>{dim.name}</Text>
+                  <Text style={[styles.scoreValue, { color: dim.color }]}>{dim.score}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Badges */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Badges</Text>
+          <View style={styles.badgeGrid}>
+            {MOCK_BADGES.map((badge) => (
+              <View
+                key={badge.id}
+                style={[styles.badge, !badge.earned && styles.badgeLocked]}
+              >
+                <Text style={[styles.badgeEmoji, !badge.earned && styles.badgeEmojiLocked]}>
+                  {badge.emoji}
+                </Text>
+                <Text style={[styles.badgeName, !badge.earned && styles.badgeNameLocked]}>
+                  {badge.name}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Privacy & Permissions</Text>
+          <View style={styles.settingsCard}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Share Late Night Activity</Text>
+                <Text style={styles.settingDesc}>Let your circle know if you're up past 11:30 PM</Text>
+              </View>
+              <Switch
+                value={preferences?.shareLateNightActivity ?? false}
+                onValueChange={(val) => updatePreference('shareLateNightActivity', val)}
+                trackColor={{ false: Colors.surfaceHover, true: Colors.accentPrimary }}
+                thumbColor={Colors.textPrimary}
+              />
+            </View>
+
+            <View style={styles.settingDivider} />
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Timeout Consent</Text>
+                <Text style={styles.settingDesc}>Allow partners to lock your distracting apps</Text>
+              </View>
+              <Switch
+                value={true} // Mocked for MVP polish
+                onValueChange={() => {}}
+                trackColor={{ false: Colors.surfaceHover, true: Colors.accentPrimary }}
+                thumbColor={Colors.textPrimary}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Logout */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  scroll: {
+    paddingTop: 60,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: 100,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.accentPrimary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  avatarEmoji: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: 32,
+    color: Colors.textPrimary,
+  },
+  name: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.title,
+    color: Colors.textPrimary,
+  },
+  email: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.small,
+    color: Colors.textSecondary,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  stat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.title,
+    color: Colors.textPrimary,
+  },
+  statLabel: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.caption,
+    color: Colors.textSecondary,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: Colors.glassBorder,
+  },
+  section: {
+    marginBottom: Spacing.lg,
+  },
+  sectionTitle: {
+    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: Typography.size.bodyLarge,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  scoresGrid: {
+    gap: Spacing.sm,
+  },
+  scoreItem: {
+    gap: 4,
+  },
+  scoreBarBg: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.surfaceHover,
+    overflow: 'hidden',
+  },
+  scoreBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  scoreLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  scoreName: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.caption,
+    color: Colors.textSecondary,
+  },
+  scoreValue: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.caption,
+  },
+  badgeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  badge: {
+    width: '30%',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    padding: Spacing.sm,
+    alignItems: 'center',
+    gap: 4,
+  },
+  badgeLocked: {
+    opacity: 0.4,
+  },
+  badgeEmoji: {
+    fontSize: 28,
+  },
+  badgeEmojiLocked: {
+    filter: 'grayscale(100%)',
+  },
+  badgeName: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 10,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  badgeNameLocked: {
+    color: Colors.textTertiary,
+  },
+  settingsCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    overflow: 'hidden',
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    justifyContent: 'space-between',
+  },
+  settingInfo: {
+    flex: 1,
+    paddingRight: Spacing.sm,
+  },
+  settingTitle: {
+    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: Typography.size.body,
+    color: Colors.textPrimary,
+  },
+  settingDesc: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.small,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  settingDivider: {
+    height: 1,
+    backgroundColor: Colors.glassBorder,
+    marginLeft: Spacing.md,
+  },
+  logoutBtn: {
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    marginTop: Spacing.md,
+  },
+  logoutText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.body,
+    color: Colors.accentDanger,
+  },
+});
