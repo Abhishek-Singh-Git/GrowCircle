@@ -21,8 +21,8 @@ export class AuthController {
     try {
       const user = await this.authService.register(dto);
       return user;
-    } catch (error) {
-      console.error('Registration error:', error);
+    } catch (error: any) {
+      console.error('Registration error:', error.message, error.stack);
       throw error;
     }
   }
