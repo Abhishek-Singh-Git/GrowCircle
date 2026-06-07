@@ -18,7 +18,13 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+    try {
+      const user = await this.authService.register(dto);
+      return user;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
   }
 
   @Post('login')
