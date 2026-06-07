@@ -25,7 +25,7 @@ export class OfflineError extends Error {
 
 interface QueuedRequest {
   id: string;
-  method: 'POST' | 'PUT' | 'DELETE';
+  method: 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   path: string;
   body?: Record<string, unknown>;
   timestamp: number;
@@ -94,7 +94,7 @@ class ApiClient {
     return this.handleResponse<T>(res);
   }
 
-  private async queueRequest(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: Record<string, unknown>) {
+  private async queueRequest(method: 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, body?: Record<string, unknown>) {
     try {
       const queueStr = await AsyncStorage.getItem('offlineQueue');
       const queue: QueuedRequest[] = queueStr ? JSON.parse(queueStr) : [];
@@ -123,6 +123,24 @@ class ApiClient {
     } catch (error: any) {
       if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
         await this.queueRequest('POST', path, body);
+        throw new OfflineError();
+      }
+      throw error;
+    }
+  }
+
+  async patch<T>(path: string, body?: Record<string, unknown>): Promise<T> {
+    try {
+      const headers = await this.getHeaders();
+      const res = await fetch(`${BASE_URL}${path}`, {
+        method: 'PATCH',
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return await this.handleResponse<T>(res);
+    } catch (error: any) {
+      if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
+        await this.queueRequest('PATCH', path, body);
         throw new OfflineError();
       }
       throw error;

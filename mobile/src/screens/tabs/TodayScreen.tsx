@@ -14,11 +14,15 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 import { useAuthStore } from '../../stores/authStore';
 import { useCircleStore } from '../../stores/circleStore';
+import { useGoalsStore } from '../../stores/goalsStore';
 import { useCircleFeed } from '../../hooks/useCircleFeed';
 import { useSendNudge } from '../../hooks/useNudges';
+import { useFetchTodayGoals, useCompleteGoal } from '../../hooks/useGoals';
+import GoalCard from '../../components/GoalCard';
 import { Alert } from 'react-native';
 
 export default function TodayScreen() {
