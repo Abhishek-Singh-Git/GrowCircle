@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import * as admin from 'firebase-admin';
 
 async function bootstrap() {
   try {
@@ -8,10 +9,10 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
     // Initialize Firebase Admin only if configured
-    if (process.env.FIREBASE_ADMIN_SDK) {
+    const firebaseConfig = process.env.FIREBASE_ADMIN_SDK;
+    if (firebaseConfig) {
       try {
-        const admin = await import('firebase-admin');
-        const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK);
+        const serviceAccount = JSON.parse(firebaseConfig);
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
         });
@@ -19,6 +20,8 @@ async function bootstrap() {
       } catch (e) {
         console.error('Failed to initialize Firebase Admin:', e);
       }
+    } else {
+      console.warn('FIREBASE_ADMIN_SDK environment variable is not set');
     }
 
     // Global validation pipe for DTO validation (class-validator)
