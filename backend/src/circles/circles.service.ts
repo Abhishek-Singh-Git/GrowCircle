@@ -145,6 +145,7 @@ export class CirclesService {
       id: m.circle.id,
       name: m.circle.name,
       description: m.circle.description,
+      inviteCode: m.circle.inviteCode,
       role: m.role,
       memberCount: m.circle.members.length,
       members: m.circle.members.map((mem) => ({
