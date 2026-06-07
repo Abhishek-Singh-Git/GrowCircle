@@ -35,8 +35,10 @@ export class AppController {
   @UseGuards(JwtAuthGuard)
   @Patch('v1/users/me')
   async updateUser(@Request() req: any, @Body() body: any) {
+    const userId = req.user?.id;
+    if (!userId) throw new Error('User not authenticated');
     return this.prisma.user.update({
-      where: { id: req.user.userId },
+      where: { id: userId },
       data: { fcmToken: body.fcmToken },
     });
   }
@@ -44,12 +46,14 @@ export class AppController {
   @UseGuards(JwtAuthGuard)
   @Get('v1/users/me/preferences')
   async getPreferences(@Request() req: any) {
+    const userId = req.user?.id;
+    if (!userId) throw new Error('User not authenticated');
     let prefs = await this.prisma.userPreference.findUnique({
-      where: { userId: req.user.userId },
+      where: { userId },
     });
     if (!prefs) {
       prefs = await this.prisma.userPreference.create({
-        data: { userId: req.user.userId },
+        data: { userId },
       });
     }
     return prefs;
@@ -58,10 +62,12 @@ export class AppController {
   @UseGuards(JwtAuthGuard)
   @Patch('v1/users/me/preferences')
   async updatePreferences(@Request() req: any, @Body() body: any) {
+    const userId = req.user?.id;
+    if (!userId) throw new Error('User not authenticated');
     return this.prisma.userPreference.upsert({
-      where: { userId: req.user.userId },
+      where: { userId },
       update: body,
-      create: { userId: req.user.userId, ...body },
+      create: { userId, ...body },
     });
   }
 

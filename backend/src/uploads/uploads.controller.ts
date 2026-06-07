@@ -22,6 +22,6 @@ export class UploadsController {
   }))
   async uploadImage(@UploadedFile() file: any, @Request() req: any) {
     if (!file) throw new BadRequestException('File is required');
-    return this.uploadsService.processAndUploadImage(file, req.user.userId);
+    return this.uploadsService.processAndUploadImage(file, req.user.id);
   }
 }
