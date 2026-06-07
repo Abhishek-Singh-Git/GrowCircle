@@ -3,6 +3,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { StatusBar, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { navigationRef } from './src/navigation/navigationRef';
@@ -19,6 +20,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { GlobalErrorBoundary } from './src/components/GlobalErrorBoundary';
+import { useCircles } from './src/hooks/useCircles';
 
 const defaultErrorHandler = ErrorUtils.getGlobalHandler();
 ErrorUtils.setGlobalHandler((error, isFatal) => {
@@ -92,19 +94,27 @@ function AppInner() {
 
   // Register push notifications
   useEffect(() => {
-    if (user) {
-      registerForPushNotificationsAsync().then((token) => {
-        if (token) {
-          api.patch('/users/me', { fcmToken: token }).catch(console.error);
+    const initPush = async () => {
+      if (isAuthenticated) {
+        const storedToken = await AsyncStorage.getItem('accessToken');
+        if (storedToken) {
+          const pushToken = await registerForPushNotificationsAsync();
+          if (pushToken) {
+            api.patch('/users/me', { fcmToken: pushToken }).catch(console.error);
+          }
         }
-      });
-    }
-  }, [user]);
+      }
+    };
+    initPush();
+  }, [isAuthenticated]);
 
   // Global listeners
   useInterventionListener();
   useNudgeListener();
   useUpLateListener();
+  
+  // Initialize circle fetching
+  useCircles();
 
   return (
     <>

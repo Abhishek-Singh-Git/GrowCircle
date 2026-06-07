@@ -15,6 +15,7 @@ interface Circle {
   id: string;
   name: string;
   description?: string;
+  inviteCode?: string;
   role: string;
   memberCount: number;
   members: CircleMember[];

@@ -122,8 +122,37 @@ export default function TodayScreen() {
           </View>
         </View>
 
-        {/* Partners strip */}
-        {partners.map((partner) => (
+        {/* Partners strip or Circle Management */}
+        {!activeCircle ? (
+          <View style={styles.soloModeContainer}>
+            <Text style={styles.soloModeTitle}>You're in Solo Mode</Text>
+            <Text style={styles.soloModeDesc}>Everything is better together. Create a circle to stay accountable.</Text>
+            <TouchableOpacity 
+              style={styles.primaryBtn} 
+              onPress={() => (navigation as any).navigate('CircleManager')}
+            >
+              <Text style={styles.primaryBtnText}>Create a Circle</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.secondaryBtn} 
+              onPress={() => (navigation as any).navigate('CircleManager')}
+            >
+              <Text style={styles.secondaryBtnText}>Join with Invite Code</Text>
+            </TouchableOpacity>
+          </View>
+        ) : partners.length === 0 ? (
+          <View style={styles.soloModeContainer}>
+            <Text style={styles.soloModeTitle}>Circle Created!</Text>
+            <Text style={styles.soloModeDesc}>You're the only one here. Invite your partner to start growing together.</Text>
+            <TouchableOpacity 
+              style={styles.primaryBtn} 
+              onPress={() => (navigation as any).navigate('CircleManager')}
+            >
+              <Text style={styles.primaryBtnText}>View Invite Code</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          partners.map((partner) => (
           <View key={partner.user.id} style={styles.partnerContainer}>
             <View style={styles.partnerStrip}>
               <View style={styles.partnerAvatar}>
@@ -167,7 +196,7 @@ export default function TodayScreen() {
               </View>
             )}
           </View>
-        ))}
+        )))}
 
         {/* Goal cards */}
         <View style={styles.section}>
@@ -431,5 +460,53 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.small,
     color: Colors.textSecondary,
     flex: 1,
+  },
+  soloModeContainer: {
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+  },
+  soloModeTitle: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.bodyLarge,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  soloModeDesc: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.small,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  primaryBtn: {
+    backgroundColor: Colors.accentPrimary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: BorderRadius.md,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  primaryBtnText: {
+    fontFamily: Typography.fontFamily.bold,
+    color: Colors.textPrimary,
+    fontSize: Typography.size.body,
+  },
+  secondaryBtn: {
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    width: '100%',
+    alignItems: 'center',
+  },
+  secondaryBtnText: {
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.textSecondary,
+    fontSize: Typography.size.body,
   },
 });

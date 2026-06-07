@@ -21,6 +21,7 @@ import BattleScreen from '../screens/tabs/BattleScreen';
 import FocusScreen from '../screens/tabs/FocusScreen';
 import ProfileScreen from '../screens/tabs/ProfileScreen';
 import ChatScreen from '../screens/chat/ChatScreen';
+import CircleManagerScreen from '../screens/circles/CircleManagerScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -165,6 +166,7 @@ export default function RootNavigation() {
         <>
           <Stack.Screen name="Main" component={MainTabs} />
           <Stack.Screen name="Chat" component={ChatScreen} />
+          <Stack.Screen name="CircleManager" component={CircleManagerScreen} options={{ presentation: 'modal' }} />
         </>
       )}
     </Stack.Navigator>

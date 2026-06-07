@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '../stores/authStore';
 import { api } from '../services/api';
 
 export interface UserPreferences {
@@ -34,9 +36,19 @@ export function usePreferences() {
     }
   };
 
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
   useEffect(() => {
-    fetchPreferences();
-  }, [fetchPreferences]);
+    const init = async () => {
+      if (isAuthenticated) {
+        const token = await AsyncStorage.getItem('accessToken');
+        if (token) {
+          fetchPreferences();
+        }
+      }
+    };
+    init();
+  }, [isAuthenticated, fetchPreferences]);
 
   return { preferences, isLoading, updatePreference };
 }
