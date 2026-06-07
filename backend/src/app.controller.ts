@@ -64,4 +64,9 @@ export class AppController {
       create: { userId: req.user.userId, ...body },
     });
   }
+
+  @Get('health')
+  healthCheck() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
 }
