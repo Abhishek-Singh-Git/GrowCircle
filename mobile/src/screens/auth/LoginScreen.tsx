@@ -40,7 +40,7 @@ export default function LoginScreen({
   React.useEffect(() => {
     // Note: WebClientId should be read from Constants or env
     GoogleSignin.configure({
-      webClientId: '247713533270-4iud8vs90vgmmnbperiabj4qacvmofd2.apps.googleusercontent.com', 
+      webClientId: '219698102764-51h2o4j548fgrkb1k97d7govg5bqaelv.apps.googleusercontent.com',
       offlineAccess: true,
     });
   }, []);

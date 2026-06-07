@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "527313308805",
-    "project_id": "growcircle-fdac5",
-    "storage_bucket": "growcircle-fdac5.firebasestorage.app"
+    "project_number": "219698102764",
+    "project_id": "growcircle-4e726",
+    "storage_bucket": "growcircle-4e726.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:527313308805:android:f378bf924bb17197ceedec",
+        "mobilesdk_app_id": "1:219698102764:android:f07f5365121625347180c9",
         "android_client_info": {
           "package_name": "com.growcircle.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "219698102764-67s1e0opgiq5pg7p4bmko56lo06ba4rn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.growcircle.app",
+            "certificate_hash": "3fc6f92b99c960bb180cff7a5a5d6553d9dcea2e"
+          }
+        },
+        {
+          "client_id": "219698102764-51h2o4j548fgrkb1k97d7govg5bqaelv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyCW-BFEiF7UQFDWMKrmg6ZirxLcmQF9wjQ"
+          "current_key": "AIzaSyBIymexXKhVDcjio_muDAEZc8YPCNb0cY4"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "219698102764-51h2o4j548fgrkb1k97d7govg5bqaelv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
