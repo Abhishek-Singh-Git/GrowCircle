@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -38,5 +39,11 @@ export class CirclesController {
   @Get(':circleId')
   async getCircle(@Request() req: { user: { id: string } }, @Param('circleId') circleId: string) {
     return this.circlesService.getCircleDetails(req.user.id, circleId);
+  }
+
+  @Delete(':circleId/leave')
+  @HttpCode(HttpStatus.OK)
+  async leaveCircle(@Request() req: { user: { id: string } }, @Param('circleId') circleId: string) {
+    return this.circlesService.leaveCircle(req.user.id, circleId);
   }
 }

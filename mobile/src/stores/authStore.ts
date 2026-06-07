@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api } from '../services/api';
+import { BASE_URL } from '../services/api';
 
 interface User {
   id: string;
@@ -27,7 +27,7 @@ interface AuthState {
   rehydrate: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
   refreshToken: null,
@@ -37,6 +37,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAuth: (user, accessToken, refreshToken) => {
     AsyncStorage.setItem('accessToken', accessToken);
     AsyncStorage.setItem('refreshToken', refreshToken);
+    AsyncStorage.setItem('user', JSON.stringify(user));
     set({
       user,
       accessToken,
@@ -56,6 +57,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     AsyncStorage.removeItem('accessToken');
     AsyncStorage.removeItem('refreshToken');
+    AsyncStorage.removeItem('user');
     set({
       user: null,
       accessToken: null,
@@ -69,21 +71,72 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const accessToken = await AsyncStorage.getItem('accessToken');
       const refreshToken = await AsyncStorage.getItem('refreshToken');
-      
-      if (accessToken) {
-        // You would typically verify the token or fetch the user here
-        // For now, we'll just set it to authenticated if tokens exist
-        set({
-          accessToken,
-          refreshToken,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } else {
+      const userStr = await AsyncStorage.getItem('user');
+
+      if (!accessToken) {
         set({ isLoading: false });
+        return;
+      }
+
+      // Restore user from cache immediately so UI is not blank
+      const cachedUser: User | null = userStr ? JSON.parse(userStr) : null;
+      if (cachedUser) {
+        set({ user: cachedUser, accessToken, refreshToken, isAuthenticated: true, isLoading: false });
+      }
+
+      // Try to get fresh user data from API
+      try {
+        const res = await fetch(`${BASE_URL}/users/me`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        if (res.ok) {
+          const freshUser: User = await res.json();
+          AsyncStorage.setItem('user', JSON.stringify(freshUser));
+          set({ user: freshUser, accessToken, refreshToken, isAuthenticated: true, isLoading: false });
+        } else if (res.status === 401 && refreshToken) {
+          // Try refresh
+          const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            AsyncStorage.setItem('accessToken', data.accessToken);
+            AsyncStorage.setItem('refreshToken', data.refreshToken);
+
+            // Retry user fetch with new token
+            const retryRes = await fetch(`${BASE_URL}/users/me`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.accessToken}` },
+            });
+            if (retryRes.ok) {
+              const freshUser: User = await retryRes.json();
+              AsyncStorage.setItem('user', JSON.stringify(freshUser));
+              set({ user: freshUser, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false });
+            }
+          } else {
+            // Refresh failed — log out
+            get().logout();
+          }
+        } else if (!cachedUser) {
+          set({ isLoading: false });
+        }
+      } catch {
+        // Network error — if we have cached user, stay logged in
+        if (!cachedUser) {
+          set({ isLoading: false });
+        }
       }
     } catch (e) {
       set({ isLoading: false });
     }
   },
 }));
+

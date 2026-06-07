@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Share } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Share, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import Toast from 'react-native-toast-message';
 import { useCircles } from '../../hooks/useCircles';
 import { useCircleStore } from '../../stores/circleStore';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function CircleManagerScreen() {
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
@@ -13,9 +14,10 @@ export default function CircleManagerScreen() {
   const [inviteCode, setInviteCode] = useState('');
   const [createdCode, setCreatedCode] = useState<string | null>(null);
 
-  const { createCircle, joinCircle, isLoading } = useCircles();
+  const { createCircle, joinCircle, leaveCircle, isLoading } = useCircles();
   const navigation = useNavigation<any>();
   const activeCircle = useCircleStore((s) => s.activeCircle);
+  const user = useAuthStore((s) => s.user);
 
   // If user has an active circle and we haven't just created one, show their existing invite code
   const codeToShow = createdCode || activeCircle?.inviteCode;
@@ -70,6 +72,35 @@ export default function CircleManagerScreen() {
     }
   };
 
+  const handleLeaveCircle = () => {
+    if (!activeCircle) return;
+    const isOwner = activeCircle.role === 'owner';
+    if (isOwner) {
+      Alert.alert('Cannot Leave', 'As the owner, you cannot leave. You must disband the circle.');
+      return;
+    }
+    Alert.alert(
+      'Leave Circle',
+      `Are you sure you want to leave "${activeCircle.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await leaveCircle(activeCircle.id);
+              Toast.show({ type: 'success', text1: 'Left circle successfully' });
+              navigation.goBack();
+            } catch (err: any) {
+              Toast.show({ type: 'error', text1: err.message || 'Failed to leave circle' });
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Circle Manager</Text>
@@ -91,6 +122,11 @@ export default function CircleManagerScreen() {
           <TouchableOpacity style={styles.btnFinish} onPress={() => navigation.goBack()}>
             <Text style={[styles.btnText, { color: '#000' }]}>Go to Feed</Text>
           </TouchableOpacity>
+          {activeCircle && activeCircle.role !== 'owner' && (
+            <TouchableOpacity style={styles.leaveBtn} onPress={handleLeaveCircle}>
+              <Text style={styles.leaveBtnText}>Leave Circle</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <>
@@ -147,5 +183,7 @@ const styles = StyleSheet.create({
   btnSecondary: { backgroundColor: '#4CAF50', paddingVertical: 12, paddingHorizontal: 25, borderRadius: 8 },
   btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   btnTextSecondary: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  btnFinish: { backgroundColor: '#fff', padding: 15, borderRadius: 10, width: '100%', alignItems: 'center' },
+  btnFinish: { backgroundColor: '#fff', padding: 15, borderRadius: 10, width: '100%', alignItems: 'center', marginBottom: 12 },
+  leaveBtn: { paddingVertical: 12, width: '100%', alignItems: 'center' },
+  leaveBtnText: { color: '#ff4444', fontWeight: '600', fontSize: 14 },
 });

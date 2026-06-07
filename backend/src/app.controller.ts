@@ -34,6 +34,28 @@ export class AppController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('v1/users/me')
+  async getMe(@Request() req: any) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        avatarUrl: true,
+        timezone: true,
+        plan: true,
+      },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+    return user;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Patch('users/me')
   async updateProfile(@Request() req: any, @Body() body: any) {
     if (!req.user?.id) {

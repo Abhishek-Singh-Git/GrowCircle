@@ -182,6 +182,24 @@ export class CirclesService {
     return circle;
   }
 
+  // ── LEAVE CIRCLE ─────────────────────────────────────────────────────
+  async leaveCircle(userId: string, circleId: string) {
+    const membership = await this.validateMembership(userId, circleId);
+
+    if (membership.role === 'owner') {
+      throw new BadRequestException(
+        'As the owner, you cannot leave the circle. Delete the circle instead.',
+      );
+    }
+
+    await this.prisma.circleMember.update({
+      where: { circleId_userId: { circleId, userId } },
+      data: { status: 'inactive' },
+    });
+
+    return { message: 'You have left the circle.' };
+  }
+
   // ── MEMBERSHIP VALIDATION (reused across all services) ────────────────
   async validateMembership(userId: string, circleId: string) {
     const membership = await this.prisma.circleMember.findUnique({

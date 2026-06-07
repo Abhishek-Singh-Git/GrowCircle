@@ -6,6 +6,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Switch } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 import { useAuthStore } from '../../stores/authStore';
+import { useCircleStore } from '../../stores/circleStore';
+import { useGoalsStore } from '../../stores/goalsStore';
 import { usePreferences } from '../../hooks/usePreferences';
 
 const MOCK_BADGES = [
@@ -21,6 +23,15 @@ export default function ProfileScreen() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const { preferences, updatePreference } = usePreferences();
+  const activeCircle = useCircleStore((s) => s.activeCircle);
+  const todayInstances = useGoalsStore((s) => s.todayInstances);
+
+  // Compute real stats from store
+  const completedToday = todayInstances.filter((i) => i.status === 'completed').length;
+  const totalToday = todayInstances.length;
+  const streak = completedToday > 0 && totalToday > 0 && completedToday === totalToday ? 1 : 0;
+  const xpDisplay = completedToday > 0 ? `${completedToday * 10} XP` : '—';
+  const levelDisplay = activeCircle ? `In Circle` : 'Solo';
 
   return (
     <View style={styles.container}>
@@ -40,18 +51,18 @@ export default function ProfileScreen() {
         {/* Stats row */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>7</Text>
-            <Text style={styles.statLabel}>Streak</Text>
+            <Text style={styles.statValue}>{completedToday}/{totalToday}</Text>
+            <Text style={styles.statLabel}>Done Today</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>1,240</Text>
-            <Text style={styles.statLabel}>Total XP</Text>
+            <Text style={styles.statValue}>{xpDisplay}</Text>
+            <Text style={styles.statLabel}>Today's XP</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>Lv.5</Text>
-            <Text style={styles.statLabel}>Level</Text>
+            <Text style={styles.statValue}>{levelDisplay}</Text>
+            <Text style={styles.statLabel}>Status</Text>
           </View>
         </View>
 
@@ -129,8 +140,8 @@ export default function ProfileScreen() {
                 <Text style={styles.settingDesc}>Allow partners to lock your distracting apps</Text>
               </View>
               <Switch
-                value={true} // Mocked for MVP polish
-                onValueChange={() => {}}
+                value={preferences?.timeoutConsent ?? false}
+                onValueChange={(val) => updatePreference('timeoutConsent', val)}
                 trackColor={{ false: Colors.surfaceHover, true: Colors.accentPrimary }}
                 thumbColor={Colors.textPrimary}
               />

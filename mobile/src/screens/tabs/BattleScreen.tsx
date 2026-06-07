@@ -17,7 +17,19 @@ export default function BattleScreen() {
   const activeCircleId = useCircleStore((s) => s.activeCircleId);
 
   const handleCreateMockChallenge = async () => {
-    if (!activeCircleId) return;
+    if (!activeCircleId) {
+      alert('Join or create a circle first!');
+      return;
+    }
+
+    const activeCircle = useCircleStore.getState().activeCircle;
+    const partner = activeCircle?.members?.find((m: any) => m.id !== user?.id);
+
+    if (!partner) {
+      alert('No partner in your circle yet! Share your invite code first.');
+      return;
+    }
+
     try {
       await createChallenge({
         circleId: activeCircleId,
@@ -28,10 +40,11 @@ export default function BattleScreen() {
         stakeDescription: 'Loser buys dinner',
         proofRequired: true,
         deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        participantIds: [user?.id, 'partner-id'], // Hardcoded partner for MVP
+        participantIds: [user?.id, partner.id],
       });
-    } catch (e) {
-      console.warn('Cannot create challenge without partner id', e);
+    } catch (e: any) {
+      console.warn('Cannot create challenge:', e?.message || e);
+      alert(e?.message || 'Failed to create challenge');
     }
   };
 

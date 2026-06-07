@@ -3,7 +3,7 @@
  * Screen time visibility and partner intervention.
  * PRD Screen 12.4
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   StatusBar,
   Alert,
   RefreshControl,
+  Linking,
+  AppState,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme/tokens';
 import { useAuthStore } from '../../stores/authStore';
@@ -39,21 +41,43 @@ export default function FocusScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [totalSeconds, setTotalSeconds] = useState(0);
 
-  // Check permission on mount
+  const appState = useRef(AppState.currentState);
+
+  // Check permission on mount and when app comes back to foreground
   useEffect(() => {
     checkPermission();
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App came back to foreground — re-check permission
+        checkPermission();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => subscription.remove();
   }, []);
 
   const checkPermission = async () => {
     const granted = await ScreenTimeModule.hasPermission();
     setHasPermission(granted);
-    if (granted) fetchUsageData();
+    // Always fetch usage data (shows mock if native module unavailable)
+    fetchUsageData();
   };
 
   const handleRequestPermission = async () => {
-    await ScreenTimeModule.requestPermission();
-    // Re-check after user returns from Settings
-    setTimeout(checkPermission, 2000);
+    try {
+      // Open Android Usage Access Settings directly
+      await Linking.sendIntent('android.settings.USAGE_ACCESS_SETTINGS');
+    } catch {
+      // Fallback for older Android / if intent fails
+      try {
+        await Linking.openSettings();
+      } catch (e) {
+        console.warn('Cannot open settings:', e);
+      }
+    }
+    // AppState listener will re-check when user returns
   };
 
   const fetchUsageData = useCallback(async () => {
@@ -210,27 +234,21 @@ export default function FocusScreen() {
           </TouchableOpacity>
         </View>
 
-        {!hasPermission ? (
-          /* Permission not granted state */
-          <View style={styles.permissionCard}>
-            <Text style={styles.permissionEmoji}>🔒</Text>
-            <Text style={styles.permissionTitle}>
-              Enable Screen Time Access
+        {!hasPermission && (
+          /* Permission banner — non-blocking */
+          <TouchableOpacity
+            style={styles.permissionBanner}
+            onPress={handleRequestPermission}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.permissionBannerEmoji}>🔒</Text>
+            <Text style={styles.permissionBannerText}>
+              Enable Screen Time Access for real data — Tap to open Settings
             </Text>
-            <Text style={styles.permissionText}>
-              GrowCircle needs usage access permission to show your screen time
-              data and help you stay accountable.
-            </Text>
-            <TouchableOpacity
-              style={styles.permissionBtn}
-              onPress={handleRequestPermission}
-            >
-              <Text style={styles.permissionBtnText}>
-                Open Settings
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
+          </TouchableOpacity>
+        )}
+
+        {(
           <>
             {/* Total screen time header */}
             <View style={styles.totalCard}>
@@ -359,42 +377,26 @@ const styles = StyleSheet.create({
   toggleTextActive: {
     color: Colors.textPrimary,
   },
-  permissionCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    padding: Spacing.xl,
+  permissionBanner: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
   },
-  permissionEmoji: {
-    fontSize: 48,
+  permissionBannerEmoji: {
+    fontSize: 16,
   },
-  permissionTitle: {
-    fontFamily: Typography.fontFamily.bold,
-    fontSize: Typography.size.bodyLarge,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  permissionText: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.body,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  permissionBtn: {
-    backgroundColor: Colors.accentPrimary,
-    borderRadius: BorderRadius.xl,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  permissionBtnText: {
-    fontFamily: Typography.fontFamily.semiBold,
-    fontSize: Typography.size.body,
-    color: Colors.textPrimary,
+  permissionBannerText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.small,
+    color: Colors.accentWarning,
+    flex: 1,
+    lineHeight: 18,
   },
   totalCard: {
     backgroundColor: Colors.surface,

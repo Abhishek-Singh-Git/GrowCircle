@@ -42,12 +42,8 @@ class ApiClient {
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (response.status === 401) {
-      const refreshed = await this.refreshToken();
-      if (!refreshed) {
-        useAuthStore.getState().logout();
-        throw new Error('Session expired. Please log in again.');
-      }
-      throw new Error('TOKEN_REFRESHED'); 
+      // 401 will be handled by the calling method for retry logic
+      throw { status: 401 };
     }
 
     const data = await response.json();
@@ -88,10 +84,40 @@ class ApiClient {
     }
   }
 
-  async get<T>(path: string): Promise<T> {
+  private async executeRequest(method: string, url: string, body?: string): Promise<Response> {
     const headers = await this.getHeaders();
-    const res = await fetch(`${BASE_URL}${path}`, { method: 'GET', headers });
+    return fetch(url, {
+      method,
+      headers,
+      ...(body ? { body } : {}),
+    });
+  }
+
+  private async requestWithRetry<T>(
+    method: string,
+    path: string,
+    body?: Record<string, unknown>,
+  ): Promise<T> {
+    const url = `${BASE_URL}${path}`;
+    const bodyStr = body ? JSON.stringify(body) : undefined;
+
+    let res = await this.executeRequest(method, url, bodyStr);
+
+    if (res.status === 401) {
+      const refreshed = await this.refreshToken();
+      if (!refreshed) {
+        useAuthStore.getState().logout();
+        throw new Error('Session expired. Please log in again.');
+      }
+      // Retry with new token
+      res = await this.executeRequest(method, url, bodyStr);
+    }
+
     return this.handleResponse<T>(res);
+  }
+
+  async get<T>(path: string): Promise<T> {
+    return this.requestWithRetry<T>('GET', path);
   }
 
   private async queueRequest(method: 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, body?: Record<string, unknown>) {
@@ -113,13 +139,7 @@ class ApiClient {
 
   async post<T>(path: string, body?: Record<string, unknown>): Promise<T> {
     try {
-      const headers = await this.getHeaders();
-      const res = await fetch(`${BASE_URL}${path}`, {
-        method: 'POST',
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      return await this.handleResponse<T>(res);
+      return await this.requestWithRetry<T>('POST', path, body);
     } catch (error: any) {
       if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
         await this.queueRequest('POST', path, body);
@@ -131,13 +151,7 @@ class ApiClient {
 
   async patch<T>(path: string, body?: Record<string, unknown>): Promise<T> {
     try {
-      const headers = await this.getHeaders();
-      const res = await fetch(`${BASE_URL}${path}`, {
-        method: 'PATCH',
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      return await this.handleResponse<T>(res);
+      return await this.requestWithRetry<T>('PATCH', path, body);
     } catch (error: any) {
       if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
         await this.queueRequest('PATCH', path, body);
@@ -149,13 +163,7 @@ class ApiClient {
 
   async put<T>(path: string, body?: Record<string, unknown>): Promise<T> {
     try {
-      const headers = await this.getHeaders();
-      const res = await fetch(`${BASE_URL}${path}`, {
-        method: 'PUT',
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      return await this.handleResponse<T>(res);
+      return await this.requestWithRetry<T>('PUT', path, body);
     } catch (error: any) {
       if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
         await this.queueRequest('PUT', path, body);
@@ -167,9 +175,7 @@ class ApiClient {
 
   async delete<T>(path: string): Promise<T> {
     try {
-      const headers = await this.getHeaders();
-      const res = await fetch(`${BASE_URL}${path}`, { method: 'DELETE', headers });
-      return await this.handleResponse<T>(res);
+      return await this.requestWithRetry<T>('DELETE', path);
     } catch (error: any) {
       if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
         await this.queueRequest('DELETE', path);

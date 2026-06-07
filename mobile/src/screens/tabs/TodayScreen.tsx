@@ -200,7 +200,15 @@ export default function TodayScreen() {
 
         {/* Goal cards */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Goals</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Today's Goals</Text>
+            <TouchableOpacity
+              style={styles.addGoalBtn}
+              onPress={() => (navigation as any).navigate('AddGoal')}
+            >
+              <Text style={styles.addGoalBtnText}>+ Add</Text>
+            </TouchableOpacity>
+          </View>
 
           {isLoading && totalCount === 0 ? (
             <ActivityIndicator size="large" color={Colors.accentPrimary} style={{ marginVertical: 40 }} />
@@ -429,11 +437,27 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
   sectionTitle: {
     fontFamily: Typography.fontFamily.semiBold,
     fontSize: Typography.size.bodyLarge,
     color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+  },
+  addGoalBtn: {
+    backgroundColor: Colors.accentPrimary,
+    borderRadius: BorderRadius.full,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+  },
+  addGoalBtnText: {
+    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: Typography.size.small,
+    color: Colors.textPrimary,
   },
   emptyText: {
     fontFamily: Typography.fontFamily.regular,
