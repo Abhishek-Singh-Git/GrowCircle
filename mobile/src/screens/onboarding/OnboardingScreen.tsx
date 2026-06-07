@@ -52,12 +52,17 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
   const [currentSlide, setCurrentSlide] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const isTransitioning = useRef(false);
 
   const goToNext = () => {
-    if (currentSlide === SLIDES.length - 1) {
+    if (isTransitioning.current) return;
+
+    if (currentSlide >= SLIDES.length - 1) {
       onComplete();
       return;
     }
+
+    isTransitioning.current = true;
 
     // Fade out → switch → Fade in
     Animated.parallel([
@@ -85,11 +90,13 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           duration: 300,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        isTransitioning.current = false;
+      });
     });
   };
 
-  const slide = SLIDES[currentSlide];
+  const slide = SLIDES[currentSlide] || SLIDES[0];
 
   return (
     <View style={styles.container}>
