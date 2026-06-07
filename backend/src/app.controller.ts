@@ -1,4 +1,5 @@
-import { Controller, Get, Patch, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Patch, Body, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { AppService } from './app.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaService } from './prisma/prisma.service';
@@ -32,28 +33,30 @@ export class AppController {
     ];
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Patch('v1/users/me')
-  async updateUser(@Request() req: any, @Body() body: any) {
-    const userId = req.user?.id;
-    if (!userId) throw new Error('User not authenticated');
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('users/me')
+  async updateProfile(@Request() req: any, @Body() body: any) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
     return this.prisma.user.update({
-      where: { id: userId },
+      where: { id: req.user.id },
       data: { fcmToken: body.fcmToken },
     });
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('v1/users/me/preferences')
+  @UseGuards(AuthGuard('jwt'))
+  @Get('users/me/preferences')
   async getPreferences(@Request() req: any) {
-    const userId = req.user?.id;
-    if (!userId) throw new Error('User not authenticated');
+    if (!req.user?.id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
     let prefs = await this.prisma.userPreference.findUnique({
-      where: { userId },
+      where: { userId: req.user.id },
     });
     if (!prefs) {
       prefs = await this.prisma.userPreference.create({
-        data: { userId },
+        data: { userId: req.user.id },
       });
     }
     return prefs;
