@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import Toast from 'react-native-toast-message';
 import { useCircles } from '../../hooks/useCircles';
+import { useCircleStore } from '../../stores/circleStore';
 
 export default function CircleManagerScreen() {
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
