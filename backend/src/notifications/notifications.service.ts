@@ -143,5 +143,36 @@ export class NotificationsService {
     // (Implementation omitted for brevity, similar to above)
   }
 
-  // More event listeners for interventions, chat, etc. can be added here
+  @OnEvent('log.created')
+  async handleLogCreated(payload: { log: any; userId: string; circleId: string; goalName: string; goalEmoji?: string }) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { name: true },
+    });
+    if (!user) return;
+
+    const otherMembers = await this.prisma.circleMember.findMany({
+      where: {
+        circleId: payload.circleId,
+        status: 'active',
+        userId: { not: payload.userId },
+      },
+      select: { userId: true },
+    });
+
+    const emoji = payload.goalEmoji || '✅';
+    for (const member of otherMembers) {
+      await this.sendNotification({
+        userId: member.userId,
+        type: 'partner_log',
+        title: `${user.name} completed a goal!`,
+        body: `${emoji} Completed: ${payload.goalName}`,
+        metadata: {
+          logId: payload.log.id,
+          circleId: payload.circleId,
+          userId: payload.userId,
+        },
+      });
+    }
+  }
 }

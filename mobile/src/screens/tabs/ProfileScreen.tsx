@@ -2,13 +2,16 @@
  * GrowCircle — Profile Tab
  * User's personal analytics, badges, streaks, and settings.
  */
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Switch } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Switch, Alert } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 import { useAuthStore } from '../../stores/authStore';
 import { useCircleStore } from '../../stores/circleStore';
 import { useGoalsStore } from '../../stores/goalsStore';
 import { usePreferences } from '../../hooks/usePreferences';
+import ScreenTimeModule from '../../native/ScreenTimeModule';
 
 const MOCK_BADGES = [
   { id: '1', emoji: '🔥', name: 'First Streak', earned: true },
@@ -25,13 +28,68 @@ export default function ProfileScreen() {
   const { preferences, updatePreference } = usePreferences();
   const activeCircle = useCircleStore((s) => s.activeCircle);
   const todayInstances = useGoalsStore((s) => s.todayInstances);
+  const isFocused = useIsFocused();
+
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [screenTimeEnabled, setScreenTimeEnabled] = useState(false);
 
   // Compute real stats from store
   const completedToday = todayInstances.filter((i) => i.status === 'completed').length;
   const totalToday = todayInstances.length;
-  const streak = completedToday > 0 && totalToday > 0 && completedToday === totalToday ? 1 : 0;
-  const xpDisplay = completedToday > 0 ? `${completedToday * 10} XP` : '—';
-  const levelDisplay = activeCircle ? `In Circle` : 'Solo';
+  
+  const myCircleMember = activeCircle?.members?.find((m: any) => m.id === user?.id);
+  const streak = myCircleMember?.streak ?? 0;
+  const totalXp = myCircleMember?.xp ?? 0;
+  const level = myCircleMember?.level ?? 0;
+
+  const xpDisplay = `${totalXp} XP`;
+  const levelDisplay = activeCircle ? `Level ${level}` : 'Solo';
+
+  const checkPermissions = async () => {
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      setPushEnabled(status === 'granted');
+
+      const usageOk = await ScreenTimeModule.hasPermission();
+      setScreenTimeEnabled(usageOk);
+    } catch (err) {
+      console.warn('Error checking permissions:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      checkPermissions();
+    }
+  }, [isFocused]);
+
+  const handlePushToggle = async (val: boolean) => {
+    if (val) {
+      const { status } = await Notifications.requestPermissionsAsync();
+      setPushEnabled(status === 'granted');
+    } else {
+      Alert.alert(
+        'Disable Notifications',
+        'To disable push notifications, please go to your system settings for GrowCircle.',
+        [{ text: 'OK' }]
+      );
+      setPushEnabled(true);
+    }
+  };
+
+  const handleScreenTimeToggle = async (val: boolean) => {
+    if (val) {
+      await ScreenTimeModule.requestPermission();
+      setTimeout(checkPermissions, 1000);
+    } else {
+      Alert.alert(
+        'Disable Screen Time Access',
+        'To disable usage stats access, please go to your system settings for GrowCircle.',
+        [{ text: 'OK' }]
+      );
+      setScreenTimeEnabled(true);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -57,12 +115,12 @@ export default function ProfileScreen() {
           <View style={styles.statDivider} />
           <View style={styles.stat}>
             <Text style={styles.statValue}>{xpDisplay}</Text>
-            <Text style={styles.statLabel}>Today's XP</Text>
+            <Text style={styles.statLabel}>Total XP</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{levelDisplay}</Text>
-            <Text style={styles.statLabel}>Status</Text>
+            <Text style={styles.statValue}>{streak} 🔥</Text>
+            <Text style={styles.statLabel}>Current Streak</Text>
           </View>
         </View>
 
@@ -142,6 +200,36 @@ export default function ProfileScreen() {
               <Switch
                 value={preferences?.timeoutConsent ?? false}
                 onValueChange={(val) => updatePreference('timeoutConsent', val)}
+                trackColor={{ false: Colors.surfaceHover, true: Colors.accentPrimary }}
+                thumbColor={Colors.textPrimary}
+              />
+            </View>
+
+            <View style={styles.settingDivider} />
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Push Notifications</Text>
+                <Text style={styles.settingDesc}>Receive updates from your circle and goals</Text>
+              </View>
+              <Switch
+                value={pushEnabled}
+                onValueChange={handlePushToggle}
+                trackColor={{ false: Colors.surfaceHover, true: Colors.accentPrimary }}
+                thumbColor={Colors.textPrimary}
+              />
+            </View>
+
+            <View style={styles.settingDivider} />
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Screen Time Access</Text>
+                <Text style={styles.settingDesc}>Enable tracking of your real app usage stats</Text>
+              </View>
+              <Switch
+                value={screenTimeEnabled}
+                onValueChange={handleScreenTimeToggle}
                 trackColor={{ false: Colors.surfaceHover, true: Colors.accentPrimary }}
                 thumbColor={Colors.textPrimary}
               />

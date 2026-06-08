@@ -106,7 +106,9 @@ export default function TodayScreen() {
               {/* Streak badge */}
               <View style={styles.streakBadge}>
                 <Text style={styles.streakEmoji}>🔥</Text>
-                <Text style={styles.streakCount}>7</Text>
+                <Text style={styles.streakCount}>
+                  {activeCircle?.members?.find((m: any) => m.id === user?.id)?.streak ?? 0}
+                </Text>
               </View>
             </View>
           </View>

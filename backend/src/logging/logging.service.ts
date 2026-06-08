@@ -223,7 +223,8 @@ export class LoggingService {
     });
 
     // Group by member
-    return members.map((member) => {
+    const feedMembers = [];
+    for (const member of members) {
       const memberInstances = instances
         .filter((i) => i.userId === member.userId)
         .map((i) => {
@@ -241,7 +242,11 @@ export class LoggingService {
         (i) => i.status === 'completed',
       ).length;
 
-      return {
+      const profile = await this.prisma.gamificationProfile.findUnique({
+        where: { userId_circleId: { userId: member.userId, circleId } },
+      });
+
+      feedMembers.push({
         user: member.user,
         role: member.role,
         todaySummary: {
@@ -253,8 +258,12 @@ export class LoggingService {
               : 0,
         },
         goalInstances: memberInstances,
-      };
-    });
+        streak: profile?.currentStreak || 0,
+        xp: profile?.totalXp || 0,
+      });
+    }
+
+    return feedMembers;
   }
 
   // ── XP CALCULATION ────────────────────────────────────────────────────

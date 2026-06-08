@@ -2,8 +2,8 @@
  * GrowCircle — Battle Tab
  * Challenges, leaderboard, and tug-of-war competitions.
  */
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Modal, TextInput, Button } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 
@@ -16,32 +16,50 @@ export default function BattleScreen() {
   const user = useAuthStore((s) => s.user);
   const activeCircleId = useCircleStore((s) => s.activeCircleId);
 
-  const handleCreateMockChallenge = async () => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [deadlineDays, setDeadlineDays] = useState('7');
+
+  const handleOpenModal = () => {
     if (!activeCircleId) {
       alert('Join or create a circle first!');
       return;
     }
-
     const activeCircle = useCircleStore.getState().activeCircle;
     const partner = activeCircle?.members?.find((m: any) => m.id !== user?.id);
-
     if (!partner) {
       alert('No partner in your circle yet! Share your invite code first.');
       return;
     }
+    setModalVisible(true);
+  };
 
+  const handleCreateChallenge = async () => {
+    const activeCircle = useCircleStore.getState().activeCircle;
+    const partner = activeCircle?.members?.find((m: any) => m.id !== user?.id);
+    if (!partner) {
+      alert('Partner not found');
+      return;
+    }
+    const deadlineMs = parseInt(deadlineDays, 10) * 24 * 60 * 60 * 1000;
+    const deadline = new Date(Date.now() + deadlineMs).toISOString();
     try {
       await createChallenge({
         circleId: activeCircleId,
-        title: '7-Day Gym Streak',
-        conditionDescription: 'Go to the gym 7 times in a week',
+        title,
+        conditionDescription: description,
         conditionType: 'custom',
         stakeType: 'iou',
         stakeDescription: 'Loser buys dinner',
         proofRequired: true,
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        deadline,
         participantIds: [user?.id, partner.id],
       });
+      setModalVisible(false);
+      setTitle('');
+      setDescription('');
+      setDeadlineDays('7');
     } catch (e: any) {
       console.warn('Cannot create challenge:', e?.message || e);
       alert(e?.message || 'Failed to create challenge');
@@ -138,16 +156,30 @@ export default function BattleScreen() {
         )}
 
         {/* Create challenge CTA */}
-        <TouchableOpacity activeOpacity={0.8} onPress={handleCreateMockChallenge}>
+        <TouchableOpacity activeOpacity={0.8} onPress={handleOpenModal}>
           <LinearGradient
             colors={Colors.gradientPrimary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.createBtn}
           >
-            <Text style={styles.createBtnText}>+ Create Mock Challenge</Text>
+            <Text style={styles.createBtnText}>+ Create Challenge</Text>
           </LinearGradient>
         </TouchableOpacity>
+        <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>New Challenge</Text>
+              <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={styles.input} />
+              <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={styles.input} />
+              <TextInput placeholder="Deadline (days)" value={deadlineDays} onChangeText={setDeadlineDays} keyboardType="numeric" style={styles.input} />
+              <View style={styles.modalButtons}>
+                <Button title="Cancel" onPress={() => setModalVisible(false)} />
+                <Button title="Create" onPress={handleCreateChallenge} />
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </View>
   );
@@ -260,5 +292,37 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.semiBold,
     fontSize: Typography.size.body,
     color: Colors.textPrimary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  modalTitle: {
+    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: Typography.size.heading,
+    marginBottom: Spacing.sm,
+    color: Colors.textPrimary,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.xs,
+    marginBottom: Spacing.sm,
+    fontFamily: Typography.fontFamily.regular,
+    color: Colors.textPrimary,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
   },
 });

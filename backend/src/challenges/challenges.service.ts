@@ -158,11 +158,29 @@ export class ChallengesService {
 
     // Handle Stake (Points transfer)
     if (resolvedChallenge.stakeType === 'points' && resolvedChallenge.stakePoints && resolvedChallenge.winnerId) {
-      // Simple logic: Winner gets points. We could subtract from losers, but for now just award.
+      // Winner gets points
       await this.prisma.gamificationProfile.update({
         where: { userId_circleId: { userId: resolvedChallenge.winnerId, circleId: challenge.circleId } },
         data: { totalXp: { increment: resolvedChallenge.stakePoints } },
       });
+
+      // Losers lose points
+      const participants = await this.prisma.challengeParticipant.findMany({
+        where: { challengeId, userId: { not: resolvedChallenge.winnerId } },
+      });
+
+      for (const participant of participants) {
+        const profile = await this.prisma.gamificationProfile.findUnique({
+          where: { userId_circleId: { userId: participant.userId, circleId: challenge.circleId } },
+        });
+        if (profile) {
+          const newXp = Math.max(0, profile.totalXp - resolvedChallenge.stakePoints);
+          await this.prisma.gamificationProfile.update({
+            where: { userId_circleId: { userId: participant.userId, circleId: challenge.circleId } },
+            data: { totalXp: newXp },
+          });
+        }
+      }
     }
 
     this.eventEmitter.emit('challenge.resolved', { challenge: resolvedChallenge });
@@ -179,7 +197,7 @@ export class ChallengesService {
       where.status = status;
     }
 
-    return this.prisma.challenge.findMany({
+    const challenges = await this.prisma.challenge.findMany({
       where,
       include: {
         proposer: { select: { id: true, name: true, avatarUrl: true } },
@@ -192,5 +210,84 @@ export class ChallengesService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    const enrichedChallenges = [];
+    for (const challenge of challenges) {
+      const participantsWithProgress = [];
+      for (const participant of challenge.participants) {
+        let progress = 0;
+        if (challenge.status === 'active' || challenge.status === 'resolved' || challenge.status === 'pending_resolution') {
+          if (challenge.conditionType === 'goal_based' && challenge.conditionGoalId) {
+            const proposerGoal = await this.prisma.goal.findUnique({
+              where: { id: challenge.conditionGoalId },
+            });
+            if (proposerGoal) {
+              const userGoal = await this.prisma.goal.findFirst({
+                where: {
+                  userId: participant.userId,
+                  circleId: challenge.circleId,
+                  OR: [
+                    { id: challenge.conditionGoalId },
+                    { name: proposerGoal.name },
+                    { templateSourceId: proposerGoal.templateSourceId ? proposerGoal.templateSourceId : undefined },
+                  ],
+                },
+              });
+
+              if (userGoal) {
+                progress = await this.prisma.activityLog.count({
+                  where: {
+                    userId: participant.userId,
+                    goalId: userGoal.id,
+                    circleId: challenge.circleId,
+                    status: 'completed',
+                    loggedAt: {
+                      gte: challenge.createdAt,
+                      lte: challenge.deadline,
+                    },
+                  },
+                });
+              }
+            }
+          } else if (challenge.conditionType === 'screen_time') {
+            const snapshots = await this.prisma.screenTimeSnapshot.aggregate({
+              where: {
+                userId: participant.userId,
+                syncedAt: {
+                  gte: challenge.createdAt,
+                  lte: challenge.deadline,
+                },
+              },
+              _sum: {
+                durationSeconds: true,
+              },
+            });
+            progress = Math.round((snapshots._sum.durationSeconds || 0) / 60);
+          } else {
+            progress = await this.prisma.activityLog.count({
+              where: {
+                userId: participant.userId,
+                circleId: challenge.circleId,
+                status: 'completed',
+                loggedAt: {
+                  gte: challenge.createdAt,
+                  lte: challenge.deadline,
+                },
+              },
+            });
+          }
+        }
+        participantsWithProgress.push({
+          ...participant,
+          progress,
+        });
+      }
+      enrichedChallenges.push({
+        ...challenge,
+        participants: participantsWithProgress,
+      });
+    }
+
+    return enrichedChallenges;
   }
 }

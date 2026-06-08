@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,7 +9,6 @@ import Animated, {
   runOnJS,
   Easing,
 } from 'react-native-reanimated';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { Colors, Spacing, Typography, Shadows, BorderRadius } from '../theme/tokens';
 
 interface GoalCardProps {
@@ -43,35 +42,26 @@ export default function GoalCard({
     onComplete(id);
   };
 
-  const gesture = Gesture.Pan()
-    .onBegin(() => {
-      if (isCompleted) return;
-      scale.value = withSpring(0.95);
-      fillProgress.value = withTiming(1, { 
-        duration: 800, 
-        easing: Easing.inOut(Easing.ease) 
-      });
-    })
-    .onTouchesUp(() => {
-      if (isCompleted) return;
-      scale.value = withSpring(1);
-      
-      // If fully charged, trigger completion
-      if (fillProgress.value >= 0.95) {
-        fillProgress.value = 1;
+  const handlePressIn = () => {
+    if (isCompleted) return;
+    scale.value = withSpring(0.95);
+    fillProgress.value = withTiming(1, { 
+      duration: 800, 
+      easing: Easing.inOut(Easing.ease) 
+    }, (finished) => {
+      if (finished) {
         runOnJS(handleComplete)();
-      } else {
-        // Otherwise, drain back to 0
-        fillProgress.value = withTiming(0, { duration: 300 });
-      }
-    })
-    .onFinalize(() => {
-      if (isCompleted) return;
-      scale.value = withSpring(1);
-      if (fillProgress.value < 0.95) {
-        fillProgress.value = withTiming(0, { duration: 300 });
       }
     });
+  };
+
+  const handlePressOut = () => {
+    if (isCompleted) return;
+    scale.value = withSpring(1);
+    if (fillProgress.value < 1) {
+      fillProgress.value = withTiming(0, { duration: 300 });
+    }
+  };
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -88,7 +78,7 @@ export default function GoalCard({
   }));
 
   return (
-    <GestureDetector gesture={gesture}>
+    <TouchableWithoutFeedback onPressIn={handlePressIn} onPressOut={handlePressOut}>
       <Animated.View style={[styles.card, isCompleted && styles.cardCompleted, animatedStyle]}>
         
         {/* Fill Background Animation */}
@@ -116,7 +106,7 @@ export default function GoalCard({
           )}
         </View>
       </Animated.View>
-    </GestureDetector>
+    </TouchableWithoutFeedback>
   );
 }
 

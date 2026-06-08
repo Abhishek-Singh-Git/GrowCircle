@@ -19,6 +19,9 @@
       },
       "googleServicesFile": "./google-services.json",
       "package": "com.growcircle.app",
+      "permissions": [
+        "android.permission.PACKAGE_USAGE_STATS"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",

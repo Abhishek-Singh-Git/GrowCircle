@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { api } from '../services/api';
 import { useCircleStore } from '../stores/circleStore';
 import { useAuthStore } from '../stores/authStore';
+import { wsService } from '../services/websocket';
 
 export function useCircles() {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,6 +15,11 @@ export function useCircles() {
     try {
       const circles = await api.get<any[]>('/circles');
       setCircles(circles);
+      // Join the active circle via WebSocket after circles are set
+      const activeCircleId = useCircleStore.getState().activeCircleId || (circles[0] && circles[0].id);
+      if (activeCircleId) {
+        wsService.joinCircle(activeCircleId);
+      }
     } catch (err) {
       console.error('Failed to fetch circles', err);
     } finally {
@@ -25,10 +31,10 @@ export function useCircles() {
     fetchCircles();
   }, [fetchCircles]);
 
-  const createCircle = async (name: string, description: string) => {
+  const createCircle = async (data: { name: string; description: string }) => {
     setIsLoading(true);
     try {
-      const circle = await api.post<any>('/circles', { name, description });
+      const circle = await api.post<any>('/circles', data);
       await fetchCircles();
       return circle;
     } catch (error: any) {
@@ -38,10 +44,10 @@ export function useCircles() {
     }
   };
 
-  const joinCircle = async (code: string) => {
+  const joinCircle = async (data: { code: string }) => {
     setIsLoading(true);
     try {
-      const circle = await api.post<any>('/circles/join', { code });
+      const circle = await api.post<any>('/circles/join', data);
       await fetchCircles();
       return circle;
     } catch (error: any) {
@@ -55,6 +61,7 @@ export function useCircles() {
     setIsLoading(true);
     try {
       await api.delete<any>(`/circles/${circleId}/leave`);
+      wsService.leaveCircle(circleId);
       await fetchCircles();
     } catch (error: any) {
       throw error;

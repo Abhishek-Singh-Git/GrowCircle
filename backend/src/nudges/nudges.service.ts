@@ -9,8 +9,8 @@ import { CirclesService } from '../circles/circles.service';
 import { SendNudgeDto } from './dto/nudge.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
-// Maximum nudges a user can send to another user per day (to prevent spam)
-const MAX_NUDGES_PER_DAY = 10;
+// Maximum nudges a user can send to another user per rolling 24 hours
+const MAX_NUDGES_LIMIT = 3;
 
 @Injectable()
 export class NudgesService {
@@ -29,21 +29,20 @@ export class NudgesService {
     await this.circlesService.validateMembership(senderId, dto.circleId);
     await this.circlesService.validateMembership(dto.recipientId, dto.circleId);
 
-    // Rate limiting: Check if sender has reached daily limit for this recipient
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // Rate limiting: Check if sender has reached limit for this recipient in rolling 24 hours
+    const rollingStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const todayCount = await this.prisma.nudgeLog.count({
+    const count = await this.prisma.nudgeLog.count({
       where: {
         senderId,
         recipientId: dto.recipientId,
         circleId: dto.circleId,
-        sentAt: { gte: todayStart },
+        sentAt: { gte: rollingStart },
       },
     });
 
-    if (todayCount >= MAX_NUDGES_PER_DAY) {
-      throw new ForbiddenException(`Daily nudge limit exceeded (${MAX_NUDGES_PER_DAY} per day to this user)`);
+    if (count >= MAX_NUDGES_LIMIT) {
+      throw new ForbiddenException(`Daily nudge limit exceeded (${MAX_NUDGES_LIMIT} per rolling 24h to this user)`);
     }
 
     // Check if recipient has blocked nudges from this sender

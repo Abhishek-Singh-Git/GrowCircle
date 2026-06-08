@@ -31,14 +31,38 @@ class WebSocketService {
       reconnectionDelayMax: 30000,
     });
 
-    this.socket.on('connect', () => {
+    this.socket.on('connect', async () => {
       console.log('🟢 WebSocket connected');
       this.startHeartbeat();
+      // Join the active circle channel after connection
+      try {
+        const { useCircleStore } = require('../stores/circleStore');
+        const activeCircleId = useCircleStore.getState().activeCircleId;
+        if (activeCircleId) {
+          this.joinCircle(activeCircleId);
+        }
+      } catch (e) {
+        console.warn('Failed to join circle on ws connect', e);
+      }
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log('🔴 WebSocket disconnected:', reason);
       this.stopHeartbeat();
+    });
+    // Reconnect event to rejoin active circle
+    this.socket.on('reconnect', async (attemptNumber) => {
+      console.log('🔄 WebSocket reconnected after attempts:', attemptNumber);
+      // Re-join active circle channel
+      try {
+        const { useCircleStore } = require('../stores/circleStore');
+        const activeCircleId = useCircleStore.getState().activeCircleId;
+        if (activeCircleId) {
+          this.joinCircle(activeCircleId);
+        }
+      } catch (e) {
+        console.warn('Failed to rejoin circle on ws reconnect', e);
+      }
     });
 
     // Forward all events to registered listeners
@@ -74,12 +98,18 @@ class WebSocketService {
 
   // ── Heartbeat Presence System ─────────────────────────────────────────
   private startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
-      const { useCircleStore } = require('../stores/circleStore');
-      const activeCircleId = useCircleStore.getState().activeCircleId;
-      this.socket?.emit('heartbeat', { circleId: activeCircleId });
-    }, 30000); // Every 30 seconds
-  }
+      this.heartbeatInterval = setInterval(() => {
+        try {
+          const { useCircleStore } = require('../stores/circleStore');
+          const activeCircleId = useCircleStore.getState().activeCircleId;
+          if (activeCircleId) {
+            this.socket?.emit('heartbeat', { circleId: activeCircleId });
+          }
+        } catch (e) {
+          console.warn('Heartbeat error', e);
+        }
+      }, 30000); // Every 30 seconds
+    }
 
   private stopHeartbeat() {
     if (this.heartbeatInterval) {
