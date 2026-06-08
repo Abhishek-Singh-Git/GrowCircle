@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "219698102764-67s1e0opgiq5pg7p4bmko56lo06ba4rn.apps.googleusercontent.com",
+          "client_id": "219698102764-vqcscrdr93buhghldr1p4uomr4qdcloe.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.growcircle.app",
-            "certificate_hash": "3fc6f92b99c960bb180cff7a5a5d6553d9dcea2e"
+            "certificate_hash": "7feffeaedf8ce17c2f07aad390b4b759e866bb7c"
           }
         },
         {

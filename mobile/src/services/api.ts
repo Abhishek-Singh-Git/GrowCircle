@@ -94,9 +94,19 @@ class ApiClient {
         ...(body ? { body } : {}),
       });
     } catch (error: any) {
-      if (error?.message?.includes('UnknownHostException') || error?.message?.includes('Network request failed') || error?.message?.includes('Failed to fetch')) {
+      // Check for DNS/network failures and return a user-friendly message
+      if (error?.message?.includes('UnknownHostException') ||
+          error?.message?.includes('Network request failed') || 
+          error?.message?.includes('Failed to fetch')) {
         throw new Error('Unable to connect. Please check your internet connection.');
       }
+
+      // Check for invalid JSON responses and log the raw response
+      if (error?.message?.includes('JSON Parse error') || error?.message?.includes('Unexpected token')) {
+        console.error('Invalid JSON received:', error);
+        throw new Error('The server returned an unexpected response. Please try again.');
+      }
+
       throw error;
     }
   }

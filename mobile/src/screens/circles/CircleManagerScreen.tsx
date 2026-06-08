@@ -29,7 +29,9 @@ export default function CircleManagerScreen() {
       return;
     }
     try {
-      const circle = await createCircle(name, description);
+      // IMPORTANT: useCircles hook expects an object { name, description }
+      // Sending a raw string causes the backend to return a non‑JSON response → "Unexpected token" error
+      const circle = await createCircle({ name, description });
       setCreatedCode(circle.inviteCode);
       Toast.show({ type: 'success', text1: 'Circle created!' });
     } catch (err: any) {
@@ -44,7 +46,9 @@ export default function CircleManagerScreen() {
       return;
     }
     try {
-      await joinCircle(inviteCode);
+      // IMPORTANT: useCircles hook expects an object { code: inviteCode }
+      // Sending a raw string causes the backend to return a non‑JSON response → "Unexpected token" error
+      await joinCircle({ code: inviteCode });
       Toast.show({ type: 'success', text1: 'Successfully joined circle!' });
       navigation.goBack();
     } catch (err: any) {
