@@ -98,7 +98,13 @@ export default function TodayScreen() {
             <View style={styles.headerRight}>
               <TouchableOpacity 
                 style={styles.chatBtn}
-                onPress={() => (navigation as any).navigate('Chat')}
+                onPress={() => {
+                  if (activeCircle) {
+                    (navigation as any).navigate('Chat');
+                  } else {
+                    Alert.alert('Solo Mode', 'Join a circle to use chat.');
+                  }
+                }}
               >
                 <Text style={styles.chatEmoji}>💬</Text>
               </TouchableOpacity>

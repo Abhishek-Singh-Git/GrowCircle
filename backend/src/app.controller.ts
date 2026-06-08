@@ -56,7 +56,7 @@ export class AppController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Patch('users/me')
+  @Patch('v1/users/me')
   async updateProfile(@Request() req: any, @Body() body: any) {
     if (!req.user?.id) {
       throw new UnauthorizedException('User not authenticated');
@@ -68,7 +68,7 @@ export class AppController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Get('users/me/preferences')
+  @Get('v1/users/me/preferences')
   async getPreferences(@Request() req: any) {
     if (!req.user?.id) {
       throw new UnauthorizedException('User not authenticated');
@@ -89,11 +89,71 @@ export class AppController {
   async updatePreferences(@Request() req: any, @Body() body: any) {
     const userId = req.user?.id;
     if (!userId) throw new Error('User not authenticated');
-    return this.prisma.userPreference.upsert({
+    
+    // Extract consent flags if present
+    const { timeoutConsent, screenTimeConsent, ...prefsData } = body;
+
+    const result = await this.prisma.userPreference.upsert({
       where: { userId },
-      update: body,
-      create: { userId, ...body },
+      update: prefsData,
+      create: { userId, ...prefsData },
     });
+
+    // Handle consent records if provided
+    if (timeoutConsent !== undefined || screenTimeConsent !== undefined) {
+      const activeCircles = await this.prisma.circleMember.findMany({
+        where: { userId, status: 'active' },
+        select: { circleId: true },
+      });
+
+      for (const cm of activeCircles) {
+        if (timeoutConsent !== undefined) {
+          await this.prisma.consentRecord.upsert({
+            where: { id: `${userId}-${cm.circleId}-timeout` }, // Fake ID for upsert, better to findFirst
+            update: { revokedAt: timeoutConsent ? null : new Date() },
+            create: {
+              userId,
+              circleId: cm.circleId,
+              feature: 'timeout',
+              revokedAt: timeoutConsent ? null : new Date(),
+            },
+          }).catch(async () => {
+             // Fallback if upsert fails due to missing unique constraint
+             const existing = await this.prisma.consentRecord.findFirst({
+               where: { userId, circleId: cm.circleId, feature: 'timeout' }
+             });
+             if (existing) {
+               await this.prisma.consentRecord.update({
+                 where: { id: existing.id },
+                 data: { revokedAt: timeoutConsent ? null : new Date() }
+               });
+             } else {
+               await this.prisma.consentRecord.create({
+                 data: { userId, circleId: cm.circleId, feature: 'timeout', revokedAt: timeoutConsent ? null : new Date() }
+               });
+             }
+          });
+        }
+        
+        if (screenTimeConsent !== undefined) {
+          const existing = await this.prisma.consentRecord.findFirst({
+            where: { userId, circleId: cm.circleId, feature: 'screen_time' }
+          });
+          if (existing) {
+            await this.prisma.consentRecord.update({
+              where: { id: existing.id },
+              data: { revokedAt: screenTimeConsent ? null : new Date() }
+            });
+          } else {
+            await this.prisma.consentRecord.create({
+              data: { userId, circleId: cm.circleId, feature: 'screen_time', revokedAt: screenTimeConsent ? null : new Date() }
+            });
+          }
+        }
+      }
+    }
+
+    return result;
   }
 
   @Get('health')

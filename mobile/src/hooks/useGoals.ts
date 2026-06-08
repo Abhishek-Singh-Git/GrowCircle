@@ -6,8 +6,7 @@ import { useCallback, useEffect } from 'react';
 import { api } from '../services/api';
 import { useGoalsStore } from '../stores/goalsStore';
 import { useCircleStore } from '../stores/circleStore';
-import { v4 as uuidv4 } from 'uuid';
-
+import * as Crypto from 'expo-crypto';
 // ── Fetch Today's Goal Instances ────────────────────────────────────────
 export function useFetchTodayGoals() {
   const activeCircleId = useCircleStore((s) => s.activeCircleId);
@@ -44,7 +43,7 @@ export function useCompleteGoal() {
     async (instanceId: string, notes?: string) => {
       try {
         const result = await api.post<any>('/logs', {
-          clientUuid: uuidv4(),
+          clientUuid: Crypto.randomUUID(),
           goalInstanceId: instanceId,
           status: 'completed',
           completionFraction: 1,

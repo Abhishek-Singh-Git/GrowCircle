@@ -80,7 +80,11 @@ export default function ProfileScreen() {
   const handleScreenTimeToggle = async (val: boolean) => {
     if (val) {
       await ScreenTimeModule.requestPermission();
-      setTimeout(checkPermissions, 1000);
+      setTimeout(async () => {
+        const usageOk = await ScreenTimeModule.hasPermission();
+        setScreenTimeEnabled(usageOk);
+        if (usageOk) updatePreference('screenTimeConsent', true);
+      }, 1000);
     } else {
       Alert.alert(
         'Disable Screen Time Access',
@@ -88,6 +92,8 @@ export default function ProfileScreen() {
         [{ text: 'OK' }]
       );
       setScreenTimeEnabled(true);
+      // We also revoke backend consent even if they haven't disabled OS permission yet
+      updatePreference('screenTimeConsent', false);
     }
   };
 

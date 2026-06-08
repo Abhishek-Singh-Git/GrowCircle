@@ -16,6 +16,7 @@ export interface Challenge {
   participants: {
     userId: string;
     status: string;
+    progress: number;
   }[];
 }
 

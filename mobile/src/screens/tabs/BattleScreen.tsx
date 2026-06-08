@@ -20,6 +20,7 @@ export default function BattleScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [deadlineDays, setDeadlineDays] = useState('7');
+  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'resolved'>('active');
 
   const handleOpenModal = () => {
     if (!activeCircleId) {
@@ -67,9 +68,11 @@ export default function BattleScreen() {
   };
 
   const renderChallenge = (challenge: Challenge) => {
-    // Basic logic for progress (placeholder)
-    const yourProgress = challenge.status === 'active' ? 4 : 0;
-    const partnerProgress = challenge.status === 'active' ? 3 : 0;
+    const yourParticipant = challenge.participants.find((p) => p.userId === user?.id);
+    const partnerParticipant = challenge.participants.find((p) => p.userId !== user?.id);
+
+    const yourProgress = yourParticipant?.progress || 0;
+    const partnerProgress = partnerParticipant?.progress || 0;
     const total = challenge.conditionTarget || 7;
     const isPending = challenge.status === 'pending';
 
@@ -149,10 +152,31 @@ export default function BattleScreen() {
         <Text style={styles.pageTitle}>⚔️ Battle Arena</Text>
         <Text style={styles.pageSubtitle}>Challenge your circle. Prove your discipline.</Text>
 
-        {challenges.length === 0 ? (
-          <Text style={{ color: Colors.textSecondary, marginBottom: 20 }}>No challenges yet.</Text>
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'active' && styles.tabActive]}
+            onPress={() => setActiveTab('active')}
+          >
+            <Text style={[styles.tabText, activeTab === 'active' && styles.tabTextActive]}>Active</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'pending' && styles.tabActive]}
+            onPress={() => setActiveTab('pending')}
+          >
+            <Text style={[styles.tabText, activeTab === 'pending' && styles.tabTextActive]}>Pending</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'resolved' && styles.tabActive]}
+            onPress={() => setActiveTab('resolved')}
+          >
+            <Text style={[styles.tabText, activeTab === 'resolved' && styles.tabTextActive]}>Resolved</Text>
+          </TouchableOpacity>
+        </View>
+
+        {challenges.filter((c) => c.status === activeTab).length === 0 ? (
+          <Text style={{ color: Colors.textSecondary, marginBottom: 20 }}>No {activeTab} challenges.</Text>
         ) : (
-          challenges.map(renderChallenge)
+          challenges.filter((c) => c.status === activeTab).map(renderChallenge)
         )}
 
         {/* Create challenge CTA */}
@@ -205,7 +229,34 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.body,
     color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
     marginBottom: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: BorderRadius.sm,
+  },
+  tabActive: {
+    backgroundColor: Colors.accentPrimary,
+  },
+  tabText: {
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.textSecondary,
+    fontSize: Typography.size.small,
+  },
+  tabTextActive: {
+    color: Colors.textPrimary,
+    fontFamily: Typography.fontFamily.bold,
   },
   challengeCard: {
     backgroundColor: Colors.surface,

@@ -34,8 +34,11 @@ export default function GoalCard({
 }: GoalCardProps) {
   const isCompleted = status === 'completed';
   
+  const [isLocalCompleted, setIsLocalCompleted] = useState(false);
+  const effectivelyCompleted = isCompleted || isLocalCompleted;
+  
   // Animation values
-  const fillProgress = useSharedValue(isCompleted ? 1 : 0);
+  const fillProgress = useSharedValue(effectivelyCompleted ? 1 : 0);
   const scale = useSharedValue(1);
 
   const handleComplete = () => {
@@ -43,22 +46,23 @@ export default function GoalCard({
   };
 
   const handlePressIn = () => {
-    if (isCompleted) return;
+    if (effectivelyCompleted) return;
     scale.value = withSpring(0.95);
     fillProgress.value = withTiming(1, { 
       duration: 800, 
       easing: Easing.inOut(Easing.ease) 
     }, (finished) => {
       if (finished) {
+        runOnJS(setIsLocalCompleted)(true);
         runOnJS(handleComplete)();
       }
     });
   };
 
   const handlePressOut = () => {
-    if (isCompleted) return;
+    if (effectivelyCompleted) return;
     scale.value = withSpring(1);
-    if (fillProgress.value < 1) {
+    if (fillProgress.value < 0.99) {
       fillProgress.value = withTiming(0, { duration: 300 });
     }
   };
@@ -69,17 +73,17 @@ export default function GoalCard({
 
   const fillStyle = useAnimatedStyle(() => ({
     width: `${fillProgress.value * 100}%`,
-    opacity: isCompleted ? 0.06 : fillProgress.value * 0.5,
+    opacity: effectivelyCompleted ? 0.06 : fillProgress.value * 0.5,
   }));
 
   const textStyle = useAnimatedStyle(() => ({
-    color: isCompleted ? Colors.accentSuccess : Colors.textPrimary,
-    textDecorationLine: isCompleted ? 'line-through' : 'none',
+    color: effectivelyCompleted ? Colors.accentSuccess : Colors.textPrimary,
+    textDecorationLine: effectivelyCompleted ? 'line-through' : 'none',
   }));
 
   return (
     <TouchableWithoutFeedback onPressIn={handlePressIn} onPressOut={handlePressOut}>
-      <Animated.View style={[styles.card, isCompleted && styles.cardCompleted, animatedStyle]}>
+      <Animated.View style={[styles.card, effectivelyCompleted && styles.cardCompleted, animatedStyle]}>
         
         {/* Fill Background Animation */}
         <Animated.View style={[styles.fillBackground, fillStyle]} />
@@ -95,7 +99,7 @@ export default function GoalCard({
         </View>
 
         <View style={styles.rightContent}>
-          {isCompleted ? (
+          {effectivelyCompleted ? (
             <View style={styles.checkmark}>
               <Text style={styles.checkmarkText}>✓</Text>
             </View>

@@ -124,13 +124,22 @@ class ApiClient {
     try {
       const queueStr = await AsyncStorage.getItem('offlineQueue');
       const queue: QueuedRequest[] = queueStr ? JSON.parse(queueStr) : [];
-      queue.push({
-        id: Math.random().toString(36).substring(2, 15),
-        method,
-        path,
-        body,
-        timestamp: Date.now(),
-      });
+      
+      // Deduplicate: If an identical method+path exists, replace its body instead of adding duplicate
+      const existingIndex = queue.findIndex(req => req.method === method && req.path === path);
+      if (existingIndex >= 0) {
+        queue[existingIndex].body = body;
+        queue[existingIndex].timestamp = Date.now();
+      } else {
+        queue.push({
+          id: Math.random().toString(36).substring(2, 15),
+          method,
+          path,
+          body,
+          timestamp: Date.now(),
+        });
+      }
+      
       await AsyncStorage.setItem('offlineQueue', JSON.stringify(queue));
     } catch (e) {
       console.error('Failed to queue request', e);

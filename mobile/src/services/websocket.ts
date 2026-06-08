@@ -19,66 +19,78 @@ class WebSocketService {
   private listeners: Map<string, Set<(data: unknown) => void>> = new Map();
 
   connect() {
-    const token = useAuthStore.getState().accessToken;
-    if (!token || this.socket?.connected) return;
-
-    this.socket = io(WS_URL, {
-      auth: { token },
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 30000,
-    });
-
-    this.socket.on('connect', async () => {
-      console.log('🟢 WebSocket connected');
-      this.startHeartbeat();
-      // Join the active circle channel after connection
-      try {
-        const { useCircleStore } = require('../stores/circleStore');
-        const activeCircleId = useCircleStore.getState().activeCircleId;
-        if (activeCircleId) {
-          this.joinCircle(activeCircleId);
-        }
-      } catch (e) {
-        console.warn('Failed to join circle on ws connect', e);
+    const connectWithToken = () => {
+      const token = useAuthStore.getState().accessToken;
+      if (!token) {
+        // Wait for token to be available
+        setTimeout(connectWithToken, 1000);
+        return;
       }
-    });
+      
+      if (this.socket?.connected) return;
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('🔴 WebSocket disconnected:', reason);
-      this.stopHeartbeat();
-    });
-    // Reconnect event to rejoin active circle
-    this.socket.on('reconnect', async (attemptNumber) => {
-      console.log('🔄 WebSocket reconnected after attempts:', attemptNumber);
-      // Re-join active circle channel
-      try {
-        const { useCircleStore } = require('../stores/circleStore');
-        const activeCircleId = useCircleStore.getState().activeCircleId;
-        if (activeCircleId) {
-          this.joinCircle(activeCircleId);
-        }
-      } catch (e) {
-        console.warn('Failed to rejoin circle on ws reconnect', e);
-      }
-    });
-
-    // Forward all events to registered listeners
-    const events = [
-      'goal_completed',
-      'reaction_added',
-      'nudge_sent',
-      'partner_online',
-      'partner_offline',
-    ];
-
-    events.forEach((event) => {
-      this.socket?.on(event, (data: unknown) => {
-        this.emit(event, data);
+      this.socket = io(WS_URL, {
+        auth: { token },
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 30000,
       });
-    });
+
+      this.socket.on('connect', async () => {
+        console.log('🟢 WebSocket connected');
+        this.startHeartbeat();
+        // Join the active circle channel after connection
+        try {
+          const { useCircleStore } = require('../stores/circleStore');
+          const activeCircleId = useCircleStore.getState().activeCircleId;
+          if (activeCircleId) {
+            this.joinCircle(activeCircleId);
+          }
+        } catch (e) {
+          console.warn('Failed to join circle on ws connect', e);
+        }
+      });
+
+      this.socket.on('disconnect', (reason) => {
+        console.log('🔴 WebSocket disconnected:', reason);
+        this.stopHeartbeat();
+      });
+
+      // Reconnect event to rejoin active circle
+      this.socket.on('reconnect', async (attemptNumber) => {
+        console.log('🔄 WebSocket reconnected after attempts:', attemptNumber);
+        // Re-join active circle channel
+        try {
+          const { useCircleStore } = require('../stores/circleStore');
+          const activeCircleId = useCircleStore.getState().activeCircleId;
+          if (activeCircleId) {
+            this.joinCircle(activeCircleId);
+          }
+        } catch (e) {
+          console.warn('Failed to rejoin circle on ws reconnect', e);
+        }
+      });
+
+      // Forward all events to registered listeners
+      const events = [
+        'goal_completed',
+        'reaction_added',
+        'nudge_sent',
+        'partner_online',
+        'partner_offline',
+        'chat_message',
+      ];
+
+      events.forEach((event) => {
+        this.socket?.on(event, (data: unknown) => {
+          this.emit(event, data);
+        });
+      });
+    };
+
+    connectWithToken();
   }
 
   disconnect() {

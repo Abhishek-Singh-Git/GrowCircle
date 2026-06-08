@@ -29,6 +29,11 @@ export class ChallengesService {
       throw new BadRequestException('A challenge requires at least 2 participants');
     }
 
+    // Server partner-ID guard: check that all participants are in the circle
+    for (const pId of dto.participantIds) {
+      await this.circlesService.validateMembership(pId, dto.circleId);
+    }
+
     // Prepare participants data
     const participantsData = dto.participantIds.map((userId) => ({
       user: { connect: { id: userId } },

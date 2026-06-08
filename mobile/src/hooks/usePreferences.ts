@@ -6,7 +6,7 @@ import { api } from '../services/api';
 export interface UserPreferences {
   shareLateNightActivity: boolean;
   timeoutConsent: boolean;
-  // We can add other fields as needed
+  screenTimeConsent?: boolean;
 }
 
 export function usePreferences() {

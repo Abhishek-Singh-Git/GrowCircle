@@ -72,7 +72,13 @@ export default function ChatScreen({ navigation }: any) {
     // Listen to real-time chat messages
     const unsubscribe = wsService.on('chat_message', (payload: any) => {
       if (payload.threadId === threadId || !threadId) {
-        setMessages((prev) => [...prev, payload.message]);
+        setMessages((prev) => {
+          // Prevent duplicates
+          if (prev.some((m) => m.id === payload.message.id || (m.content === payload.message.content && m.senderId === payload.message.senderId && Date.now() - new Date(m.sentAt).getTime() < 5000))) {
+            return prev;
+          }
+          return [...prev, payload.message];
+        });
         setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
       }
     });

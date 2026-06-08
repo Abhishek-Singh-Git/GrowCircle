@@ -80,39 +80,77 @@ export default function FocusScreen() {
     // AppState listener will re-check when user returns
   };
 
+  const [consentMissing, setConsentMissing] = useState(false);
+
   const fetchUsageData = useCallback(async () => {
     setIsLoading(true);
+    setConsentMissing(false);
     try {
-      const data = await ScreenTimeModule.getTodayUsage();
-      // Sort by usage time descending
-      const sorted = data.sort(
-        (a, b) => b.totalTimeInForeground - a.totalTimeInForeground,
-      );
-      setUsageData(sorted);
-      setTotalSeconds(
-        sorted.reduce((sum, app) => sum + app.totalTimeInForeground, 0),
-      );
+      if (viewMode === 'own') {
+        const data = await ScreenTimeModule.getTodayUsage();
+        // Sort by usage time descending
+        const sorted = data.sort(
+          (a, b) => b.totalTimeInForeground - a.totalTimeInForeground,
+        );
+        setUsageData(sorted);
+        setTotalSeconds(
+          sorted.reduce((sum, app) => sum + app.totalTimeInForeground, 0),
+        );
 
-      // Sync to backend
-      if (activeCircleId) {
+        // Sync to backend
+        if (activeCircleId) {
+          const today = new Date().toISOString().split('T')[0];
+          await api.post('/screen-time/sync', {
+            date: today,
+            platform: 'android',
+            snapshots: sorted.map((app) => ({
+              appPackage: app.packageName,
+              appDisplayName: app.appName,
+              durationSeconds: Math.round(app.totalTimeInForeground),
+              openCount: null,
+            })),
+          }).catch(() => {}); // Silent fail on sync — offline-first
+        }
+      } else if (viewMode === 'partner') {
+        const activeCircle = useCircleStore.getState().activeCircle;
+        const partner = activeCircle?.members?.find((m: any) => m.id !== user?.id);
+        if (!partner) {
+          setUsageData([]);
+          setTotalSeconds(0);
+          return;
+        }
+
         const today = new Date().toISOString().split('T')[0];
-        await api.post('/screen-time/sync', {
-          date: today,
-          platform: 'android',
-          snapshots: sorted.map((app) => ({
-            appPackage: app.packageName,
-            appDisplayName: app.appName,
-            durationSeconds: Math.round(app.totalTimeInForeground),
-            openCount: null,
-          })),
-        }).catch(() => {}); // Silent fail on sync — offline-first
+        try {
+          const res: any = await api.get(`/screen-time?user_id=${partner.id}&date=${today}`);
+          const apps = res.apps.map((app: any) => ({
+            packageName: app.appPackage,
+            appName: app.appDisplayName || app.appPackage,
+            totalTimeInForeground: app.durationSeconds,
+            lastTimeUsed: Date.now(),
+          }));
+          setUsageData(apps);
+          setTotalSeconds(res.totalSeconds);
+        } catch (err: any) {
+          if (err?.message?.includes('403') || err?.response?.status === 403) {
+            setConsentMissing(true);
+            setUsageData([]);
+            setTotalSeconds(0);
+          } else {
+            console.error('Failed to fetch partner data:', err);
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to fetch usage data:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [activeCircleId]);
+  }, [activeCircleId, viewMode, user]);
+
+  useEffect(() => {
+    fetchUsageData();
+  }, [viewMode, fetchUsageData]);
 
   const handleSendAlert = (app: AppUsageEntry) => {
     Alert.alert(
@@ -248,11 +286,21 @@ export default function FocusScreen() {
           </TouchableOpacity>
         )}
 
-        {(
+        {consentMissing ? (
+          <View style={styles.consentMissingCard}>
+            <Text style={styles.consentMissingEmoji}>🙈</Text>
+            <Text style={styles.consentMissingTitle}>Partner Privacy On</Text>
+            <Text style={styles.consentMissingText}>
+              Your partner has chosen not to share their screen time data.
+            </Text>
+          </View>
+        ) : (
           <>
             {/* Total screen time header */}
             <View style={styles.totalCard}>
-              <Text style={styles.totalLabel}>Today's Screen Time</Text>
+              <Text style={styles.totalLabel}>
+                {viewMode === 'own' ? "Today's Screen Time" : "Partner's Screen Time"}
+              </Text>
               <Text style={styles.totalValue}>
                 {formatDuration(totalSeconds)}
               </Text>
@@ -261,6 +309,12 @@ export default function FocusScreen() {
             {/* App usage list */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Top Apps</Text>
+
+              {usageData.length === 0 && !isLoading && (
+                <Text style={{ color: Colors.textSecondary, textAlign: 'center', marginTop: 20 }}>
+                  No screen time data available.
+                </Text>
+              )}
 
               {usageData.map((app) => {
                 const barWidth = Math.max(
@@ -502,5 +556,30 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     flex: 1,
     lineHeight: 20,
+  },
+  consentMissingCard: {
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    padding: Spacing.xl,
+    marginTop: Spacing.xl,
+  },
+  consentMissingEmoji: {
+    fontSize: 48,
+    marginBottom: Spacing.md,
+  },
+  consentMissingTitle: {
+    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: Typography.size.bodyLarge,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  consentMissingText: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
 });
