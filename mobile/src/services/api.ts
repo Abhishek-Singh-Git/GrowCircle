@@ -49,8 +49,9 @@ class ApiClient {
     const data = await response.json();
 
     if (!response.ok) {
-      const error = data.error as ApiError;
-      throw new Error(error?.message || 'Something went wrong');
+      const errorObj = new Error(data.message || data.error || 'Something went wrong') as any;
+      errorObj.status = response.status;
+      throw errorObj;
     }
 
     return data as T;
@@ -86,11 +87,18 @@ class ApiClient {
 
   private async executeRequest(method: string, url: string, body?: string): Promise<Response> {
     const headers = await this.getHeaders();
-    return fetch(url, {
-      method,
-      headers,
-      ...(body ? { body } : {}),
-    });
+    try {
+      return await fetch(url, {
+        method,
+        headers,
+        ...(body ? { body } : {}),
+      });
+    } catch (error: any) {
+      if (error?.message?.includes('UnknownHostException') || error?.message?.includes('Network request failed') || error?.message?.includes('Failed to fetch')) {
+        throw new Error('Unable to connect. Please check your internet connection.');
+      }
+      throw error;
+    }
   }
 
   private async requestWithRetry<T>(
@@ -150,7 +158,7 @@ class ApiClient {
     try {
       return await this.requestWithRetry<T>('POST', path, body);
     } catch (error: any) {
-      if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
+      if (error.message === 'Unable to connect. Please check your internet connection.') {
         await this.queueRequest('POST', path, body);
         throw new OfflineError();
       }
@@ -162,7 +170,7 @@ class ApiClient {
     try {
       return await this.requestWithRetry<T>('PATCH', path, body);
     } catch (error: any) {
-      if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
+      if (error.message === 'Unable to connect. Please check your internet connection.') {
         await this.queueRequest('PATCH', path, body);
         throw new OfflineError();
       }
@@ -174,7 +182,7 @@ class ApiClient {
     try {
       return await this.requestWithRetry<T>('PUT', path, body);
     } catch (error: any) {
-      if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
+      if (error.message === 'Unable to connect. Please check your internet connection.') {
         await this.queueRequest('PUT', path, body);
         throw new OfflineError();
       }
@@ -186,7 +194,7 @@ class ApiClient {
     try {
       return await this.requestWithRetry<T>('DELETE', path);
     } catch (error: any) {
-      if (error.message === 'Network request failed' || error.message === 'Failed to fetch') {
+      if (error.message === 'Unable to connect. Please check your internet connection.') {
         await this.queueRequest('DELETE', path);
         throw new OfflineError();
       }

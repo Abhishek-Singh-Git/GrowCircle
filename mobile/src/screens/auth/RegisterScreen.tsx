@@ -58,8 +58,14 @@ export default function RegisterScreen({
       setAuth(data.user, data.accessToken, data.refreshToken);
       onRegisterSuccess();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Registration failed';
-      Alert.alert('Error', message);
+      const error = err as any;
+      if (error.status === 409 || error.message?.toLowerCase().includes('exist') || error.message?.toLowerCase().includes('registered')) {
+        Alert.alert('Account exists', 'This email is already registered. Please log in.');
+        onSwitchToLogin();
+      } else {
+        const message = err instanceof Error ? err.message : 'Registration failed';
+        Alert.alert('Error', message);
+      }
     } finally {
       setIsLoading(false);
     }
