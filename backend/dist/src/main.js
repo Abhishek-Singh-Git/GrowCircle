@@ -42,7 +42,7 @@ async function bootstrap() {
         console.log('Starting NestJS application...');
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
         const firebaseConfig = process.env.FIREBASE_ADMIN_SDK;
-        if (firebaseConfig) {
+        if (firebaseConfig && !admin.apps.length) {
             try {
                 const serviceAccount = JSON.parse(firebaseConfig);
                 admin.initializeApp({
@@ -54,7 +54,7 @@ async function bootstrap() {
                 console.error('Failed to initialize Firebase Admin:', e);
             }
         }
-        else {
+        else if (!firebaseConfig) {
             console.warn('FIREBASE_ADMIN_SDK environment variable is not set');
         }
         app.useGlobalPipes(new common_1.ValidationPipe({
