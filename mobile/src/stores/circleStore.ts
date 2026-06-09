@@ -9,6 +9,9 @@ interface CircleMember {
   name: string;
   avatarUrl?: string;
   role: 'owner' | 'member';
+  streak?: number;
+  xp?: number;
+  level?: number;
 }
 
 interface Circle {

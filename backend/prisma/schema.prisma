@@ -250,6 +250,7 @@ model GoalInstance {
   status      String    @default("pending") @db.VarChar(20)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime? @updatedAt @map("updated_at")
+  expiresAt   DateTime? @map("expires_at")
 
   goal         Goal          @relation(fields: [goalId], references: [id])
   user         User          @relation(fields: [userId], references: [id])

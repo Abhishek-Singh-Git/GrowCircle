@@ -12,7 +12,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useCircleStore } from '../../stores/circleStore';
 
 export default function BattleScreen() {
-  const { challenges, fetchChallenges, createChallenge, respondToChallenge } = useChallenges();
+  const { challenges, fetchChallenges, createChallenge, respondToChallenge, incrementProgress, resolveChallenge } = useChallenges();
   const user = useAuthStore((s) => s.user);
   const activeCircleId = useCircleStore((s) => s.activeCircleId);
 
@@ -146,13 +146,13 @@ export default function BattleScreen() {
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
             <TouchableOpacity
               style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 8, borderRadius: 6, alignItems: 'center' }}
-              onPress={() => useChallenges.getState().incrementProgress(challenge.id)}
+              onPress={() => incrementProgress(challenge.id)}
             >
               <Text style={{ color: 'white', fontWeight: 'bold' }}>+1 Progress</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{ flex: 1, backgroundColor: Colors.accentPrimary, padding: 8, borderRadius: 6, alignItems: 'center' }}
-              onPress={() => useChallenges.getState().resolveChallenge(challenge.id, { outcomeType: 'win', winnerId: user?.id })}
+              onPress={() => resolveChallenge(challenge.id, { outcomeType: 'win', winnerId: user?.id })}
             >
               <Text style={{ color: 'white' }}>I Won!</Text>
             </TouchableOpacity>
@@ -207,10 +207,10 @@ export default function BattleScreen() {
           </TouchableOpacity>
         </View>
 
-        {challenges.filter((c) => c.status === activeTab).length === 0 ? (
+        {challenges.filter((c) => c.status === activeTab || (activeTab === 'pending' && c.status === 'proposed')).length === 0 ? (
           <Text style={{ color: Colors.textSecondary, marginBottom: 20 }}>No {activeTab} challenges.</Text>
         ) : (
-          challenges.filter((c) => c.status === activeTab).map(renderChallenge)
+          challenges.filter((c) => c.status === activeTab || (activeTab === 'pending' && c.status === 'proposed')).map(renderChallenge)
         )}
 
         {/* Create challenge CTA */}

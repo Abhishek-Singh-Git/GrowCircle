@@ -71,9 +71,16 @@ function getMockUsageData(): AppUsageEntry[] {
 }
 
 // ── Export the native module or the mock ─────────────────────────────────
+const ScreenTimeNative = NativeModules.ScreenTimeModule;
+
 const ScreenTimeModule: ScreenTimeNativeInterface =
-  Platform.OS === 'android' && NativeModules.ScreenTimeModule
-    ? NativeModules.ScreenTimeModule
+  Platform.OS === 'android' && ScreenTimeNative
+    ? {
+        hasPermission: () => ScreenTimeNative.hasPermission(),
+        requestPermission: () => ScreenTimeNative.requestPermission(),
+        getUsageStats: (start, end) => ScreenTimeNative.getUsageStats(start, end),
+        getTodayUsage: () => ScreenTimeNative.getTodayUsage(),
+      }
     : MockScreenTime;
 
 export default ScreenTimeModule;

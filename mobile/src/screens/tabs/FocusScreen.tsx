@@ -43,6 +43,7 @@ export default function FocusScreen() {
   const [usageData, setUsageData] = useState<AppUsageEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalSeconds, setTotalSeconds] = useState(0);
+  const maxDuration = Math.max(...usageData.map((app) => app.totalTimeInForeground), 1);
 
   const appState = useRef(AppState.currentState);
 
@@ -115,8 +116,8 @@ export default function FocusScreen() {
           }).catch(() => {}); // Silent fail on sync — offline-first
         }
       } else if (viewMode === 'partner') {
-        const partners = activeCircle?.members?.filter((m: any) => m.userId !== user?.id) || [];
-        const targetPartnerId = selectedPartnerId || (partners.length > 0 ? partners[0].userId : null);
+        const partners = activeCircle?.members?.filter((m: any) => m.id !== user?.id) || [];
+        const targetPartnerId = selectedPartnerId || (partners.length > 0 ? partners[0].id : null);
 
         if (!targetPartnerId) {
           setUsageData([]);
@@ -166,9 +167,9 @@ export default function FocusScreen() {
           text: 'Send Alert',
           onPress: async () => {
             if (!selectedPartnerId) {
-              const partners = activeCircle?.members?.filter((m: any) => m.userId !== user?.id) || [];
+              const partners = activeCircle?.members?.filter((m: any) => m.id !== user?.id) || [];
               if (partners.length === 0) return;
-              setSelectedPartnerId(partners[0].userId);
+              setSelectedPartnerId(partners[0].id);
             }
             try {
               await api.post('/interventions', {
@@ -210,7 +211,7 @@ export default function FocusScreen() {
   };
 
   const initiateTimeout = async (appPackage: string, durationSeconds: number) => {
-    const targetId = selectedPartnerId || activeCircle?.members?.filter((m: any) => m.userId !== user?.id)?.[0]?.userId;
+    const targetId = selectedPartnerId || activeCircle?.members?.filter((m: any) => m.id !== user?.id)?.[0]?.id;
     if (!targetId) return;
     try {
       await api.post('/interventions', {
@@ -230,9 +231,6 @@ export default function FocusScreen() {
     }
   };
 
-  // Get the maximum bar width for relative scaling
-  const maxDuration = usageData.length > 0 ? usageData[0].totalTimeInForeground : 1;
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -248,51 +246,38 @@ export default function FocusScreen() {
         }
       >
         {/* Header */}
-        <Text style={styles.pageTitle}>📱 Focus</Text>
-
-        {/* View mode toggle */}
-        <View style={styles.toggleRow}>
-          <TouchableOpacity
-            style={[styles.toggle, viewMode === 'own' && styles.toggleActive]}
-            onPress={() => setViewMode('own')}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                viewMode === 'own' && styles.toggleTextActive,
-              ]}
-            >
-              My Screen Time
-            </Text>
-          </TouchableOpacity>
-          {activeCircle?.members?.filter((m: any) => m.userId !== user?.id).map((m: any) => (
+        <View style={styles.header}>
+          <Text style={styles.pageTitle}>📱 Focus</Text>
+          <View style={styles.toggleRow}>
             <TouchableOpacity
-              key={m.userId}
-              style={[
-                styles.toggle,
-                viewMode === 'partner' && selectedPartnerId === m.userId && styles.toggleActive,
-              ]}
-              onPress={() => { setViewMode('partner'); setSelectedPartnerId(m.userId); }}
+              style={[styles.toggle, viewMode === 'own' && styles.toggleActive]}
+              onPress={() => setViewMode('own')}
             >
-              <Text
+              <Text style={[styles.toggleText, viewMode === 'own' && styles.toggleTextActive]}>Me</Text>
+            </TouchableOpacity>
+            {activeCircle?.members?.filter((m: any) => m.id !== user?.id).map((m: any) => (
+              <TouchableOpacity
+                key={m.id}
                 style={[
-                  styles.toggleText,
-                  viewMode === 'partner' && selectedPartnerId === m.userId && styles.toggleTextActive,
+                  styles.toggle,
+                  viewMode === 'partner' && selectedPartnerId === m.id && styles.toggleActive,
                 ]}
+                onPress={() => { setViewMode('partner'); setSelectedPartnerId(m.id); }}
               >
-                {m.user?.name ? m.user.name.split(' ')[0] : 'Partner'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          {(!activeCircle?.members || activeCircle.members.filter((m: any) => m.userId !== user?.id).length === 0) && (
-            <TouchableOpacity style={styles.toggle} disabled>
-              <Text style={styles.toggleText}>Partner's View</Text>
-            </TouchableOpacity>
-          )}
+                <Text
+                  style={[
+                    styles.toggleText,
+                    viewMode === 'partner' && selectedPartnerId === m.id && styles.toggleTextActive,
+                  ]}
+                >
+                  {m.name ? m.name.split(' ')[0] : 'Partner'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {!hasPermission && (
-          /* Permission banner — non-blocking */
           <TouchableOpacity
             style={styles.permissionBanner}
             onPress={handleRequestPermission}
@@ -300,7 +285,7 @@ export default function FocusScreen() {
           >
             <Text style={styles.permissionBannerEmoji}>🔒</Text>
             <Text style={styles.permissionBannerText}>
-              Enable Screen Time Access for real data — Tap to open Settings
+              Enable Screen Time Access for real data
             </Text>
           </TouchableOpacity>
         )}
@@ -315,19 +300,55 @@ export default function FocusScreen() {
           </View>
         ) : (
           <>
-            {/* Total screen time header */}
-            <View style={styles.totalCard}>
-              <Text style={styles.totalLabel}>
-                {viewMode === 'own' ? "Today's Screen Time" : "Partner's Screen Time"}
-              </Text>
-              <Text style={styles.totalValue}>
-                {formatDuration(totalSeconds)}
-              </Text>
+            {/* Hero Section */}
+            <View style={styles.heroSection}>
+              <View style={styles.heroContent}>
+                <Text style={styles.heroLabel}>
+                  {viewMode === 'own' ? "Today's Screen Time" : "Partner's Screen Time"}
+                </Text>
+                <Text style={styles.heroValue}>{formatDuration(totalSeconds)}</Text>
+                <View style={styles.heroTrend}>
+                  <Text style={styles.heroTrendText}>↓ 1h 12m from Yesterday</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Quick Stats Grid */}
+            <View style={styles.statsGrid}>
+              <View style={styles.statBox}>
+                <Text style={styles.statBoxLabel}>Most Used</Text>
+                <Text style={styles.statBoxValue} numberOfLines={1}>
+                  {usageData[0]?.appName || 'None'}
+                </Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text style={styles.statBoxLabel}>Unlocks</Text>
+                <Text style={styles.statBoxValue}>42</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text style={styles.statBoxLabel}>Focus Score</Text>
+                <Text style={[styles.statBoxValue, { color: Colors.accentSuccess }]}>92</Text>
+              </View>
+            </View>
+
+            {/* Weekly Trend (Placeholder) */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Weekly Trend</Text>
+              <View style={styles.trendCard}>
+                 <View style={styles.trendChart}>
+                    {[45, 60, 30, 80, 40, 95, 70].map((h, i) => (
+                      <View key={i} style={[styles.trendBar, { height: h, backgroundColor: i === 5 ? Colors.accentPrimary : Colors.surfaceHover }]} />
+                    ))}
+                 </View>
+                 <View style={styles.trendLabels}>
+                    {['M','T','W','T','F','S','S'].map(d => <Text key={d} style={styles.trendLabelText}>{d}</Text>)}
+                 </View>
+              </View>
             </View>
 
             {/* App usage list */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Top Apps</Text>
+              <Text style={styles.sectionTitle}>App Breakdown</Text>
 
               {usageData.length === 0 && !isLoading && (
                 <Text style={{ color: Colors.textSecondary, textAlign: 'center', marginTop: 20 }}>
@@ -335,11 +356,8 @@ export default function FocusScreen() {
                 </Text>
               )}
 
-              {usageData.map((app) => {
-                const barWidth = Math.max(
-                  (app.totalTimeInForeground / maxDuration) * 100,
-                  5,
-                );
+              {usageData.slice(0, 8).map((app) => {
+                const barWidth = Math.max((app.totalTimeInForeground / maxDuration) * 100, 5);
 
                 return (
                   <TouchableOpacity
@@ -360,7 +378,7 @@ export default function FocusScreen() {
                     <View style={styles.appLeft}>
                       <View style={[styles.appIcon, app.iconBase64 && { backgroundColor: 'transparent' }]}>
                         {app.iconBase64 ? (
-                          <Image source={{ uri: `data:image/png;base64,${app.iconBase64}` }} style={{ width: 36, height: 36, borderRadius: 8 }} />
+                          <Image source={{ uri: `data:image/png;base64,${app.iconBase64}` }} style={{ width: 32, height: 32, borderRadius: 8 }} />
                         ) : (
                           <Text style={styles.appIconText}>
                             {app.appName[0]}
@@ -378,8 +396,6 @@ export default function FocusScreen() {
                                 backgroundColor:
                                   app.totalTimeInForeground > 7200
                                     ? Colors.accentDanger
-                                    : app.totalTimeInForeground > 3600
-                                    ? Colors.accentWarning
                                     : Colors.accentPrimary,
                               },
                             ]}
@@ -422,77 +438,98 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingBottom: 100,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
   pageTitle: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.heading,
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
   },
   toggleRow: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderRadius: BorderRadius.full,
     padding: 3,
-    marginBottom: Spacing.lg,
   },
   toggle: {
-    flex: 1,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
     alignItems: 'center',
+    minWidth: 50,
   },
   toggleActive: {
     backgroundColor: Colors.accentPrimary,
   },
   toggleText: {
     fontFamily: Typography.fontFamily.medium,
-    fontSize: Typography.size.small,
+    fontSize: 10,
     color: Colors.textSecondary,
   },
   toggleTextActive: {
     color: Colors.textPrimary,
   },
-  permissionBanner: {
-    flexDirection: 'row',
+  heroSection: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
     alignItems: 'center',
-    backgroundColor: 'rgba(251, 191, 36, 0.1)',
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.3)',
-    padding: Spacing.sm,
-    gap: Spacing.xs,
     marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
   },
-  permissionBannerEmoji: {
-    fontSize: 16,
+  heroContent: {
+    alignItems: 'center',
   },
-  permissionBannerText: {
+  heroLabel: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.small,
-    color: Colors.accentWarning,
-    flex: 1,
-    lineHeight: 18,
+    color: Colors.textSecondary,
+    marginBottom: 4,
   },
-  totalCard: {
+  heroValue: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: 48,
+    color: Colors.textPrimary,
+  },
+  heroTrend: {
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    marginTop: 8,
+  },
+  heroTrendText: {
+    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: 12,
+    color: Colors.accentSuccess,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  statBox: {
+    flex: 1,
     backgroundColor: Colors.surface,
+    padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.glassBorder,
-    padding: Spacing.lg,
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
   },
-  totalLabel: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.small,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xxs,
+  statBoxLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 10,
+    color: Colors.textTertiary,
+    marginBottom: 4,
   },
-  totalValue: {
+  statBoxValue: {
     fontFamily: Typography.fontFamily.bold,
-    fontSize: 36,
+    fontSize: 14,
     color: Colors.textPrimary,
   },
   section: {
@@ -502,7 +539,38 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.semiBold,
     fontSize: Typography.size.bodyLarge,
     color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  trendCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+  },
+  trendChart: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 100,
+    paddingHorizontal: Spacing.sm,
+  },
+  trendBar: {
+    width: 30,
+    borderRadius: 4,
+  },
+  trendLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingHorizontal: Spacing.sm,
+  },
+  trendLabelText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 10,
+    color: Colors.textTertiary,
+    width: 30,
+    textAlign: 'center',
   },
   appCard: {
     flexDirection: 'row',
@@ -510,11 +578,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
     padding: Spacing.sm,
     marginBottom: Spacing.xs,
-    ...Shadows.sm,
   },
   appLeft: {
     flexDirection: 'row',
@@ -523,8 +588,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   appIcon: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: 8,
     backgroundColor: Colors.surfaceHover,
     justifyContent: 'center',
@@ -532,7 +597,7 @@ const styles = StyleSheet.create({
   },
   appIconText: {
     fontFamily: Typography.fontFamily.bold,
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.accentPrimary,
   },
   appInfo: {
@@ -545,40 +610,33 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   barContainer: {
-    height: 4,
+    height: 3,
     borderRadius: 2,
     backgroundColor: Colors.surfaceHover,
     overflow: 'hidden',
   },
   bar: {
     height: '100%',
-    borderRadius: 2,
   },
   appDuration: {
     fontFamily: Typography.fontFamily.semiBold,
     fontSize: Typography.size.small,
     color: Colors.textSecondary,
-    marginLeft: Spacing.sm,
   },
-  hintCard: {
+  permissionBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(124, 92, 252, 0.08)',
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
     borderRadius: BorderRadius.md,
     padding: Spacing.sm,
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: 'rgba(124, 92, 252, 0.15)',
+    marginBottom: Spacing.md,
+    gap: 8,
   },
-  hintEmoji: {
-    fontSize: 18,
-  },
-  hintText: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.small,
-    color: Colors.textSecondary,
-    flex: 1,
-    lineHeight: 20,
+  permissionBannerEmoji: { fontSize: 16 },
+  permissionBannerText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 12,
+    color: Colors.accentWarning,
   },
   consentMissingCard: {
     alignItems: 'center',
@@ -604,5 +662,26 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.body,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  hintCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(124, 92, 252, 0.08)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 92, 252, 0.15)',
+    marginTop: Spacing.md,
+  },
+  hintEmoji: {
+    fontSize: 18,
+  },
+  hintText: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.small,
+    color: Colors.textSecondary,
+    flex: 1,
+    lineHeight: 20,
   },
 });

@@ -74,9 +74,13 @@ export class LoggingService {
       });
 
       // Update instance status
+      const expiresAt = dto.status === 'completed' ? new Date(Date.now() + 3 * 60 * 60 * 1000) : null;
       await this.prisma.goalInstance.update({
         where: { id: dto.goalInstanceId },
-        data: { status: dto.status === 'completed' ? 'completed' : 'partial' },
+        data: {
+          status: dto.status === 'completed' ? 'completed' : 'partial',
+          expiresAt,
+        },
       });
 
       // Update gamification profile XP

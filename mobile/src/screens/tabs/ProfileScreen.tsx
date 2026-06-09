@@ -3,7 +3,7 @@
  * User's personal analytics, badges, streaks, and settings.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Switch, Alert, AppState } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
@@ -33,18 +33,6 @@ export default function ProfileScreen() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [screenTimeEnabled, setScreenTimeEnabled] = useState(false);
 
-  // Compute real stats from store
-  const completedToday = todayInstances.filter((i) => i.status === 'completed').length;
-  const totalToday = todayInstances.length;
-  
-  const myCircleMember = activeCircle?.members?.find((m: any) => m.id === user?.id);
-  const streak = myCircleMember?.streak ?? 0;
-  const totalXp = myCircleMember?.xp ?? 0;
-  const level = myCircleMember?.level ?? 0;
-
-  const xpDisplay = `${totalXp} XP`;
-  const levelDisplay = activeCircle ? `Level ${level}` : 'Solo';
-
   const checkPermissions = async () => {
     try {
       const { status } = await Notifications.getPermissionsAsync();
@@ -58,6 +46,18 @@ export default function ProfileScreen() {
   };
 
   useEffect(() => {
+    checkPermissions();
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        checkPermissions();
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
     if (isFocused) {
       checkPermissions();
     }
@@ -65,8 +65,24 @@ export default function ProfileScreen() {
 
   const handlePushToggle = async (val: boolean) => {
     if (val) {
-      const { status } = await Notifications.requestPermissionsAsync();
-      setPushEnabled(status === 'granted');
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus === 'granted') {
+        setPushEnabled(true);
+      } else {
+        Alert.alert(
+          'Permission Required',
+          'Please enable notifications in your system settings to use this feature.',
+          [{ text: 'Open Settings', onPress: () => Notifications.requestPermissionsAsync() }, { text: 'Cancel', style: 'cancel' }]
+        );
+        setPushEnabled(false);
+      }
     } else {
       Alert.alert(
         'Disable Notifications',
@@ -79,12 +95,13 @@ export default function ProfileScreen() {
 
   const handleScreenTimeToggle = async (val: boolean) => {
     if (val) {
-      await ScreenTimeModule.requestPermission();
-      setTimeout(async () => {
-        const usageOk = await ScreenTimeModule.hasPermission();
-        setScreenTimeEnabled(usageOk);
-        if (usageOk) updatePreference('screenTimeConsent', true);
-      }, 1000);
+      const usageOk = await ScreenTimeModule.hasPermission();
+      if (!usageOk) {
+        await ScreenTimeModule.requestPermission();
+      } else {
+        setScreenTimeEnabled(true);
+        updatePreference('screenTimeConsent', true);
+      }
     } else {
       Alert.alert(
         'Disable Screen Time Access',
@@ -92,10 +109,21 @@ export default function ProfileScreen() {
         [{ text: 'OK' }]
       );
       setScreenTimeEnabled(true);
-      // We also revoke backend consent even if they haven't disabled OS permission yet
       updatePreference('screenTimeConsent', false);
     }
   };
+
+  // Compute real stats from store
+  const completedToday = todayInstances.filter((i) => i.status === 'completed').length;
+  const totalToday = todayInstances.length;
+
+  const myCircleMember = activeCircle?.members?.find((m: any) => m.id === user?.id);
+  const streak = myCircleMember?.streak ?? 0;
+  const totalXp = myCircleMember?.xp ?? 0;
+  const level = myCircleMember?.level ?? 0;
+
+  const xpDisplay = `${totalXp} XP`;
+  const levelDisplay = activeCircle ? `Level ${level}` : 'Solo';
 
   return (
     <View style={styles.container}>
