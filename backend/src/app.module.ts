@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import * as admin from 'firebase-admin';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bullmq';
@@ -55,5 +56,19 @@ if (process.env.REDIS_HOST) {
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  constructor() {
+    if (!admin.apps.length) {
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert(
+            JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}')
+          ),
+        });
+      } catch (err) {
+        console.warn('Firebase Admin SDK failed to initialize. Push notifications may not work.', err);
+      }
+    }
+  }
+}
 

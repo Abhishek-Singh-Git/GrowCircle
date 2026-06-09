@@ -22,7 +22,14 @@ let AuthController = class AuthController {
         this.authService = authService;
     }
     async register(dto) {
-        return this.authService.register(dto);
+        try {
+            const user = await this.authService.register(dto);
+            return user;
+        }
+        catch (error) {
+            console.error('Registration error:', error.message, error.stack);
+            throw error;
+        }
     }
     async login(dto) {
         return this.authService.login(dto);

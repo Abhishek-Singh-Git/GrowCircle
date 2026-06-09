@@ -436,6 +436,7 @@ model ChatThreadParticipant {
   userId     String    @map("user_id") @db.Uuid
   joinedAt   DateTime  @default(now()) @map("joined_at")
   lastReadAt DateTime? @map("last_read_at")
+  clearedAt  DateTime? @map("cleared_at")
 
   thread ChatThread @relation(fields: [threadId], references: [id])
   user   User       @relation(fields: [userId], references: [id])
@@ -536,9 +537,10 @@ model ChallengeParticipant {
   id          String    @id @default(uuid()) @db.Uuid
   challengeId String    @map("challenge_id") @db.Uuid
   userId      String    @map("user_id") @db.Uuid
-  status      String    @default("pending") @db.VarChar(20)
-  acceptedAt  DateTime? @map("accepted_at")
-  withdrawnAt DateTime? @map("withdrawn_at")
+  status        String    @default("pending") @db.VarChar(20)
+  acceptedAt    DateTime? @map("accepted_at")
+  withdrawnAt   DateTime? @map("withdrawn_at")
+  manualProgress Int      @default(0) @map("manual_progress")
 
   challenge Challenge @relation(fields: [challengeId], references: [id])
   user      User      @relation(fields: [userId], references: [id])

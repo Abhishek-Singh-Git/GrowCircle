@@ -13,7 +13,16 @@ export declare class AppController {
             sha256_cert_fingerprints: string[];
         };
     }[];
-    updateUser(req: any, body: any): Promise<{
+    getMe(req: any): Promise<{
+        id: string;
+        name: string;
+        email: string | null;
+        phone: string | null;
+        avatarUrl: string | null;
+        timezone: string;
+        plan: string;
+    }>;
+    updateProfile(req: any, body: any): Promise<{
         id: string;
         name: string;
         createdAt: Date;
@@ -73,4 +82,8 @@ export declare class AppController {
         nudgeBlockedUsers: string[];
         shareLateNightActivity: boolean;
     }>;
+    healthCheck(): {
+        status: string;
+        timestamp: string;
+    };
 }

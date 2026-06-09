@@ -30,6 +30,7 @@ export declare class CirclesService {
         id: string;
         name: string;
         description: string | null;
+        inviteCode: string;
         role: string;
         memberCount: number;
         members: {
@@ -37,6 +38,9 @@ export declare class CirclesService {
             name: string;
             avatarUrl: string | null;
             role: string;
+            streak: number;
+            xp: number;
+            level: number;
         }[];
         joinedAt: Date;
     }[]>;
@@ -51,12 +55,12 @@ export declare class CirclesService {
         } & {
             id: string;
             userId: string;
+            circleId: string;
             role: string;
             status: string;
             joinedAt: Date;
             leftAt: Date | null;
             removedAt: Date | null;
-            circleId: string;
             removedBy: string | null;
         })[];
     } & {
@@ -76,15 +80,18 @@ export declare class CirclesService {
         disbandedAt: Date | null;
         ownerId: string;
     }>;
+    leaveCircle(userId: string, circleId: string): Promise<{
+        message: string;
+    }>;
     validateMembership(userId: string, circleId: string): Promise<{
         id: string;
         userId: string;
+        circleId: string;
         role: string;
         status: string;
         joinedAt: Date;
         leftAt: Date | null;
         removedAt: Date | null;
-        circleId: string;
         removedBy: string | null;
     }>;
     private generateInviteCode;

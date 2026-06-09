@@ -119,18 +119,30 @@ let CirclesService = class CirclesService {
         if (circle.members.length >= 10) {
             throw new common_1.BadRequestException('Circle is full (maximum 10 members)');
         }
-        await this.prisma.circleMember.create({
-            data: {
+        await this.prisma.circleMember.upsert({
+            where: { circleId_userId: { circleId: circle.id, userId } },
+            create: {
                 circleId: circle.id,
                 userId,
                 role: 'member',
                 status: 'active',
             },
+            update: {
+                status: 'active',
+                role: 'member',
+                joinedAt: new Date(),
+                leftAt: null,
+                removedAt: null,
+            },
         });
-        await this.prisma.gamificationProfile.create({
-            data: {
+        await this.prisma.gamificationProfile.upsert({
+            where: { userId_circleId: { userId, circleId: circle.id } },
+            create: {
                 userId,
                 circleId: circle.id,
+            },
+            update: {
+                updatedAt: new Date(),
             },
         });
         return {
@@ -153,20 +165,35 @@ let CirclesService = class CirclesService {
                 },
             },
         });
-        return memberships.map((m) => ({
-            id: m.circle.id,
-            name: m.circle.name,
-            description: m.circle.description,
-            role: m.role,
-            memberCount: m.circle.members.length,
-            members: m.circle.members.map((mem) => ({
-                id: mem.user.id,
-                name: mem.user.name,
-                avatarUrl: mem.user.avatarUrl,
-                role: mem.role,
-            })),
-            joinedAt: m.joinedAt,
-        }));
+        const results = [];
+        for (const m of memberships) {
+            const enrichedMembers = [];
+            for (const mem of m.circle.members) {
+                const profile = await this.prisma.gamificationProfile.findUnique({
+                    where: { userId_circleId: { userId: mem.user.id, circleId: m.circle.id } },
+                });
+                enrichedMembers.push({
+                    id: mem.user.id,
+                    name: mem.user.name,
+                    avatarUrl: mem.user.avatarUrl,
+                    role: mem.role,
+                    streak: profile?.currentStreak || 0,
+                    xp: profile?.totalXp || 0,
+                    level: profile?.currentLevel || 0,
+                });
+            }
+            results.push({
+                id: m.circle.id,
+                name: m.circle.name,
+                description: m.circle.description,
+                inviteCode: m.circle.inviteCode,
+                role: m.role,
+                memberCount: m.circle.members.length,
+                members: enrichedMembers,
+                joinedAt: m.joinedAt,
+            });
+        }
+        return results;
     }
     async getCircleDetails(userId, circleId) {
         await this.validateMembership(userId, circleId);
@@ -186,6 +213,17 @@ let CirclesService = class CirclesService {
         if (!circle)
             throw new common_1.NotFoundException('Circle not found');
         return circle;
+    }
+    async leaveCircle(userId, circleId) {
+        const membership = await this.validateMembership(userId, circleId);
+        if (membership.role === 'owner') {
+            throw new common_1.BadRequestException('As the owner, you cannot leave the circle. Delete the circle instead.');
+        }
+        await this.prisma.circleMember.update({
+            where: { circleId_userId: { circleId, userId } },
+            data: { status: 'inactive' },
+        });
+        return { message: 'You have left the circle.' };
     }
     async validateMembership(userId, circleId) {
         const membership = await this.prisma.circleMember.findUnique({

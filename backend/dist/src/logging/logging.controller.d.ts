@@ -22,8 +22,8 @@ export declare class LoggingController {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
-            status: string;
             circleId: string;
+            status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
             scheduleStartDate: Date | null;
@@ -45,8 +45,8 @@ export declare class LoggingController {
         id: string;
         targetValue: import("@prisma/client-runtime-utils").Decimal | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         date: Date;
         goalId: string;
         clientUuid: string;
@@ -78,8 +78,8 @@ export declare class LoggingController {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
-            status: string;
             circleId: string;
+            status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
             scheduleStartDate: Date | null;
@@ -120,8 +120,8 @@ export declare class LoggingController {
         id: string;
         targetValue: import("@prisma/client-runtime-utils").Decimal | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         date: Date;
         goalId: string;
         clientUuid: string;
@@ -199,8 +199,8 @@ export declare class LoggingController {
                 id: string;
                 targetValue: import("@prisma/client-runtime-utils").Decimal | null;
                 userId: string;
-                status: string;
                 circleId: string;
+                status: string;
                 date: Date;
                 goalId: string;
                 clientUuid: string;
@@ -221,10 +221,12 @@ export declare class LoggingController {
             updatedAt: Date | null;
             targetValue: import("@prisma/client-runtime-utils").Decimal | null;
             userId: string;
-            status: string;
             circleId: string;
+            status: string;
             date: Date;
             goalId: string;
         })[];
+        streak: number;
+        xp: number;
     }[]>;
 }

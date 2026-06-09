@@ -8,7 +8,7 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { OnEvent } from '@nestjs/event-emitter';
+import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { Logger } from '@nestjs/common';
 
@@ -31,6 +31,7 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ── CONNECTION ────────────────────────────────────────────────────────
@@ -122,6 +123,10 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(room).emit('partner_up_late', {
           userId: client.userId,
           timestamp: now.toISOString(),
+        });
+        this.eventEmitter.emit('late_night.detected', {
+          userId: client.userId,
+          circleId: data.circleId,
         });
       }
     }

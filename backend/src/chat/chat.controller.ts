@@ -9,6 +9,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Delete,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { CreateThreadDto, SendMessageDto } from './dto/chat.dto';
@@ -59,5 +60,21 @@ export class ChatController {
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 50,
     );
+  }
+
+  @Delete('threads/:threadId/clear')
+  async clearChat(
+    @Request() req: { user: { id: string } },
+    @Param('threadId') threadId: string,
+  ) {
+    return this.chatService.clearChat(req.user.id, threadId);
+  }
+
+  @Delete('threads/:threadId')
+  async deleteThread(
+    @Request() req: { user: { id: string } },
+    @Param('threadId') threadId: string,
+  ) {
+    return this.chatService.deleteThread(req.user.id, threadId);
   }
 }

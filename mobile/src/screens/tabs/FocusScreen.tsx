@@ -15,6 +15,7 @@ import {
   RefreshControl,
   Linking,
   AppState,
+  Image,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme/tokens';
 import { useAuthStore } from '../../stores/authStore';
@@ -33,9 +34,11 @@ function formatDuration(seconds: number): string {
 
 export default function FocusScreen() {
   const user = useAuthStore((s) => s.user);
+  const activeCircle = useCircleStore((s) => s.activeCircle);
   const activeCircleId = useCircleStore((s) => s.activeCircleId);
 
   const [viewMode, setViewMode] = useState<ViewMode>('own');
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState(false);
   const [usageData, setUsageData] = useState<AppUsageEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,9 +115,10 @@ export default function FocusScreen() {
           }).catch(() => {}); // Silent fail on sync — offline-first
         }
       } else if (viewMode === 'partner') {
-        const activeCircle = useCircleStore.getState().activeCircle;
-        const partner = activeCircle?.members?.find((m: any) => m.id !== user?.id);
-        if (!partner) {
+        const partners = activeCircle?.members?.filter((m: any) => m.userId !== user?.id) || [];
+        const targetPartnerId = selectedPartnerId || (partners.length > 0 ? partners[0].userId : null);
+
+        if (!targetPartnerId) {
           setUsageData([]);
           setTotalSeconds(0);
           return;
@@ -122,7 +126,7 @@ export default function FocusScreen() {
 
         const today = new Date().toISOString().split('T')[0];
         try {
-          const res: any = await api.get(`/screen-time?user_id=${partner.id}&date=${today}`);
+          const res: any = await api.get(`/screen-time?user_id=${targetPartnerId}&date=${today}`);
           const apps = res.apps.map((app: any) => ({
             packageName: app.appPackage,
             appName: app.appDisplayName || app.appPackage,
@@ -161,9 +165,14 @@ export default function FocusScreen() {
         {
           text: 'Send Alert',
           onPress: async () => {
+            if (!selectedPartnerId) {
+              const partners = activeCircle?.members?.filter((m: any) => m.userId !== user?.id) || [];
+              if (partners.length === 0) return;
+              setSelectedPartnerId(partners[0].userId);
+            }
             try {
               await api.post('/interventions', {
-                targetId: 'partner-id', // In production, selected partner
+                targetId: selectedPartnerId,
                 circleId: activeCircleId,
                 type: 'alert',
                 appPackage: app.packageName,
@@ -201,9 +210,11 @@ export default function FocusScreen() {
   };
 
   const initiateTimeout = async (appPackage: string, durationSeconds: number) => {
+    const targetId = selectedPartnerId || activeCircle?.members?.filter((m: any) => m.userId !== user?.id)?.[0]?.userId;
+    if (!targetId) return;
     try {
       await api.post('/interventions', {
-        targetId: 'partner-id', // In production, selected partner
+        targetId,
         circleId: activeCircleId,
         type: 'timeout',
         appPackage,
@@ -254,22 +265,30 @@ export default function FocusScreen() {
               My Screen Time
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.toggle,
-              viewMode === 'partner' && styles.toggleActive,
-            ]}
-            onPress={() => setViewMode('partner')}
-          >
-            <Text
+          {activeCircle?.members?.filter((m: any) => m.userId !== user?.id).map((m: any) => (
+            <TouchableOpacity
+              key={m.userId}
               style={[
-                styles.toggleText,
-                viewMode === 'partner' && styles.toggleTextActive,
+                styles.toggle,
+                viewMode === 'partner' && selectedPartnerId === m.userId && styles.toggleActive,
               ]}
+              onPress={() => { setViewMode('partner'); setSelectedPartnerId(m.userId); }}
             >
-              Partner's View
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.toggleText,
+                  viewMode === 'partner' && selectedPartnerId === m.userId && styles.toggleTextActive,
+                ]}
+              >
+                {m.user?.name ? m.user.name.split(' ')[0] : 'Partner'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          {(!activeCircle?.members || activeCircle.members.filter((m: any) => m.userId !== user?.id).length === 0) && (
+            <TouchableOpacity style={styles.toggle} disabled>
+              <Text style={styles.toggleText}>Partner's View</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {!hasPermission && (
@@ -339,10 +358,14 @@ export default function FocusScreen() {
                     }
                   >
                     <View style={styles.appLeft}>
-                      <View style={styles.appIcon}>
-                        <Text style={styles.appIconText}>
-                          {app.appName[0]}
-                        </Text>
+                      <View style={[styles.appIcon, app.iconBase64 && { backgroundColor: 'transparent' }]}>
+                        {app.iconBase64 ? (
+                          <Image source={{ uri: `data:image/png;base64,${app.iconBase64}` }} style={{ width: 36, height: 36, borderRadius: 8 }} />
+                        ) : (
+                          <Text style={styles.appIconText}>
+                            {app.appName[0]}
+                          </Text>
+                        )}
                       </View>
                       <View style={styles.appInfo}>
                         <Text style={styles.appName}>{app.appName}</Text>

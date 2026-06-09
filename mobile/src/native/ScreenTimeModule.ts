@@ -14,6 +14,7 @@ export interface AppUsageEntry {
   appName: string;
   totalTimeInForeground: number; // seconds
   lastTimeUsed: number; // timestamp ms
+  iconBase64?: string;
 }
 
 interface ScreenTimeNativeInterface {

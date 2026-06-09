@@ -24,6 +24,7 @@ export declare class ChatService {
             userId: string;
             joinedAt: Date;
             lastReadAt: Date | null;
+            clearedAt: Date | null;
             threadId: string;
         })[];
         messages: {
@@ -81,5 +82,11 @@ export declare class ChatService {
         total: number;
         page: number;
         totalPages: number;
+    }>;
+    clearChat(userId: string, threadId: string): Promise<{
+        clearedAt: Date;
+    }>;
+    deleteThread(userId: string, threadId: string): Promise<{
+        deletedAt: Date;
     }>;
 }

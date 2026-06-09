@@ -20,6 +20,7 @@ export declare class ChallengesController {
             status: string;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
+            manualProgress: number;
             challengeId: string;
         })[];
         proposer: {
@@ -30,8 +31,8 @@ export declare class ChallengesController {
     } & {
         id: string;
         createdAt: Date;
-        status: string;
         circleId: string;
+        status: string;
         title: string;
         conditionDescription: string;
         conditionType: string;
@@ -52,21 +53,22 @@ export declare class ChallengesController {
         user: {
             id: string;
         };
-    }, circleId: string, status?: string): Promise<({
-        participants: ({
+    }, circleId: string, status?: string): Promise<{
+        participants: {
+            progress: number;
             user: {
                 id: string;
                 name: string;
                 avatarUrl: string | null;
             };
-        } & {
             id: string;
             userId: string;
             status: string;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
+            manualProgress: number;
             challengeId: string;
-        })[];
+        }[];
         proposer: {
             id: string;
             name: string;
@@ -77,11 +79,10 @@ export declare class ChallengesController {
             name: string;
             avatarUrl: string | null;
         } | null;
-    } & {
         id: string;
         createdAt: Date;
-        status: string;
         circleId: string;
+        status: string;
         title: string;
         conditionDescription: string;
         conditionType: string;
@@ -97,7 +98,7 @@ export declare class ChallengesController {
         tieBreakRule: string;
         resolvedAt: Date | null;
         proposerId: string;
-    })[]>;
+    }[]>;
     respondToChallenge(req: {
         user: {
             id: string;
@@ -108,6 +109,20 @@ export declare class ChallengesController {
         status: string;
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
+        manualProgress: number;
+        challengeId: string;
+    }>;
+    incrementProgress(req: {
+        user: {
+            id: string;
+        };
+    }, challengeId: string): Promise<{
+        id: string;
+        userId: string;
+        status: string;
+        acceptedAt: Date | null;
+        withdrawnAt: Date | null;
+        manualProgress: number;
         challengeId: string;
     }>;
     resolveChallenge(req: {
@@ -117,8 +132,8 @@ export declare class ChallengesController {
     }, challengeId: string, dto: ResolveChallengeDto): Promise<{
         id: string;
         createdAt: Date;
-        status: string;
         circleId: string;
+        status: string;
         title: string;
         conditionDescription: string;
         conditionType: string;

@@ -16,7 +16,6 @@ import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import TodayScreen from '../screens/tabs/TodayScreen';
-import GardenScreen from '../screens/tabs/GardenScreen';
 import BattleScreen from '../screens/tabs/BattleScreen';
 import FocusScreen from '../screens/tabs/FocusScreen';
 import ProfileScreen from '../screens/tabs/ProfileScreen';
@@ -55,15 +54,6 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ focused }) => (
             <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>📋</Text>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Garden"
-        component={GardenScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>🌳</Text>
           ),
         }}
       />

@@ -47,6 +47,14 @@ export class ChallengesController {
     return this.challengesService.respondToChallenge(req.user.id, challengeId, accept);
   }
 
+  @Post(':challengeId/increment')
+  async incrementProgress(
+    @Request() req: { user: { id: string } },
+    @Param('challengeId') challengeId: string,
+  ) {
+    return this.challengesService.incrementProgress(req.user.id, challengeId);
+  }
+
   @Post(':challengeId/resolve')
   async resolveChallenge(
     @Request() req: { user: { id: string } },

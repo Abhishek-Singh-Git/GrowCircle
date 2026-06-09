@@ -34,6 +34,12 @@ let ChatController = class ChatController {
     async getMessages(req, threadId, page, limit) {
         return this.chatService.getMessages(req.user.id, threadId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
     }
+    async clearChat(req, threadId) {
+        return this.chatService.clearChat(req.user.id, threadId);
+    }
+    async deleteThread(req, threadId) {
+        return this.chatService.deleteThread(req.user.id, threadId);
+    }
 };
 exports.ChatController = ChatController;
 __decorate([
@@ -73,6 +79,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String, String]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "getMessages", null);
+__decorate([
+    (0, common_1.Delete)('threads/:threadId/clear'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('threadId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "clearChat", null);
+__decorate([
+    (0, common_1.Delete)('threads/:threadId'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('threadId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "deleteThread", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('v1/chat'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

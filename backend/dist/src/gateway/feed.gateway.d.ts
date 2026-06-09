@@ -1,5 +1,6 @@
 import { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 interface AuthenticatedSocket extends Socket {
     userId?: string;
@@ -8,9 +9,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export declare class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService;
     private readonly prisma;
+    private readonly eventEmitter;
     server: Server;
     private readonly logger;
-    constructor(jwtService: JwtService, prisma: PrismaService);
+    constructor(jwtService: JwtService, prisma: PrismaService, eventEmitter: EventEmitter2);
     handleConnection(client: AuthenticatedSocket): Promise<void>;
     handleDisconnect(client: AuthenticatedSocket): void;
     handleJoinCircle(client: AuthenticatedSocket, data: {

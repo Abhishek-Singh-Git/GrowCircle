@@ -157,9 +157,14 @@ export class ChatService {
       throw new ForbiddenException('You are not a participant in this thread');
     }
 
+    const whereClause: any = { threadId, isDeleted: false };
+    if (participant.clearedAt) {
+      whereClause.sentAt = { gt: participant.clearedAt };
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.message.findMany({
-        where: { threadId, isDeleted: false },
+        where: whereClause,
         include: {
           sender: { select: { id: true, name: true, avatarUrl: true } },
         },
@@ -167,7 +172,7 @@ export class ChatService {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.message.count({ where: { threadId, isDeleted: false } }),
+      this.prisma.message.count({ where: whereClause }),
     ]);
 
     // Mark as read asynchronously
@@ -182,5 +187,45 @@ export class ChatService {
       page,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async clearChat(userId: string, threadId: string) {
+    const participant = await this.prisma.chatThreadParticipant.findUnique({
+      where: { threadId_userId: { threadId, userId } },
+    });
+
+    if (!participant) {
+      throw new ForbiddenException('You are not a participant in this thread');
+    }
+
+    const thread = await this.prisma.chatThread.findUnique({
+      where: { id: threadId },
+    });
+
+    if (!thread) throw new NotFoundException('Thread not found');
+
+    await this.prisma.chatThreadParticipant.update({
+      where: { threadId_userId: { threadId, userId } },
+      data: { lastReadAt: new Date() },
+    });
+
+    return { clearedAt: new Date() };
+  }
+
+  async deleteThread(userId: string, threadId: string) {
+    const participant = await this.prisma.chatThreadParticipant.findUnique({
+      where: { threadId_userId: { threadId, userId } },
+    });
+
+    if (!participant) {
+      throw new ForbiddenException('You are not a participant in this thread');
+    }
+
+    await this.prisma.message.updateMany({
+      where: { threadId },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
+
+    return { deletedAt: new Date() };
   }
 }

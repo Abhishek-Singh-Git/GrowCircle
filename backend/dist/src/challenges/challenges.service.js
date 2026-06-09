@@ -31,6 +31,9 @@ let ChallengesService = class ChallengesService {
         if (dto.participantIds.length < 2) {
             throw new common_1.BadRequestException('A challenge requires at least 2 participants');
         }
+        for (const pId of dto.participantIds) {
+            await this.circlesService.validateMembership(pId, dto.circleId);
+        }
         const participantsData = dto.participantIds.map((userId) => ({
             user: { connect: { id: userId } },
             status: userId === proposerId ? 'accepted' : 'pending',
@@ -100,18 +103,50 @@ let ChallengesService = class ChallengesService {
             }
         }
         else {
+            const challengeWithParticipants = await this.prisma.challenge.findUnique({
+                where: { id: challengeId },
+                include: { participants: true },
+            });
+            if (challengeWithParticipants) {
+                this.eventEmitter.emit('challenge.accepted', {
+                    challenge: challengeWithParticipants,
+                    acceptorId: userId,
+                });
+            }
             const remainingPending = await this.prisma.challengeParticipant.count({
                 where: { challengeId, status: 'pending' },
             });
             if (remainingPending === 0) {
-                await this.prisma.challenge.update({
+                const challenge = await this.prisma.challenge.update({
                     where: { id: challengeId },
                     data: { status: 'active' },
+                    include: { participants: { select: { userId: true } } },
                 });
-                this.eventEmitter.emit('challenge.activated', { challengeId });
+                const participantIds = challenge.participants.map((p) => p.userId);
+                this.eventEmitter.emit('challenge.activated', {
+                    challengeId: challenge.id,
+                    participants: participantIds.map((id) => ({ userId: id })),
+                });
             }
         }
         return updatedParticipant;
+    }
+    async incrementProgress(userId, challengeId) {
+        const participant = await this.prisma.challengeParticipant.findUnique({
+            where: { challengeId_userId: { challengeId, userId } },
+            include: { challenge: true },
+        });
+        if (!participant) {
+            throw new common_1.NotFoundException('Challenge or participant not found');
+        }
+        if (participant.challenge.status !== 'active') {
+            throw new common_1.BadRequestException('Can only increment active challenges');
+        }
+        const updated = await this.prisma.challengeParticipant.update({
+            where: { id: participant.id },
+            data: { manualProgress: { increment: 1 } },
+        });
+        return updated;
     }
     async resolveChallenge(userId, challengeId, dto) {
         const challenge = await this.prisma.challenge.findUnique({
@@ -143,6 +178,21 @@ let ChallengesService = class ChallengesService {
                 where: { userId_circleId: { userId: resolvedChallenge.winnerId, circleId: challenge.circleId } },
                 data: { totalXp: { increment: resolvedChallenge.stakePoints } },
             });
+            const participants = await this.prisma.challengeParticipant.findMany({
+                where: { challengeId, userId: { not: resolvedChallenge.winnerId } },
+            });
+            for (const participant of participants) {
+                const profile = await this.prisma.gamificationProfile.findUnique({
+                    where: { userId_circleId: { userId: participant.userId, circleId: challenge.circleId } },
+                });
+                if (profile) {
+                    const newXp = Math.max(0, profile.totalXp - resolvedChallenge.stakePoints);
+                    await this.prisma.gamificationProfile.update({
+                        where: { userId_circleId: { userId: participant.userId, circleId: challenge.circleId } },
+                        data: { totalXp: newXp },
+                    });
+                }
+            }
         }
         this.eventEmitter.emit('challenge.resolved', { challenge: resolvedChallenge });
         return resolvedChallenge;
@@ -153,7 +203,7 @@ let ChallengesService = class ChallengesService {
         if (status) {
             where.status = status;
         }
-        return this.prisma.challenge.findMany({
+        const challenges = await this.prisma.challenge.findMany({
             where,
             include: {
                 proposer: { select: { id: true, name: true, avatarUrl: true } },
@@ -166,6 +216,87 @@ let ChallengesService = class ChallengesService {
             },
             orderBy: { createdAt: 'desc' },
         });
+        const enrichedChallenges = [];
+        for (const challenge of challenges) {
+            const participantsWithProgress = [];
+            for (const participant of challenge.participants) {
+                let progress = 0;
+                if (challenge.status === 'active' || challenge.status === 'resolved' || challenge.status === 'pending_resolution') {
+                    if (challenge.conditionType === 'goal_based' && challenge.conditionGoalId) {
+                        const proposerGoal = await this.prisma.goal.findUnique({
+                            where: { id: challenge.conditionGoalId },
+                        });
+                        if (proposerGoal) {
+                            const userGoal = await this.prisma.goal.findFirst({
+                                where: {
+                                    userId: participant.userId,
+                                    circleId: challenge.circleId,
+                                    OR: [
+                                        { id: challenge.conditionGoalId },
+                                        { name: proposerGoal.name },
+                                        { templateSourceId: proposerGoal.templateSourceId ? proposerGoal.templateSourceId : undefined },
+                                    ],
+                                },
+                            });
+                            if (userGoal) {
+                                progress = await this.prisma.activityLog.count({
+                                    where: {
+                                        userId: participant.userId,
+                                        goalId: userGoal.id,
+                                        circleId: challenge.circleId,
+                                        status: 'completed',
+                                        loggedAt: {
+                                            gte: challenge.createdAt,
+                                            lte: challenge.deadline,
+                                        },
+                                    },
+                                });
+                            }
+                        }
+                    }
+                    else if (challenge.conditionType === 'screen_time') {
+                        const snapshots = await this.prisma.screenTimeSnapshot.aggregate({
+                            where: {
+                                userId: participant.userId,
+                                syncedAt: {
+                                    gte: challenge.createdAt,
+                                    lte: challenge.deadline,
+                                },
+                            },
+                            _sum: {
+                                durationSeconds: true,
+                            },
+                        });
+                        progress = Math.round((snapshots._sum.durationSeconds || 0) / 60);
+                    }
+                    else if (challenge.conditionType === 'custom') {
+                        progress = participant.manualProgress || 0;
+                    }
+                    else {
+                        progress = await this.prisma.activityLog.count({
+                            where: {
+                                userId: participant.userId,
+                                circleId: challenge.circleId,
+                                status: 'completed',
+                                loggedAt: {
+                                    gte: challenge.createdAt,
+                                    lte: challenge.deadline,
+                                },
+                            },
+                        });
+                    }
+                }
+                participantsWithProgress.push({
+                    ...participant,
+                    progress,
+                });
+            }
+            enrichedChallenges.push({
+                ...challenge,
+                participants: participantsWithProgress,
+            });
+        }
+        return enrichedChallenges;
     }
 };
 exports.ChallengesService = ChallengesService;

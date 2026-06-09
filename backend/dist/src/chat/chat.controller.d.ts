@@ -28,6 +28,7 @@ export declare class ChatController {
             userId: string;
             joinedAt: Date;
             lastReadAt: Date | null;
+            clearedAt: Date | null;
             threadId: string;
         })[];
         messages: {
@@ -93,5 +94,19 @@ export declare class ChatController {
         total: number;
         page: number;
         totalPages: number;
+    }>;
+    clearChat(req: {
+        user: {
+            id: string;
+        };
+    }, threadId: string): Promise<{
+        clearedAt: Date;
+    }>;
+    deleteThread(req: {
+        user: {
+            id: string;
+        };
+    }, threadId: string): Promise<{
+        deletedAt: Date;
     }>;
 }

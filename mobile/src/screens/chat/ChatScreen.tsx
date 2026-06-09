@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 import { api } from '../../services/api';
@@ -109,6 +110,29 @@ export default function ChatScreen({ navigation }: any) {
     }
   };
 
+  const clearChat = () => {
+    Alert.alert(
+      'Clear Chat',
+      'Are you sure you want to clear your chat history? This only deletes messages for you.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            if (!threadId) return;
+            try {
+              await api.delete(`/chat/threads/${threadId}/clear`);
+              setMessages([]);
+            } catch (err) {
+              console.error('Failed to clear chat', err);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isMe = item.senderId === user?.id;
 
@@ -127,7 +151,9 @@ export default function ChatScreen({ navigation }: any) {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Circle Chat</Text>
-        <View style={{ width: 60 }} />
+        <TouchableOpacity onPress={clearChat} style={styles.optionsBtn}>
+          <Text style={styles.optionsText}>Clear</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -181,9 +207,19 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     padding: Spacing.xs,
+    width: 60,
   },
   backText: {
     color: Colors.accentPrimary,
+    fontFamily: Typography.fontFamily.medium,
+  },
+  optionsBtn: {
+    padding: Spacing.xs,
+    width: 60,
+    alignItems: 'flex-end',
+  },
+  optionsText: {
+    color: Colors.accentFire,
     fontFamily: Typography.fontFamily.medium,
   },
   headerTitle: {

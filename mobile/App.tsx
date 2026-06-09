@@ -60,12 +60,8 @@ async function registerForPushNotificationsAsync() {
       console.log('Failed to get push token for push notification!');
       return;
     }
-    const projectId =
-      Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
     token = (
-      await Notifications.getExpoPushTokenAsync({
-        projectId,
-      })
+      await Notifications.getDevicePushTokenAsync()
     ).data;
   } else {
     console.log('Must use physical device for Push Notifications');

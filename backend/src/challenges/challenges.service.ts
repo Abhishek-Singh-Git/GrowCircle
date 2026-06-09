@@ -96,8 +96,8 @@ export class ChallengesService {
       },
     });
 
-    // If rejected, check if we need to cancel the challenge
     if (!accept) {
+      // If rejected, check if we need to cancel the challenge
       const remainingPending = await this.prisma.challengeParticipant.count({
         where: { challengeId, status: 'pending' },
       });
@@ -114,20 +114,62 @@ export class ChallengesService {
         this.eventEmitter.emit('challenge.cancelled', { challengeId, reason: 'insufficient_participants' });
       }
     } else {
+      // Emit challenge.accepted event
+      const challengeWithParticipants = await this.prisma.challenge.findUnique({
+        where: { id: challengeId },
+        include: { participants: true },
+      });
+      if (challengeWithParticipants) {
+        this.eventEmitter.emit('challenge.accepted', {
+          challenge: challengeWithParticipants,
+          acceptorId: userId,
+        });
+      }
+
       // Check if all pending participants have accepted to activate it
       const remainingPending = await this.prisma.challengeParticipant.count({
         where: { challengeId, status: 'pending' },
       });
       if (remainingPending === 0) {
-        await this.prisma.challenge.update({
+        const challenge = await this.prisma.challenge.update({
           where: { id: challengeId },
           data: { status: 'active' },
+          include: { participants: { select: { userId: true } } },
         });
-        this.eventEmitter.emit('challenge.activated', { challengeId });
+        
+        const participantIds = challenge.participants.map((p) => p.userId);
+
+        this.eventEmitter.emit('challenge.activated', {
+          challengeId: challenge.id,
+          participants: participantIds.map((id: string) => ({ userId: id })),
+        });
       }
     }
 
     return updatedParticipant;
+  }
+
+  // ── INCREMENT PROGRESS ──────────────────────────────────────────────
+  async incrementProgress(userId: string, challengeId: string) {
+    const participant = await this.prisma.challengeParticipant.findUnique({
+      where: { challengeId_userId: { challengeId, userId } },
+      include: { challenge: true },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Challenge or participant not found');
+    }
+    if (participant.challenge.status !== 'active') {
+      throw new BadRequestException('Can only increment active challenges');
+    }
+
+    const updated = await this.prisma.challengeParticipant.update({
+      where: { id: participant.id },
+      data: { manualProgress: { increment: 1 } },
+    });
+
+    // We can emit a specific event if needed, but the client will refetch.
+    return updated;
   }
 
   // ── RESOLVE CHALLENGE ───────────────────────────────────────────────
@@ -268,6 +310,8 @@ export class ChallengesService {
               },
             });
             progress = Math.round((snapshots._sum.durationSeconds || 0) / 60);
+          } else if (challenge.conditionType === 'custom') {
+            progress = (participant as any).manualProgress || 0;
           } else {
             progress = await this.prisma.activityLog.count({
               where: {

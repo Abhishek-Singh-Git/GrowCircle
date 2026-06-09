@@ -31,6 +31,9 @@ let ChallengesController = class ChallengesController {
     async respondToChallenge(req, challengeId, accept) {
         return this.challengesService.respondToChallenge(req.user.id, challengeId, accept);
     }
+    async incrementProgress(req, challengeId) {
+        return this.challengesService.incrementProgress(req.user.id, challengeId);
+    }
     async resolveChallenge(req, challengeId, dto) {
         return this.challengesService.resolveChallenge(req.user.id, challengeId, dto);
     }
@@ -63,6 +66,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, Boolean]),
     __metadata("design:returntype", Promise)
 ], ChallengesController.prototype, "respondToChallenge", null);
+__decorate([
+    (0, common_1.Post)(':challengeId/increment'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('challengeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChallengesController.prototype, "incrementProgress", null);
 __decorate([
     (0, common_1.Post)(':challengeId/resolve'),
     __param(0, (0, common_1.Request)()),

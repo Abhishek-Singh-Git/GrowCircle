@@ -19,9 +19,9 @@ export declare class InterventionsController {
         };
     } & {
         id: string;
-        expiresAt: Date | null;
-        status: string;
         circleId: string;
+        status: string;
+        expiresAt: Date | null;
         durationSeconds: number | null;
         appPackage: string | null;
         targetId: string;
@@ -56,9 +56,9 @@ export declare class InterventionsController {
             };
         } & {
             id: string;
-            expiresAt: Date | null;
-            status: string;
             circleId: string;
+            status: string;
+            expiresAt: Date | null;
             durationSeconds: number | null;
             appPackage: string | null;
             targetId: string;

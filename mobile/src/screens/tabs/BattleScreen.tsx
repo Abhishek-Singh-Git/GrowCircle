@@ -21,6 +21,7 @@ export default function BattleScreen() {
   const [description, setDescription] = useState('');
   const [deadlineDays, setDeadlineDays] = useState('7');
   const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'resolved'>('active');
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleOpenModal = () => {
     if (!activeCircleId) {
@@ -45,6 +46,8 @@ export default function BattleScreen() {
     }
     const deadlineMs = parseInt(deadlineDays, 10) * 24 * 60 * 60 * 1000;
     const deadline = new Date(Date.now() + deadlineMs).toISOString();
+    
+    setIsCreating(true);
     try {
       await createChallenge({
         circleId: activeCircleId,
@@ -61,9 +64,23 @@ export default function BattleScreen() {
       setTitle('');
       setDescription('');
       setDeadlineDays('7');
+      setActiveTab('pending');
     } catch (e: any) {
       console.warn('Cannot create challenge:', e?.message || e);
       alert(e?.message || 'Failed to create challenge');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleRespond = async (challengeId: string, accept: boolean) => {
+    try {
+      await respondToChallenge(challengeId, accept);
+      if (accept) {
+        setActiveTab('active');
+      }
+    } catch (err) {
+      console.warn('Failed to respond', err);
     }
   };
 
@@ -125,17 +142,34 @@ export default function BattleScreen() {
           </View>
         )}
 
+        {challenge.status === 'active' && (
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 8, borderRadius: 6, alignItems: 'center' }}
+              onPress={() => useChallenges.getState().incrementProgress(challenge.id)}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>+1 Progress</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: Colors.accentPrimary, padding: 8, borderRadius: 6, alignItems: 'center' }}
+              onPress={() => useChallenges.getState().resolveChallenge(challenge.id, { outcomeType: 'win', winnerId: user?.id })}
+            >
+              <Text style={{ color: 'white' }}>I Won!</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {isPending && challenge.proposerId !== user?.id && (
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
             <TouchableOpacity
               style={{ flex: 1, backgroundColor: Colors.accentPrimary, padding: 10, borderRadius: 8, alignItems: 'center' }}
-              onPress={() => respondToChallenge(challenge.id, true)}
+              onPress={() => handleRespond(challenge.id, true)}
             >
               <Text style={{ color: 'white', fontWeight: 'bold' }}>Accept</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 10, borderRadius: 8, alignItems: 'center' }}
-              onPress={() => respondToChallenge(challenge.id, false)}
+              onPress={() => handleRespond(challenge.id, false)}
             >
               <Text style={{ color: 'white' }}>Decline</Text>
             </TouchableOpacity>
@@ -180,16 +214,18 @@ export default function BattleScreen() {
         )}
 
         {/* Create challenge CTA */}
-        <TouchableOpacity activeOpacity={0.8} onPress={handleOpenModal}>
-          <LinearGradient
-            colors={Colors.gradientPrimary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.createBtn}
-          >
-            <Text style={styles.createBtnText}>+ Create Challenge</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        {activeTab !== 'resolved' && (
+          <TouchableOpacity activeOpacity={0.8} onPress={handleOpenModal}>
+            <LinearGradient
+              colors={Colors.gradientPrimary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.createBtn}
+            >
+              <Text style={styles.createBtnText}>+ Create Challenge</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
         <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -198,8 +234,8 @@ export default function BattleScreen() {
               <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={styles.input} />
               <TextInput placeholder="Deadline (days)" value={deadlineDays} onChangeText={setDeadlineDays} keyboardType="numeric" style={styles.input} />
               <View style={styles.modalButtons}>
-                <Button title="Cancel" onPress={() => setModalVisible(false)} />
-                <Button title="Create" onPress={handleCreateChallenge} />
+                <Button title="Cancel" onPress={() => setModalVisible(false)} disabled={isCreating} />
+                <Button title={isCreating ? "Creating..." : "Create"} onPress={handleCreateChallenge} disabled={isCreating} />
               </View>
             </View>
           </View>

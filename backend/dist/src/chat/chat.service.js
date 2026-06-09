@@ -139,9 +139,13 @@ let ChatService = class ChatService {
         if (!participant) {
             throw new common_1.ForbiddenException('You are not a participant in this thread');
         }
+        const whereClause = { threadId, isDeleted: false };
+        if (participant.clearedAt) {
+            whereClause.sentAt = { gt: participant.clearedAt };
+        }
         const [items, total] = await Promise.all([
             this.prisma.message.findMany({
-                where: { threadId, isDeleted: false },
+                where: whereClause,
                 include: {
                     sender: { select: { id: true, name: true, avatarUrl: true } },
                 },
@@ -149,7 +153,7 @@ let ChatService = class ChatService {
                 skip: (page - 1) * limit,
                 take: limit,
             }),
-            this.prisma.message.count({ where: { threadId, isDeleted: false } }),
+            this.prisma.message.count({ where: whereClause }),
         ]);
         this.prisma.chatThreadParticipant.update({
             where: { threadId_userId: { threadId, userId } },
@@ -161,6 +165,37 @@ let ChatService = class ChatService {
             page,
             totalPages: Math.ceil(total / limit),
         };
+    }
+    async clearChat(userId, threadId) {
+        const participant = await this.prisma.chatThreadParticipant.findUnique({
+            where: { threadId_userId: { threadId, userId } },
+        });
+        if (!participant) {
+            throw new common_1.ForbiddenException('You are not a participant in this thread');
+        }
+        const thread = await this.prisma.chatThread.findUnique({
+            where: { id: threadId },
+        });
+        if (!thread)
+            throw new common_1.NotFoundException('Thread not found');
+        await this.prisma.chatThreadParticipant.update({
+            where: { threadId_userId: { threadId, userId } },
+            data: { lastReadAt: new Date() },
+        });
+        return { clearedAt: new Date() };
+    }
+    async deleteThread(userId, threadId) {
+        const participant = await this.prisma.chatThreadParticipant.findUnique({
+            where: { threadId_userId: { threadId, userId } },
+        });
+        if (!participant) {
+            throw new common_1.ForbiddenException('You are not a participant in this thread');
+        }
+        await this.prisma.message.updateMany({
+            where: { threadId },
+            data: { isDeleted: true, deletedAt: new Date() },
+        });
+        return { deletedAt: new Date() };
     }
 };
 exports.ChatService = ChatService;

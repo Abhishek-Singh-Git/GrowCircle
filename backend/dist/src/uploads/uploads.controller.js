@@ -25,7 +25,7 @@ let UploadsController = class UploadsController {
     async uploadImage(file, req) {
         if (!file)
             throw new common_1.BadRequestException('File is required');
-        return this.uploadsService.processAndUploadImage(file, req.user.userId);
+        return this.uploadsService.processAndUploadImage(file, req.user.id);
     }
 };
 exports.UploadsController = UploadsController;

@@ -23,8 +23,8 @@ export declare class LoggingService {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
-            status: string;
             circleId: string;
+            status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
             scheduleStartDate: Date | null;
@@ -46,8 +46,8 @@ export declare class LoggingService {
         id: string;
         targetValue: Prisma.Decimal | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         date: Date;
         goalId: string;
         clientUuid: string;
@@ -75,8 +75,8 @@ export declare class LoggingService {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
-            status: string;
             circleId: string;
+            status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
             scheduleStartDate: Date | null;
@@ -117,8 +117,8 @@ export declare class LoggingService {
         id: string;
         targetValue: Prisma.Decimal | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         date: Date;
         goalId: string;
         clientUuid: string;
@@ -184,8 +184,8 @@ export declare class LoggingService {
                 id: string;
                 targetValue: Prisma.Decimal | null;
                 userId: string;
-                status: string;
                 circleId: string;
+                status: string;
                 date: Date;
                 goalId: string;
                 clientUuid: string;
@@ -206,11 +206,13 @@ export declare class LoggingService {
             updatedAt: Date | null;
             targetValue: Prisma.Decimal | null;
             userId: string;
-            status: string;
             circleId: string;
+            status: string;
             date: Date;
             goalId: string;
         })[];
+        streak: number;
+        xp: number;
     }[]>;
     private calculateXp;
     private updateXp;

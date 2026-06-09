@@ -166,6 +166,124 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         }
     }
     async handleChallengeResolved(payload) {
+        for (const participant of payload.challenge.participants) {
+            await this.sendNotification({
+                userId: participant.userId || participant.user?.id,
+                type: 'challenge',
+                title: 'Challenge Resolved',
+                body: `The challenge "${payload.challenge.title}" has been resolved.`,
+                metadata: { challengeId: payload.challenge.id, circleId: payload.challenge.circleId },
+            });
+        }
+    }
+    async handleChallengeActivated(payload) {
+        for (const participant of payload.participants) {
+            await this.sendNotification({
+                userId: participant.userId,
+                type: 'challenge',
+                title: 'Challenge Activated',
+                body: `Your challenge is now active! All participants have accepted.`,
+                metadata: { challengeId: payload.challengeId },
+            });
+        }
+    }
+    async handleChallengeAccepted(payload) {
+        const otherParticipants = payload.challenge.participants.filter((p) => p.userId !== payload.acceptorId);
+        for (const participant of otherParticipants) {
+            const acceptor = await this.prisma.user.findUnique({
+                where: { id: payload.acceptorId },
+                select: { name: true },
+            });
+            await this.sendNotification({
+                userId: participant.userId,
+                type: 'challenge',
+                title: 'Challenge Accepted',
+                body: `${acceptor?.name} accepted the challenge!`,
+                metadata: { challengeId: payload.challenge.id },
+            });
+        }
+    }
+    async handleLogCreated(payload) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: payload.userId },
+            select: { name: true },
+        });
+        if (!user)
+            return;
+        const otherMembers = await this.prisma.circleMember.findMany({
+            where: {
+                circleId: payload.circleId,
+                status: 'active',
+                userId: { not: payload.userId },
+            },
+            select: { userId: true },
+        });
+        const emoji = payload.goalEmoji || '✅';
+        for (const member of otherMembers) {
+            await this.sendNotification({
+                userId: member.userId,
+                type: 'partner_log',
+                title: `${user.name} completed a goal!`,
+                body: `${emoji} Completed: ${payload.goalName}`,
+                metadata: {
+                    logId: payload.log.id,
+                    circleId: payload.circleId,
+                    userId: payload.userId,
+                },
+            });
+        }
+    }
+    async handleChatMessageSent(payload) {
+        const thread = await this.prisma.chatThread.findUnique({
+            where: { id: payload.threadId },
+            include: { participants: { select: { userId: true } } },
+        });
+        if (!thread)
+            return;
+        const sender = await this.prisma.user.findUnique({
+            where: { id: payload.message.senderId },
+            select: { name: true },
+        });
+        const otherParticipants = thread.participants.filter((p) => p.userId !== payload.message.senderId);
+        for (const participant of otherParticipants) {
+            await this.sendNotification({
+                userId: participant.userId,
+                type: 'chat',
+                title: `${sender?.name} sent a message`,
+                body: payload.message.content || '[Media message]',
+                metadata: { threadId: payload.threadId, messageId: payload.message.id },
+            });
+        }
+    }
+    async handleInterventionCreated(payload) {
+        const initiator = await this.prisma.user.findUnique({
+            where: { id: payload.intervention.initiatorId },
+            select: { name: true },
+        });
+        await this.sendNotification({
+            userId: payload.intervention.targetId,
+            type: payload.type === 'timeout' ? 'timeout' : 'focus_alert',
+            title: payload.type === 'timeout' ? '⏱️ App Timeout' : '🎯 Focus Alert',
+            body: payload.type === 'timeout'
+                ? `${initiator?.name} has locked an app for you.`
+                : `${initiator?.name} sent you a focus alert.`,
+            metadata: { interventionId: payload.intervention.id, circleId: payload.circleId },
+        });
+    }
+    async handleLateNightDetected(payload) {
+        const target = await this.prisma.user.findUnique({ where: { id: payload.userId } });
+        const otherMembers = await this.prisma.circleMember.findMany({
+            where: { circleId: payload.circleId, status: 'active', userId: { not: payload.userId } },
+        });
+        for (const member of otherMembers) {
+            await this.sendNotification({
+                userId: member.userId,
+                type: 'partner_log',
+                title: 'Late Night Alert 🦉',
+                body: `${target?.name || 'Partner'} is still up late! Nudge them to sleep.`,
+                metadata: { circleId: payload.circleId, targetId: payload.userId },
+            });
+        }
     }
 };
 exports.NotificationsService = NotificationsService;
@@ -187,6 +305,42 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], NotificationsService.prototype, "handleChallengeResolved", null);
+__decorate([
+    (0, event_emitter_1.OnEvent)('challenge.activated'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], NotificationsService.prototype, "handleChallengeActivated", null);
+__decorate([
+    (0, event_emitter_1.OnEvent)('challenge.accepted'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], NotificationsService.prototype, "handleChallengeAccepted", null);
+__decorate([
+    (0, event_emitter_1.OnEvent)('log.created'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], NotificationsService.prototype, "handleLogCreated", null);
+__decorate([
+    (0, event_emitter_1.OnEvent)('chat.message_sent'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], NotificationsService.prototype, "handleChatMessageSent", null);
+__decorate([
+    (0, event_emitter_1.OnEvent)('intervention.created'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], NotificationsService.prototype, "handleInterventionCreated", null);
+__decorate([
+    (0, event_emitter_1.OnEvent)('late_night.detected'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], NotificationsService.prototype, "handleLateNightDetected", null);
 exports.NotificationsService = NotificationsService = NotificationsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])

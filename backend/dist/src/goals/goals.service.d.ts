@@ -19,8 +19,8 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
         scheduleStartDate: Date | null;
@@ -54,8 +54,8 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
         scheduleStartDate: Date | null;
@@ -81,8 +81,8 @@ export declare class GoalsService {
                 id: string;
                 targetValue: Prisma.Decimal | null;
                 userId: string;
-                status: string;
                 circleId: string;
+                status: string;
                 date: Date;
                 goalId: string;
                 clientUuid: string;
@@ -103,8 +103,8 @@ export declare class GoalsService {
             updatedAt: Date | null;
             targetValue: Prisma.Decimal | null;
             userId: string;
-            status: string;
             circleId: string;
+            status: string;
             date: Date;
             goalId: string;
         })[];
@@ -121,8 +121,8 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
         scheduleStartDate: Date | null;
@@ -147,8 +147,8 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
         scheduleStartDate: Date | null;
@@ -173,8 +173,8 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
         scheduleStartDate: Date | null;
@@ -199,8 +199,8 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
         scheduleStartDate: Date | null;
@@ -225,8 +225,8 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
         scheduleStartDate: Date | null;
@@ -252,8 +252,8 @@ export declare class GoalsService {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
-            status: string;
             circleId: string;
+            status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
             scheduleStartDate: Date | null;
@@ -277,8 +277,8 @@ export declare class GoalsService {
             id: string;
             targetValue: Prisma.Decimal | null;
             userId: string;
-            status: string;
             circleId: string;
+            status: string;
             date: Date;
             goalId: string;
             clientUuid: string;
@@ -299,8 +299,8 @@ export declare class GoalsService {
         updatedAt: Date | null;
         targetValue: Prisma.Decimal | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         date: Date;
         goalId: string;
     })[]>;
@@ -310,8 +310,8 @@ export declare class GoalsService {
         updatedAt: Date | null;
         targetValue: Prisma.Decimal | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         date: Date;
         goalId: string;
     } | null>;
@@ -321,8 +321,8 @@ export declare class GoalsService {
         updatedAt: Date | null;
         targetValue: Prisma.Decimal | null;
         userId: string;
-        status: string;
         circleId: string;
+        status: string;
         date: Date;
         goalId: string;
     }[]>;

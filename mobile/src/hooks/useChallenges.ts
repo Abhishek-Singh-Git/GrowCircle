@@ -52,5 +52,15 @@ export function useChallenges() {
     await fetchChallenges();
   };
 
-  return { challenges, isLoading, fetchChallenges, createChallenge, respondToChallenge };
+  const incrementProgress = async (challengeId: string) => {
+    await api.post(`/challenges/${challengeId}/increment`, {});
+    await fetchChallenges();
+  };
+
+  const resolveChallenge = async (challengeId: string, payload: any) => {
+    await api.post(`/challenges/${challengeId}/resolve`, payload);
+    await fetchChallenges();
+  };
+
+  return { challenges, isLoading, fetchChallenges, createChallenge, respondToChallenge, incrementProgress, resolveChallenge };
 }

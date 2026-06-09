@@ -139,8 +139,49 @@ export class NotificationsService {
 
   @OnEvent('challenge.resolved')
   async handleChallengeResolved(payload: { challenge: any }) {
-    // Notify participants
-    // (Implementation omitted for brevity, similar to above)
+    for (const participant of payload.challenge.participants) {
+      await this.sendNotification({
+        userId: participant.userId || participant.user?.id,
+        type: 'challenge',
+        title: 'Challenge Resolved',
+        body: `The challenge "${payload.challenge.title}" has been resolved.`,
+        metadata: { challengeId: payload.challenge.id, circleId: payload.challenge.circleId },
+      });
+    }
+  }
+
+  @OnEvent('challenge.activated')
+  async handleChallengeActivated(payload: { challengeId: string; participants: any[] }) {
+    for (const participant of payload.participants) {
+      await this.sendNotification({
+        userId: participant.userId,
+        type: 'challenge',
+        title: 'Challenge Activated',
+        body: `Your challenge is now active! All participants have accepted.`,
+        metadata: { challengeId: payload.challengeId },
+      });
+    }
+  }
+
+  @OnEvent('challenge.accepted')
+  async handleChallengeAccepted(payload: { challenge: any; acceptorId: string }) {
+    // Notify proposer and other participants
+    const otherParticipants = payload.challenge.participants.filter(
+      (p: any) => p.userId !== payload.acceptorId,
+    );
+    for (const participant of otherParticipants) {
+      const acceptor = await this.prisma.user.findUnique({
+        where: { id: payload.acceptorId },
+        select: { name: true },
+      });
+      await this.sendNotification({
+        userId: participant.userId,
+        type: 'challenge',
+        title: 'Challenge Accepted',
+        body: `${acceptor?.name} accepted the challenge!`,
+        metadata: { challengeId: payload.challenge.id },
+      });
+    }
   }
 
   @OnEvent('log.created')
@@ -172,6 +213,70 @@ export class NotificationsService {
           circleId: payload.circleId,
           userId: payload.userId,
         },
+      });
+    }
+  }
+
+  @OnEvent('chat.message_sent')
+  async handleChatMessageSent(payload: { message: any; circleId: string; threadId: string }) {
+    const thread = await this.prisma.chatThread.findUnique({
+      where: { id: payload.threadId },
+      include: { participants: { select: { userId: true } } },
+    });
+
+    if (!thread) return;
+
+    const sender = await this.prisma.user.findUnique({
+      where: { id: payload.message.senderId },
+      select: { name: true },
+    });
+
+    const otherParticipants = thread.participants.filter(
+      (p) => p.userId !== payload.message.senderId,
+    );
+
+    for (const participant of otherParticipants) {
+      await this.sendNotification({
+        userId: participant.userId,
+        type: 'chat',
+        title: `${sender?.name} sent a message`,
+        body: payload.message.content || '[Media message]',
+        metadata: { threadId: payload.threadId, messageId: payload.message.id },
+      });
+    }
+  }
+
+  @OnEvent('intervention.created')
+  async handleInterventionCreated(payload: { intervention: any; type: string; circleId: string }) {
+    const initiator = await this.prisma.user.findUnique({
+      where: { id: payload.intervention.initiatorId },
+      select: { name: true },
+    });
+
+    await this.sendNotification({
+      userId: payload.intervention.targetId,
+      type: payload.type === 'timeout' ? 'timeout' : 'focus_alert',
+      title: payload.type === 'timeout' ? '⏱️ App Timeout' : '🎯 Focus Alert',
+      body: payload.type === 'timeout' 
+        ? `${initiator?.name} has locked an app for you.`
+        : `${initiator?.name} sent you a focus alert.`,
+      metadata: { interventionId: payload.intervention.id, circleId: payload.circleId },
+    });
+  }
+
+  @OnEvent('late_night.detected')
+  async handleLateNightDetected(payload: { userId: string; circleId: string }) {
+    const target = await this.prisma.user.findUnique({ where: { id: payload.userId }});
+    const otherMembers = await this.prisma.circleMember.findMany({
+      where: { circleId: payload.circleId, status: 'active', userId: { not: payload.userId } },
+    });
+    for (const member of otherMembers) {
+      await this.sendNotification({
+        userId: member.userId,
+        type: 'partner_log',
+        title: 'Late Night Alert 🦉',
+        body: `${target?.name || 'Partner'} is still up late! Nudge them to sleep.`,
+        metadata: { circleId: payload.circleId, targetId: payload.userId },
       });
     }
   }

@@ -44,4 +44,33 @@ export declare class NotificationsService {
     handleChallengeResolved(payload: {
         challenge: any;
     }): Promise<void>;
+    handleChallengeActivated(payload: {
+        challengeId: string;
+        participants: any[];
+    }): Promise<void>;
+    handleChallengeAccepted(payload: {
+        challenge: any;
+        acceptorId: string;
+    }): Promise<void>;
+    handleLogCreated(payload: {
+        log: any;
+        userId: string;
+        circleId: string;
+        goalName: string;
+        goalEmoji?: string;
+    }): Promise<void>;
+    handleChatMessageSent(payload: {
+        message: any;
+        circleId: string;
+        threadId: string;
+    }): Promise<void>;
+    handleInterventionCreated(payload: {
+        intervention: any;
+        type: string;
+        circleId: string;
+    }): Promise<void>;
+    handleLateNightDetected(payload: {
+        userId: string;
+        circleId: string;
+    }): Promise<void>;
 }

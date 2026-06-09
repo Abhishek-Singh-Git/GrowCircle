@@ -24,6 +24,7 @@ import { useSendNudge } from '../../hooks/useNudges';
 import { useFetchTodayGoals, useCompleteGoal } from '../../hooks/useGoals';
 import GoalCard from '../../components/GoalCard';
 import { Alert } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 
 export default function TodayScreen() {
   const navigation = useNavigation();
@@ -39,7 +40,10 @@ export default function TodayScreen() {
   const isLoading = useGoalsStore((s) => s.isLoading) || isFeedLoading;
   const upLatePartners = useCircleStore((s) => s.upLatePartners);
 
-  const completedCount = todayInstances.filter((i) => i.status === 'completed').length;
+  const activeGoals = todayInstances.filter((i) => i.status !== 'completed');
+  const completedGoals = todayInstances.filter((i) => i.status === 'completed');
+  
+  const completedCount = completedGoals.length;
   const totalCount = todayInstances.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
@@ -222,22 +226,51 @@ export default function TodayScreen() {
             <ActivityIndicator size="large" color={Colors.accentPrimary} style={{ marginVertical: 40 }} />
           ) : totalCount === 0 ? (
             <Text style={styles.emptyText}>No goals scheduled for today.</Text>
+          ) : activeGoals.length === 0 ? (
+            <Text style={styles.emptyText}>All active goals completed!</Text>
           ) : (
-            todayInstances.map((instance) => (
-              <GoalCard
-                key={instance.id}
-                id={instance.id}
-                name={instance.goal.name}
-                emoji={instance.goal.categoryEmoji || '🎯'}
-                category={instance.goal.category}
-                targetValue={instance.targetValue}
-                unit={instance.goal.targetUnit}
-                status={instance.status}
-                onComplete={handleCompleteGoal}
-              />
-            ))
+            <View style={{ gap: Spacing.sm }}>
+              {activeGoals.map((instance) => (
+                <Animated.View key={instance.id} layout={LinearTransition}>
+                  <GoalCard
+                    id={instance.id}
+                    name={instance.goal.name}
+                    emoji={instance.goal.categoryEmoji || '🎯'}
+                    category={instance.goal.category}
+                    targetValue={instance.targetValue}
+                    unit={instance.goal.targetUnit}
+                    status={instance.status}
+                    onComplete={handleCompleteGoal}
+                  />
+                </Animated.View>
+              ))}
+            </View>
           )}
         </View>
+
+        {completedGoals.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Completed</Text>
+            </View>
+            <View style={{ gap: Spacing.sm }}>
+              {completedGoals.map((instance) => (
+                <Animated.View key={instance.id} layout={LinearTransition}>
+                  <GoalCard
+                    id={instance.id}
+                    name={instance.goal.name}
+                    emoji={instance.goal.categoryEmoji || '🎯'}
+                    category={instance.goal.category}
+                    targetValue={instance.targetValue}
+                    unit={instance.goal.targetUnit}
+                    status={instance.status}
+                    onComplete={handleCompleteGoal}
+                  />
+                </Animated.View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Quick action: Hold to Complete hint */}
         <View style={styles.hintCard}>

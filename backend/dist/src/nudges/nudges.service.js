@@ -14,7 +14,7 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const circles_service_1 = require("../circles/circles.service");
 const event_emitter_1 = require("@nestjs/event-emitter");
-const MAX_NUDGES_PER_DAY = 10;
+const MAX_NUDGES_LIMIT = 3;
 let NudgesService = class NudgesService {
     prisma;
     circlesService;
@@ -30,18 +30,17 @@ let NudgesService = class NudgesService {
         }
         await this.circlesService.validateMembership(senderId, dto.circleId);
         await this.circlesService.validateMembership(dto.recipientId, dto.circleId);
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const todayCount = await this.prisma.nudgeLog.count({
+        const rollingStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const count = await this.prisma.nudgeLog.count({
             where: {
                 senderId,
                 recipientId: dto.recipientId,
                 circleId: dto.circleId,
-                sentAt: { gte: todayStart },
+                sentAt: { gte: rollingStart },
             },
         });
-        if (todayCount >= MAX_NUDGES_PER_DAY) {
-            throw new common_1.ForbiddenException(`Daily nudge limit exceeded (${MAX_NUDGES_PER_DAY} per day to this user)`);
+        if (count >= MAX_NUDGES_LIMIT) {
+            throw new common_1.ForbiddenException(`Daily nudge limit exceeded (${MAX_NUDGES_LIMIT} per rolling 24h to this user)`);
         }
         const recipientPrefs = await this.prisma.userPreference.findUnique({
             where: { userId: dto.recipientId },

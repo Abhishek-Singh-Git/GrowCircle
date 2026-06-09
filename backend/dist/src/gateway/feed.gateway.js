@@ -23,11 +23,13 @@ const prisma_service_1 = require("../prisma/prisma.service");
 let FeedGateway = FeedGateway_1 = class FeedGateway {
     jwtService;
     prisma;
+    eventEmitter;
     server;
     logger = new common_1.Logger(FeedGateway_1.name);
-    constructor(jwtService, prisma) {
+    constructor(jwtService, prisma, eventEmitter) {
         this.jwtService = jwtService;
         this.prisma = prisma;
+        this.eventEmitter = eventEmitter;
     }
     async handleConnection(client) {
         try {
@@ -85,6 +87,10 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
                 this.server.to(room).emit('partner_up_late', {
                     userId: client.userId,
                     timestamp: now.toISOString(),
+                });
+                this.eventEmitter.emit('late_night.detected', {
+                    userId: client.userId,
+                    circleId: data.circleId,
                 });
             }
         }
@@ -220,6 +226,7 @@ exports.FeedGateway = FeedGateway = FeedGateway_1 = __decorate([
         namespace: '/feed',
     }),
     __metadata("design:paramtypes", [jwt_1.JwtService,
-        prisma_service_1.PrismaService])
+        prisma_service_1.PrismaService,
+        event_emitter_1.EventEmitter2])
 ], FeedGateway);
 //# sourceMappingURL=feed.gateway.js.map

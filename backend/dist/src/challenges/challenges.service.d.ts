@@ -20,6 +20,7 @@ export declare class ChallengesService {
             status: string;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
+            manualProgress: number;
             challengeId: string;
         })[];
         proposer: {
@@ -30,8 +31,8 @@ export declare class ChallengesService {
     } & {
         id: string;
         createdAt: Date;
-        status: string;
         circleId: string;
+        status: string;
         title: string;
         conditionDescription: string;
         conditionType: string;
@@ -54,13 +55,23 @@ export declare class ChallengesService {
         status: string;
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
+        manualProgress: number;
+        challengeId: string;
+    }>;
+    incrementProgress(userId: string, challengeId: string): Promise<{
+        id: string;
+        userId: string;
+        status: string;
+        acceptedAt: Date | null;
+        withdrawnAt: Date | null;
+        manualProgress: number;
         challengeId: string;
     }>;
     resolveChallenge(userId: string, challengeId: string, dto: ResolveChallengeDto): Promise<{
         id: string;
         createdAt: Date;
-        status: string;
         circleId: string;
+        status: string;
         title: string;
         conditionDescription: string;
         conditionType: string;
@@ -77,21 +88,22 @@ export declare class ChallengesService {
         resolvedAt: Date | null;
         proposerId: string;
     }>;
-    getChallenges(userId: string, circleId: string, status?: string): Promise<({
-        participants: ({
+    getChallenges(userId: string, circleId: string, status?: string): Promise<{
+        participants: {
+            progress: number;
             user: {
                 id: string;
                 name: string;
                 avatarUrl: string | null;
             };
-        } & {
             id: string;
             userId: string;
             status: string;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
+            manualProgress: number;
             challengeId: string;
-        })[];
+        }[];
         proposer: {
             id: string;
             name: string;
@@ -102,11 +114,10 @@ export declare class ChallengesService {
             name: string;
             avatarUrl: string | null;
         } | null;
-    } & {
         id: string;
         createdAt: Date;
-        status: string;
         circleId: string;
+        status: string;
         title: string;
         conditionDescription: string;
         conditionType: string;
@@ -122,5 +133,5 @@ export declare class ChallengesService {
         tieBreakRule: string;
         resolvedAt: Date | null;
         proposerId: string;
-    })[]>;
+    }[]>;
 }
