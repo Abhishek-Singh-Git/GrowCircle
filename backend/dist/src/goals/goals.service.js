@@ -149,6 +149,10 @@ let GoalsService = class GoalsService {
                 userId,
                 circleId,
                 date: today,
+                OR: [
+                    { expiresAt: null },
+                    { expiresAt: { gt: new Date() } },
+                ],
             },
             include: {
                 goal: true,

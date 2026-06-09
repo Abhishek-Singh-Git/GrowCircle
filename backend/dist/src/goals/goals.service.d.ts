@@ -105,6 +105,7 @@ export declare class GoalsService {
             userId: string;
             circleId: string;
             status: string;
+            expiresAt: Date | null;
             date: Date;
             goalId: string;
         })[];
@@ -301,6 +302,7 @@ export declare class GoalsService {
         userId: string;
         circleId: string;
         status: string;
+        expiresAt: Date | null;
         date: Date;
         goalId: string;
     })[]>;
@@ -312,6 +314,7 @@ export declare class GoalsService {
         userId: string;
         circleId: string;
         status: string;
+        expiresAt: Date | null;
         date: Date;
         goalId: string;
     } | null>;
@@ -323,6 +326,7 @@ export declare class GoalsService {
         userId: string;
         circleId: string;
         status: string;
+        expiresAt: Date | null;
         date: Date;
         goalId: string;
     }[]>;

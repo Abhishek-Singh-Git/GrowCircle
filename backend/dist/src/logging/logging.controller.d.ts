@@ -223,6 +223,7 @@ export declare class LoggingController {
             userId: string;
             circleId: string;
             status: string;
+            expiresAt: Date | null;
             date: Date;
             goalId: string;
         })[];

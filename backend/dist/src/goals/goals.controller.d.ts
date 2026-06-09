@@ -114,6 +114,7 @@ export declare class GoalsController {
             userId: string;
             circleId: string;
             status: string;
+            expiresAt: Date | null;
             date: Date;
             goalId: string;
         })[];
@@ -330,6 +331,7 @@ export declare class GoalsController {
         userId: string;
         circleId: string;
         status: string;
+        expiresAt: Date | null;
         date: Date;
         goalId: string;
     })[]>;

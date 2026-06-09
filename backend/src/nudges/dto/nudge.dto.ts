@@ -14,10 +14,6 @@ export class SendNudgeDto {
 
   @IsOptional()
   @IsUUID()
-  goalId?: string;
-
-  @IsOptional()
-  @IsUUID()
   goalInstanceId?: string;
 
   @IsOptional()

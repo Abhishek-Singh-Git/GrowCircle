@@ -32,7 +32,7 @@ model User {
   fcmToken          String?   @map("fcm_token") @db.VarChar(500)
 
   authTokens              AuthToken[]
-  ownedCircles            Circle[]              @relation("CircleOwner")
+  ownedCircles            Circle[]                @relation("CircleOwner")
   circleMemberships       CircleMember[]
   consentRecords          ConsentRecord[]
   goals                   Goal[]
@@ -40,35 +40,35 @@ model User {
   activityLogs            ActivityLog[]
   mediaObjects            MediaObject[]
   logReactions            LogReaction[]
-  sentNudges              NudgeLog[]            @relation("NudgeSender")
-  receivedNudges          NudgeLog[]            @relation("NudgeRecipient")
+  sentNudges              NudgeLog[]              @relation("NudgeSender")
+  receivedNudges          NudgeLog[]              @relation("NudgeRecipient")
   screenTimeSnapshots     ScreenTimeSnapshot[]
   appThresholds           AppThreshold[]
-  initiatedInterventions  InterventionLog[]     @relation("InterventionInitiator")
-  receivedInterventions   InterventionLog[]     @relation("InterventionTarget")
+  initiatedInterventions  InterventionLog[]       @relation("InterventionInitiator")
+  receivedInterventions   InterventionLog[]       @relation("InterventionTarget")
   sentMessages            Message[]
   initiatedCalls          CallSession[]
-  screenShareRequests     ScreenShareSession[]  @relation("ScreenShareRequester")
-  screenShareShares       ScreenShareSession[]  @relation("ScreenShareSharer")
-  proposedChallenges      Challenge[]           @relation("ChallengeProposer")
-  wonChallenges           Challenge[]           @relation("ChallengeWinner")
+  screenShareRequests     ScreenShareSession[]    @relation("ScreenShareRequester")
+  screenShareShares       ScreenShareSession[]    @relation("ScreenShareSharer")
+  proposedChallenges      Challenge[]             @relation("ChallengeProposer")
+  wonChallenges           Challenge[]             @relation("ChallengeWinner")
   challengeParticipations ChallengeParticipant[]
-  raisedDisputes          DisputeTicket[]       @relation("DisputeRaiser")
-  resolvedDisputes        DisputeTicket[]       @relation("DisputeResolver")
+  raisedDisputes          DisputeTicket[]         @relation("DisputeRaiser")
+  resolvedDisputes        DisputeTicket[]         @relation("DisputeResolver")
   gamificationProfiles    GamificationProfile[]
   dailyScores             DailyScore[]
   earnedBadges            UserBadge[]
   achievementProgress     UserAchievement[]
-  gracePeriods            GracePeriodsUser[]    @relation("GracePeriodUser")
-  giftedGracePeriods      GracePeriodsUser[]    @relation("GracePeriodGifter")
+  gracePeriods            GracePeriodsUser[]      @relation("GracePeriodUser")
+  giftedGracePeriods      GracePeriodsUser[]      @relation("GracePeriodGifter")
   notifications           Notification[]
   preferences             UserPreference?
   subscriptions           SubscriptionRecord[]
-  actorAuditLogs          AuditLog[]            @relation("AuditActor")
-  targetAuditLogs         AuditLog[]            @relation("AuditTarget")
+  actorAuditLogs          AuditLog[]              @relation("AuditActor")
+  targetAuditLogs         AuditLog[]              @relation("AuditTarget")
   dataExportRequests      DataExportRequest[]
   chatParticipations      ChatThreadParticipant[]
-  removedMembers          CircleMember[]        @relation("MemberRemovedBy")
+  removedMembers          CircleMember[]          @relation("MemberRemovedBy")
 
   @@map("users")
 }
@@ -84,7 +84,7 @@ model AuthToken {
   revokedAt DateTime? @map("revoked_at")
   createdAt DateTime  @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("auth_tokens")
 }
@@ -94,23 +94,23 @@ model AuthToken {
 // ============================================================================
 
 model Circle {
-  id                      String    @id @default(uuid()) @db.Uuid
-  name                    String    @db.VarChar(100)
-  description             String?   @db.VarChar(300)
-  ownerId                 String    @map("owner_id") @db.Uuid
-  inviteCode              String    @unique @map("invite_code") @db.VarChar(20)
-  inviteLinkToken         String    @unique @map("invite_link_token") @db.VarChar(100)
-  inviteExpiresAt         DateTime? @map("invite_expires_at")
-  privacyLevel            String    @default("private") @map("privacy_level") @db.VarChar(20)
-  timeoutEnabled          Boolean   @default(true) @map("timeout_enabled")
-  timeoutPermissionType   String    @default("mutual") @map("timeout_permission_type") @db.VarChar(30)
-  leaderboardVisibility   String    @default("all_members") @map("leaderboard_visibility") @db.VarChar(30)
-  maxStakeType            String    @default("points_only") @map("max_stake_type") @db.VarChar(30)
-  maxDailyTimeoutsPerMember Int     @default(5) @map("max_daily_timeouts_per_member")
-  createdAt               DateTime  @default(now()) @map("created_at")
-  disbandedAt             DateTime? @map("disbanded_at")
+  id                        String    @id @default(uuid()) @db.Uuid
+  name                      String    @db.VarChar(100)
+  description               String?   @db.VarChar(300)
+  ownerId                   String    @map("owner_id") @db.Uuid
+  inviteCode                String    @unique @map("invite_code") @db.VarChar(20)
+  inviteLinkToken           String    @unique @map("invite_link_token") @db.VarChar(100)
+  inviteExpiresAt           DateTime? @map("invite_expires_at")
+  privacyLevel              String    @default("private") @map("privacy_level") @db.VarChar(20)
+  timeoutEnabled            Boolean   @default(true) @map("timeout_enabled")
+  timeoutPermissionType     String    @default("mutual") @map("timeout_permission_type") @db.VarChar(30)
+  leaderboardVisibility     String    @default("all_members") @map("leaderboard_visibility") @db.VarChar(30)
+  maxStakeType              String    @default("points_only") @map("max_stake_type") @db.VarChar(30)
+  maxDailyTimeoutsPerMember Int       @default(5) @map("max_daily_timeouts_per_member")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  disbandedAt               DateTime? @map("disbanded_at")
 
-  owner                User                @relation("CircleOwner", fields: [ownerId], references: [id])
+  owner                User                  @relation("CircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members              CircleMember[]
   consentRecords       ConsentRecord[]
   goals                Goal[]
@@ -142,9 +142,9 @@ model CircleMember {
   removedAt DateTime? @map("removed_at")
   removedBy String?   @map("removed_by") @db.Uuid
 
-  circle    Circle @relation(fields: [circleId], references: [id])
-  user      User   @relation(fields: [userId], references: [id])
-  remover   User?  @relation("MemberRemovedBy", fields: [removedBy], references: [id])
+  circle  Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  remover User?  @relation("MemberRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
 
   @@unique([circleId, userId])
   @@map("circle_members")
@@ -160,8 +160,8 @@ model ConsentRecord {
   deviceId  String?   @map("device_id") @db.VarChar(255)
   ipAddress String?   @map("ip_address") @db.VarChar(45)
 
-  user   User   @relation(fields: [userId], references: [id])
-  circle Circle @relation(fields: [circleId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
 
   @@map("consent_records")
 }
@@ -196,14 +196,14 @@ model Goal {
   archivedAt         DateTime? @map("archived_at")
   deletedAt          DateTime? @map("deleted_at")
 
-  user           User            @relation(fields: [userId], references: [id])
-  circle         Circle          @relation(fields: [circleId], references: [id])
-  template       GoalTemplate?   @relation(fields: [templateSourceId], references: [id])
-  milestones     GoalMilestone[]
-  instances      GoalInstance[]
-  activityLogs   ActivityLog[]
-  nudgeLogs      NudgeLog[]
-  challenges     Challenge[]     @relation("ChallengeGoal")
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circle       Circle          @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  template     GoalTemplate?   @relation(fields: [templateSourceId], references: [id], onDelete: SetNull)
+  milestones   GoalMilestone[]
+  instances    GoalInstance[]
+  activityLogs ActivityLog[]
+  nudgeLogs    NudgeLog[]
+  challenges   Challenge[]     @relation("ChallengeGoal")
 
   @@map("goals")
 }
@@ -216,23 +216,23 @@ model GoalMilestone {
   orderIndex  Int      @map("order_index")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  goal Goal @relation(fields: [goalId], references: [id])
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
 
   @@map("goal_milestones")
 }
 
 model GoalTemplate {
-  id             String   @id @default(uuid()) @db.Uuid
-  name           String   @db.VarChar(200)
-  description    String?  @db.VarChar(500)
-  category       String   @db.VarChar(50)
-  genderTag      String?  @map("gender_tag") @db.VarChar(30)
-  goalsJson      Json     @map("goals_json")
-  isActive       Boolean  @default(true) @map("is_active")
-  locale         String   @default("en") @db.VarChar(10)
-  version        Int      @default(1)
-  createdByAdmin String?  @map("created_by_admin") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String    @db.VarChar(200)
+  description    String?   @db.VarChar(500)
+  category       String    @db.VarChar(50)
+  genderTag      String?   @map("gender_tag") @db.VarChar(30)
+  goalsJson      Json      @map("goals_json")
+  isActive       Boolean   @default(true) @map("is_active")
+  locale         String    @default("en") @db.VarChar(10)
+  version        Int       @default(1)
+  createdByAdmin String?   @map("created_by_admin") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime? @updatedAt @map("updated_at")
 
   clonedGoals Goal[]
@@ -252,9 +252,9 @@ model GoalInstance {
   updatedAt   DateTime? @updatedAt @map("updated_at")
   expiresAt   DateTime? @map("expires_at")
 
-  goal         Goal          @relation(fields: [goalId], references: [id])
-  user         User          @relation(fields: [userId], references: [id])
-  circle       Circle        @relation(fields: [circleId], references: [id])
+  goal         Goal          @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circle       Circle        @relation(fields: [circleId], references: [id], onDelete: Cascade)
   activityLogs ActivityLog[]
   nudgeLogs    NudgeLog[]
 
@@ -278,7 +278,7 @@ model ActivityLog {
   date               DateTime  @db.Date
   targetValue        Decimal?  @map("target_value") @db.Decimal(10, 2)
   actualValue        Decimal?  @map("actual_value") @db.Decimal(10, 2)
-  completionFraction Decimal   @default(0) @map("completion_fraction") @db.Decimal(5, 4)
+  completionFraction Decimal   @default(0) @map("completion_fraction") @db.Decimal(8, 6)
   status             String    @default("completed") @db.VarChar(20)
   proofUrl           String?   @map("proof_url") @db.VarChar(500)
   proofType          String?   @map("proof_type") @db.VarChar(20)
@@ -288,10 +288,10 @@ model ActivityLog {
   isLateEdit         Boolean   @default(false) @map("is_late_edit")
   xpAwarded          Int       @default(0) @map("xp_awarded")
 
-  goalInstance GoalInstance  @relation(fields: [goalInstanceId], references: [id])
-  goal         Goal          @relation(fields: [goalId], references: [id])
-  user         User          @relation(fields: [userId], references: [id])
-  circle       Circle        @relation(fields: [circleId], references: [id])
+  goalInstance GoalInstance  @relation(fields: [goalInstanceId], references: [id], onDelete: Cascade)
+  goal         Goal          @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circle       Circle        @relation(fields: [circleId], references: [id], onDelete: Cascade)
   mediaObjects MediaObject[]
   reactions    LogReaction[]
 
@@ -313,8 +313,8 @@ model MediaObject {
   uploadedAt      DateTime? @map("uploaded_at")
   createdAt       DateTime  @default(now()) @map("created_at")
 
-  owner User         @relation(fields: [ownerUserId], references: [id])
-  log   ActivityLog? @relation(fields: [associatedLogId], references: [id])
+  owner User         @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  log   ActivityLog? @relation(fields: [associatedLogId], references: [id], onDelete: SetNull)
 
   @@map("media_objects")
 }
@@ -326,29 +326,29 @@ model LogReaction {
   emoji     String   @db.VarChar(10)
   createdAt DateTime @default(now()) @map("created_at")
 
-  log  ActivityLog @relation(fields: [logId], references: [id])
-  user User        @relation(fields: [userId], references: [id])
+  log  ActivityLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([logId, userId, emoji])
   @@map("log_reactions")
 }
 
 model NudgeLog {
-  id             String    @id @default(uuid()) @db.Uuid
-  senderId       String    @map("sender_id") @db.Uuid
-  recipientId    String    @map("recipient_id") @db.Uuid
-  circleId       String    @map("circle_id") @db.Uuid
-  goalId         String?   @map("goal_id") @db.Uuid
-  goalInstanceId String?   @map("goal_instance_id") @db.Uuid
-  message        String?   @db.VarChar(200)
-  result         String?   @db.VarChar(30)
-  sentAt         DateTime  @default(now()) @map("sent_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  senderId       String   @map("sender_id") @db.Uuid
+  recipientId    String   @map("recipient_id") @db.Uuid
+  circleId       String   @map("circle_id") @db.Uuid
+  goalInstanceId String?  @map("goal_instance_id") @db.Uuid
+  message        String?  @db.VarChar(200)
+  result         String?  @db.VarChar(30)
+  sentAt         DateTime @default(now()) @map("sent_at")
 
-  sender       User          @relation("NudgeSender", fields: [senderId], references: [id])
-  recipient    User          @relation("NudgeRecipient", fields: [recipientId], references: [id])
-  circle       Circle        @relation(fields: [circleId], references: [id])
+  sender       User          @relation("NudgeSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient    User          @relation("NudgeRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  circle       Circle        @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  goalInstance GoalInstance? @relation(fields: [goalInstanceId], references: [id], onDelete: SetNull)
   goal         Goal?         @relation(fields: [goalId], references: [id])
-  goalInstance GoalInstance? @relation(fields: [goalInstanceId], references: [id])
+  goalId       String?       @db.Uuid
 
   @@index([senderId, recipientId, sentAt])
   @@map("nudge_logs")
@@ -359,18 +359,18 @@ model NudgeLog {
 // ============================================================================
 
 model ScreenTimeSnapshot {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  date           DateTime @db.Date
-  appPackage     String   @map("app_package") @db.VarChar(255)
-  appDisplayName String?  @map("app_display_name") @db.VarChar(255)
-  durationSeconds Int     @map("duration_seconds")
-  openCount      Int?     @map("open_count")
-  isHidden       Boolean  @default(false) @map("is_hidden")
-  platform       String   @db.VarChar(20)
-  syncedAt       DateTime @default(now()) @map("synced_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  date            DateTime @db.Date
+  appPackage      String   @map("app_package") @db.VarChar(255)
+  appDisplayName  String?  @map("app_display_name") @db.VarChar(255)
+  durationSeconds Int      @map("duration_seconds")
+  openCount       Int?     @map("open_count")
+  isHidden        Boolean  @default(false) @map("is_hidden")
+  platform        String   @db.VarChar(20)
+  syncedAt        DateTime @default(now()) @map("synced_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date, appPackage])
   @@index([userId, date])
@@ -378,16 +378,16 @@ model ScreenTimeSnapshot {
 }
 
 model AppThreshold {
-  id               String  @id @default(uuid()) @db.Uuid
-  userId           String  @map("user_id") @db.Uuid
-  circleId         String  @map("circle_id") @db.Uuid
-  appPackage       String  @map("app_package") @db.VarChar(255)
-  thresholdSeconds Int     @map("threshold_seconds")
-  alertEnabled     Boolean @default(true) @map("alert_enabled")
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  circleId         String   @map("circle_id") @db.Uuid
+  appPackage       String   @map("app_package") @db.VarChar(255)
+  thresholdSeconds Int      @map("threshold_seconds")
+  alertEnabled     Boolean  @default(true) @map("alert_enabled")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  user   User   @relation(fields: [userId], references: [id])
-  circle Circle @relation(fields: [circleId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, circleId, appPackage])
   @@map("app_thresholds")
@@ -407,9 +407,9 @@ model InterventionLog {
   initiatedAt      DateTime  @default(now()) @map("initiated_at")
   expiresAt        DateTime? @map("expires_at")
 
-  initiator User   @relation("InterventionInitiator", fields: [initiatorId], references: [id])
-  target    User   @relation("InterventionTarget", fields: [targetId], references: [id])
-  circle    Circle @relation(fields: [circleId], references: [id])
+  initiator User   @relation("InterventionInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  target    User   @relation("InterventionTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  circle    Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
 
   @@index([targetId, initiatedAt(sort: Desc)])
   @@map("intervention_logs")
@@ -425,7 +425,7 @@ model ChatThread {
   threadType String   @map("thread_type") @db.VarChar(20)
   createdAt  DateTime @default(now()) @map("created_at")
 
-  circle       Circle                  @relation(fields: [circleId], references: [id])
+  circle       Circle                  @relation(fields: [circleId], references: [id], onDelete: Cascade)
   participants ChatThreadParticipant[]
   messages     Message[]
 
@@ -439,8 +439,8 @@ model ChatThreadParticipant {
   lastReadAt DateTime? @map("last_read_at")
   clearedAt  DateTime? @map("cleared_at")
 
-  thread ChatThread @relation(fields: [threadId], references: [id])
-  user   User       @relation(fields: [userId], references: [id])
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([threadId, userId])
   @@map("chat_thread_participants")
@@ -457,8 +457,8 @@ model Message {
   sentAt    DateTime  @default(now()) @map("sent_at")
   deletedAt DateTime? @map("deleted_at")
 
-  thread ChatThread @relation(fields: [threadId], references: [id])
-  sender User       @relation(fields: [senderId], references: [id])
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([threadId, sentAt(sort: Desc)])
   @@map("messages")
@@ -475,8 +475,8 @@ model CallSession {
   endedAt      DateTime? @map("ended_at")
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  circle    Circle @relation(fields: [circleId], references: [id])
-  initiator User   @relation(fields: [initiatedBy], references: [id])
+  circle    Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  initiator User   @relation(fields: [initiatedBy], references: [id], onDelete: Cascade)
 
   @@map("call_sessions")
 }
@@ -492,9 +492,9 @@ model ScreenShareSession {
   endedAt        DateTime? @map("ended_at")
   createdAt      DateTime  @default(now()) @map("created_at")
 
-  circle    Circle @relation(fields: [circleId], references: [id])
-  requester User   @relation("ScreenShareRequester", fields: [requesterId], references: [id])
-  sharer    User   @relation("ScreenShareSharer", fields: [sharerId], references: [id])
+  circle    Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  requester User   @relation("ScreenShareRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  sharer    User   @relation("ScreenShareSharer", fields: [sharerId], references: [id], onDelete: Cascade)
 
   @@map("screen_share_sessions")
 }
@@ -524,27 +524,27 @@ model Challenge {
   resolvedAt           DateTime? @map("resolved_at")
   createdAt            DateTime  @default(now()) @map("created_at")
 
-  circle       Circle                 @relation(fields: [circleId], references: [id])
-  proposer     User                   @relation("ChallengeProposer", fields: [proposerId], references: [id])
-  winner       User?                  @relation("ChallengeWinner", fields: [winnerId], references: [id])
-  conditionGoal Goal?                 @relation("ChallengeGoal", fields: [conditionGoalId], references: [id])
-  participants ChallengeParticipant[]
-  disputes     DisputeTicket[]
+  circle        Circle                 @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  proposer      User                   @relation("ChallengeProposer", fields: [proposerId], references: [id], onDelete: Cascade)
+  winner        User?                  @relation("ChallengeWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  conditionGoal Goal?                  @relation("ChallengeGoal", fields: [conditionGoalId], references: [id], onDelete: SetNull)
+  participants  ChallengeParticipant[]
+  disputes      DisputeTicket[]
 
   @@map("challenges")
 }
 
 model ChallengeParticipant {
-  id          String    @id @default(uuid()) @db.Uuid
-  challengeId String    @map("challenge_id") @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  status        String    @default("pending") @db.VarChar(20)
-  acceptedAt    DateTime? @map("accepted_at")
-  withdrawnAt   DateTime? @map("withdrawn_at")
-  manualProgress Int      @default(0) @map("manual_progress")
+  id             String    @id @default(uuid()) @db.Uuid
+  challengeId    String    @map("challenge_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  status         String    @default("pending") @db.VarChar(20)
+  acceptedAt     DateTime? @map("accepted_at")
+  withdrawnAt    DateTime? @map("withdrawn_at")
+  manualProgress Int       @default(0) @map("manual_progress")
 
-  challenge Challenge @relation(fields: [challengeId], references: [id])
-  user      User      @relation(fields: [userId], references: [id])
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([challengeId, userId])
   @@map("challenge_participants")
@@ -562,9 +562,9 @@ model DisputeTicket {
   createdAt    DateTime  @default(now()) @map("created_at")
   resolvedAt   DateTime? @map("resolved_at")
 
-  challenge Challenge @relation(fields: [challengeId], references: [id])
-  raiser    User      @relation("DisputeRaiser", fields: [raisedBy], references: [id])
-  resolver  User?     @relation("DisputeResolver", fields: [resolvedBy], references: [id])
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  raiser    User      @relation("DisputeRaiser", fields: [raisedBy], references: [id], onDelete: Cascade)
+  resolver  User?     @relation("DisputeResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
 
   @@map("dispute_tickets")
 }
@@ -574,21 +574,21 @@ model DisputeTicket {
 // ============================================================================
 
 model GamificationProfile {
-  userId                  String @map("user_id") @db.Uuid
-  circleId                String @map("circle_id") @db.Uuid
-  totalXp                 Int    @default(0) @map("total_xp")
-  currentLevel            Int    @default(0) @map("current_level")
-  currentStreak           Int    @default(0) @map("current_streak")
-  longestStreak           Int    @default(0) @map("longest_streak")
-  streakFreezeCount       Int    @default(0) @map("streak_freeze_count")
-  graceDaysUsedThisMonth  Int    @default(0) @map("grace_days_used_this_month")
-  graceDaysGiftedReceived Int    @default(0) @map("grace_days_gifted_received")
-  graceResetMonth         Int?   @map("grace_reset_month")
+  userId                  String    @map("user_id") @db.Uuid
+  circleId                String    @map("circle_id") @db.Uuid
+  totalXp                 Int       @default(0) @map("total_xp")
+  currentLevel            Int       @default(0) @map("current_level")
+  currentStreak           Int       @default(0) @map("current_streak")
+  longestStreak           Int       @default(0) @map("longest_streak")
+  streakFreezeCount       Int       @default(0) @map("streak_freeze_count")
+  graceDaysUsedThisMonth  Int       @default(0) @map("grace_days_used_this_month")
+  graceDaysGiftedReceived Int       @default(0) @map("grace_days_gifted_received")
+  graceResetMonth         Int?      @map("grace_reset_month")
   lastStreakUpdateDate    DateTime? @map("last_streak_update_date") @db.Date
-  updatedAt               DateTime @default(now()) @updatedAt @map("updated_at")
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  user   User   @relation(fields: [userId], references: [id])
-  circle Circle @relation(fields: [circleId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
 
   @@id([userId, circleId])
   @@map("gamification_profiles")
@@ -609,8 +609,8 @@ model DailyScore {
   xpEarnedToday         Int      @default(0) @map("xp_earned_today")
   computedAt            DateTime @default(now()) @map("computed_at")
 
-  user   User   @relation(fields: [userId], references: [id])
-  circle Circle @relation(fields: [circleId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, circleId, date])
   @@index([userId, date(sort: Desc)])
@@ -618,15 +618,15 @@ model DailyScore {
 }
 
 model Badge {
-  id           String   @id @default(uuid()) @db.Uuid
-  name         String   @unique @db.VarChar(100)
-  description  String   @db.VarChar(300)
-  category     String   @db.VarChar(30)
-  iconUrl      String?  @map("icon_url") @db.VarChar(500)
-  criteriaType String   @map("criteria_type") @db.VarChar(50)
-  criteriaValue Json?   @map("criteria_value")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String   @unique @db.VarChar(100)
+  description   String   @db.VarChar(300)
+  category      String   @db.VarChar(30)
+  iconUrl       String?  @map("icon_url") @db.VarChar(500)
+  criteriaType  String   @map("criteria_type") @db.VarChar(50)
+  criteriaValue Json?    @map("criteria_value")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   earnedBy     UserBadge[]
   achievements Achievement[] @relation("AchievementBadge")
@@ -640,8 +640,8 @@ model UserBadge {
   badgeId  String   @map("badge_id") @db.Uuid
   earnedAt DateTime @default(now()) @map("earned_at")
 
-  user  User  @relation(fields: [userId], references: [id])
-  badge Badge @relation(fields: [badgeId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, badgeId])
   @@map("user_badges")
@@ -656,8 +656,8 @@ model Achievement {
   rewardBadgeId String? @map("reward_badge_id") @db.Uuid
   isActive      Boolean @default(true) @map("is_active")
 
-  rewardBadge   Badge?            @relation("AchievementBadge", fields: [rewardBadgeId], references: [id])
-  userProgress  UserAchievement[]
+  rewardBadge  Badge?            @relation("AchievementBadge", fields: [rewardBadgeId], references: [id], onDelete: SetNull)
+  userProgress UserAchievement[]
 
   @@map("achievements")
 }
@@ -671,8 +671,8 @@ model UserAchievement {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime? @updatedAt @map("updated_at")
 
-  user        User        @relation(fields: [userId], references: [id])
-  achievement Achievement @relation(fields: [achievementId], references: [id])
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
   @@unique([userId, achievementId])
   @@map("user_achievements")
@@ -686,7 +686,7 @@ model LeaderboardSnapshot {
   rankingsJson Json     @map("rankings_json")
   computedAt   DateTime @default(now()) @map("computed_at")
 
-  circle Circle @relation(fields: [circleId], references: [id])
+  circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
 
   @@unique([circleId, date, metric])
   @@map("leaderboard_snapshots")
@@ -702,9 +702,9 @@ model GracePeriodsUser {
   endsAt        DateTime  @map("ends_at")
   deactivatedAt DateTime? @map("deactivated_at")
 
-  user   User    @relation("GracePeriodUser", fields: [userId], references: [id])
-  circle Circle  @relation(fields: [circleId], references: [id])
-  gifter User?   @relation("GracePeriodGifter", fields: [giftedBy], references: [id])
+  user   User   @relation("GracePeriodUser", fields: [userId], references: [id], onDelete: Cascade)
+  circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  gifter User?  @relation("GracePeriodGifter", fields: [giftedBy], references: [id], onDelete: SetNull)
 
   @@map("grace_periods")
 }
@@ -725,7 +725,7 @@ model Notification {
   readAt        DateTime? @map("read_at")
   actionTakenAt DateTime? @map("action_taken_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead, sentAt(sort: Desc)])
   @@map("notifications")
@@ -752,7 +752,7 @@ model UserPreference {
   shareLateNightActivity    Boolean  @default(false) @map("share_late_night_activity")
   updatedAt                 DateTime @default(now()) @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_preferences")
 }
@@ -772,7 +772,7 @@ model SubscriptionRecord {
   externalSubscriptionId String?   @map("external_subscription_id") @db.VarChar(255)
   createdAt              DateTime  @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscription_records")
 }
@@ -788,8 +788,8 @@ model AuditLog {
   ipAddress    String?  @map("ip_address") @db.VarChar(45)
   createdAt    DateTime @default(now()) @map("created_at")
 
-  actor  User? @relation("AuditActor", fields: [actorId], references: [id])
-  target User? @relation("AuditTarget", fields: [targetUserId], references: [id])
+  actor  User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  target User? @relation("AuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
 }
@@ -803,7 +803,7 @@ model DataExportRequest {
   requestedAt DateTime  @default(now()) @map("requested_at")
   completedAt DateTime? @map("completed_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("data_export_requests")
 }
