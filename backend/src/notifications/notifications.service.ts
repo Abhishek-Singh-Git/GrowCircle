@@ -58,6 +58,12 @@ export class NotificationsService {
         return;
       }
 
+      // Check if it's an Expo token (we require native FCM token)
+      if (user.fcmToken.includes('ExponentPushToken') || user.fcmToken.includes('ExpoPushToken')) {
+        this.logger.warn(`User ${notification.userId} has an Expo token instead of an FCM token. Skipping push.`);
+        return;
+      }
+
       if (admin.apps.length === 0) {
         // Firebase not initialized yet
         this.logger.warn('Firebase Admin SDK is not initialized. Skipping push.');

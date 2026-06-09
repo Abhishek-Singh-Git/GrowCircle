@@ -98,6 +98,10 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
                 this.logger.debug(`User ${notification.userId} has no FCM token. Skipping push.`);
                 return;
             }
+            if (user.fcmToken.includes('ExponentPushToken') || user.fcmToken.includes('ExpoPushToken')) {
+                this.logger.warn(`User ${notification.userId} has an Expo token instead of an FCM token. Skipping push.`);
+                return;
+            }
             if (admin.apps.length === 0) {
                 this.logger.warn('Firebase Admin SDK is not initialized. Skipping push.');
                 return;
