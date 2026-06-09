@@ -8,19 +8,23 @@ async function bootstrap() {
     console.log('Starting NestJS application...');
     const app = await NestFactory.create(AppModule);
 
-    // Initialize Firebase Admin only if configured and not already initialized
+    // Initialize Firebase Admin only if configured
     const firebaseConfig = process.env.FIREBASE_ADMIN_SDK;
-    if (firebaseConfig && !admin.apps.length) {
+    if (firebaseConfig) {
       try {
-        const serviceAccount = JSON.parse(firebaseConfig);
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-        });
-        console.log('Firebase Admin SDK initialized successfully');
+        if (admin.apps.length === 0) {
+          admin.initializeApp({
+            credential: admin.credential.cert(JSON.parse(firebaseConfig)),
+          });
+          console.log('Firebase Admin SDK initialized successfully');
+        } else {
+          admin.app(); // use the existing default app
+          console.log('Firebase Admin SDK already initialized, using existing app');
+        }
       } catch (e) {
         console.error('Failed to initialize Firebase Admin:', e);
       }
-    } else if (!firebaseConfig) {
+    } else {
       console.warn('FIREBASE_ADMIN_SDK environment variable is not set');
     }
 

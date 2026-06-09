@@ -56,19 +56,5 @@ if (process.env.REDIS_HOST) {
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
-  constructor() {
-    if (!admin.apps.length) {
-      try {
-        admin.initializeApp({
-          credential: admin.credential.cert(
-            JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}')
-          ),
-        });
-      } catch (err) {
-        console.warn('Firebase Admin SDK failed to initialize. Push notifications may not work.', err);
-      }
-    }
-  }
-}
+export class AppModule {}
 
