@@ -58,9 +58,19 @@ export class NotificationsService {
         return;
       }
 
-      // Check if it's an Expo token (we require native FCM token)
+      // Check if it's an Expo token
       if (user.fcmToken.includes('ExponentPushToken') || user.fcmToken.includes('ExpoPushToken')) {
-        this.logger.warn(`User ${notification.userId} has an Expo token instead of an FCM token. Skipping push.`);
+        this.logger.log(`User ${notification.userId} has an Expo token. Sending via Expo push service.`);
+        await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: user.fcmToken,
+            title: notification.title,
+            body: notification.body,
+            data: { type: notification.type, ...notification.metadata }
+          })
+        });
         return;
       }
 

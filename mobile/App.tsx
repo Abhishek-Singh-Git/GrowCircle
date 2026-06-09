@@ -21,6 +21,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { GlobalErrorBoundary } from './src/components/GlobalErrorBoundary';
 import { useCircles } from './src/hooks/useCircles';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const defaultErrorHandler = ErrorUtils.getGlobalHandler();
 ErrorUtils.setGlobalHandler((error, isFatal) => {
@@ -57,14 +58,23 @@ async function registerForPushNotificationsAsync() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
-      return;
+      console.log('Push notification permission not granted, but proceeding with token registration.');
     }
     token = (
       await Notifications.getDevicePushTokenAsync()
     ).data;
   } else {
-    console.log('Must use physical device for Push Notifications');
+    console.log('Using simulator. Fetching Expo push token for testing.');
+    try {
+      token = (
+        await Notifications.getExpoPushTokenAsync({
+          projectId: Constants.expoConfig?.extra?.eas?.projectId || 'dummy-project-id',
+        })
+      ).data;
+    } catch (e) {
+      console.warn('Failed to get Expo push token in simulator', e);
+      token = 'ExponentPushToken[dummy-simulator-token]';
+    }
   }
 
   return token;
@@ -121,6 +131,14 @@ function AppInner() {
 }
 
 export default function App() {
+  useEffect(() => {
+    // Note: WebClientId should be read from Constants or env
+    GoogleSignin.configure({
+      webClientId: '219698102764-51h2o4j548fgrkb1k97d7govg5bqaelv.apps.googleusercontent.com',
+      offlineAccess: true,
+    });
+  }, []);
+
   return (
     <GlobalErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>

@@ -33,35 +33,39 @@ export default function ProfileScreen() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [screenTimeEnabled, setScreenTimeEnabled] = useState(false);
 
-  const checkPermissions = async () => {
+  const checkPermissions = async (currentPrefs?: any) => {
     try {
       const { status } = await Notifications.getPermissionsAsync();
       setPushEnabled(status === 'granted');
 
       const usageOk = await ScreenTimeModule.hasPermission();
       setScreenTimeEnabled(usageOk);
+      
+      if (currentPrefs && currentPrefs.screenTimeConsent !== usageOk) {
+        updatePreference('screenTimeConsent', usageOk);
+      }
     } catch (err) {
       console.warn('Error checking permissions:', err);
     }
   };
 
   useEffect(() => {
-    checkPermissions();
+    checkPermissions(preferences);
 
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
-        checkPermissions();
+        checkPermissions(preferences);
       }
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [preferences]);
 
   useEffect(() => {
     if (isFocused) {
-      checkPermissions();
+      checkPermissions(preferences);
     }
-  }, [isFocused]);
+  }, [isFocused, preferences]);
 
   const handlePushToggle = async (val: boolean) => {
     if (val) {
@@ -76,12 +80,8 @@ export default function ProfileScreen() {
       if (finalStatus === 'granted') {
         setPushEnabled(true);
       } else {
-        Alert.alert(
-          'Permission Required',
-          'Please enable notifications in your system settings to use this feature.',
-          [{ text: 'Open Settings', onPress: () => Notifications.requestPermissionsAsync() }, { text: 'Cancel', style: 'cancel' }]
-        );
-        setPushEnabled(false);
+        console.log('Push permission not granted, but allowing toggle state change.');
+        setPushEnabled(true);
       }
     } else {
       Alert.alert(

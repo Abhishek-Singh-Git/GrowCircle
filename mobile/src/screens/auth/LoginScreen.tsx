@@ -37,14 +37,6 @@ export default function LoginScreen({
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  React.useEffect(() => {
-    // Note: WebClientId should be read from Constants or env
-    GoogleSignin.configure({
-      webClientId: '219698102764-51h2o4j548fgrkb1k97d7govg5bqaelv.apps.googleusercontent.com',
-      offlineAccess: true,
-    });
-  }, []);
-
   const handleLogin = async () => {
     if (!credential.trim() || !password.trim()) {
       Alert.alert('Missing fields', 'Please fill in all fields.');

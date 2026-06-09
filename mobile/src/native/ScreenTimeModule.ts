@@ -38,7 +38,12 @@ interface ScreenTimeNativeInterface {
   /**
    * Get today's usage stats (convenience method)
    */
-  getTodayUsage(): Promise<AppUsageEntry[]>;
+  getTodayUsage(): Promise<{ apps: AppUsageEntry[], unlocks: number }>;
+
+  /**
+   * Get weekly trend (minutes per day for last 7 days)
+   */
+  getWeeklyTrend(): Promise<number[]>;
 }
 
 // ── Mock implementation for when native module is unavailable ────────────
@@ -53,25 +58,36 @@ const MockScreenTime: ScreenTimeNativeInterface = {
     return getMockUsageData();
   },
   async getTodayUsage() {
-    return getMockUsageData();
+    return { apps: getMockUsageData(), unlocks: 42 };
   },
+  async getWeeklyTrend() {
+    return [45, 60, 30, 80, 40, 95, 70];
+  }
 };
 
 function getMockUsageData(): AppUsageEntry[] {
+  const dummyIcon = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
   return [
-    { packageName: 'com.instagram.android', appName: 'Instagram', totalTimeInForeground: 7200, lastTimeUsed: Date.now() },
-    { packageName: 'com.whatsapp', appName: 'WhatsApp', totalTimeInForeground: 3600, lastTimeUsed: Date.now() },
-    { packageName: 'com.google.android.youtube', appName: 'YouTube', totalTimeInForeground: 5400, lastTimeUsed: Date.now() },
-    { packageName: 'com.twitter.android', appName: 'X (Twitter)', totalTimeInForeground: 1800, lastTimeUsed: Date.now() },
-    { packageName: 'com.snapchat.android', appName: 'Snapchat', totalTimeInForeground: 900, lastTimeUsed: Date.now() },
-    { packageName: 'com.reddit.frontpage', appName: 'Reddit', totalTimeInForeground: 2700, lastTimeUsed: Date.now() },
-    { packageName: 'com.spotify.music', appName: 'Spotify', totalTimeInForeground: 4500, lastTimeUsed: Date.now() },
-    { packageName: 'com.zhiliaoapp.musically', appName: 'TikTok', totalTimeInForeground: 6300, lastTimeUsed: Date.now() },
+    { packageName: 'com.instagram.android', appName: 'Instagram', totalTimeInForeground: 7200, lastTimeUsed: Date.now(), iconBase64: dummyIcon },
+    { packageName: 'com.whatsapp', appName: 'WhatsApp', totalTimeInForeground: 3600, lastTimeUsed: Date.now(), iconBase64: dummyIcon },
+    { packageName: 'com.google.android.youtube', appName: 'YouTube', totalTimeInForeground: 5400, lastTimeUsed: Date.now(), iconBase64: dummyIcon },
+    { packageName: 'com.twitter.android', appName: 'X (Twitter)', totalTimeInForeground: 1800, lastTimeUsed: Date.now(), iconBase64: dummyIcon },
+    { packageName: 'com.snapchat.android', appName: 'Snapchat', totalTimeInForeground: 900, lastTimeUsed: Date.now(), iconBase64: dummyIcon },
+    { packageName: 'com.reddit.frontpage', appName: 'Reddit', totalTimeInForeground: 2700, lastTimeUsed: Date.now(), iconBase64: dummyIcon },
+    { packageName: 'com.spotify.music', appName: 'Spotify', totalTimeInForeground: 4500, lastTimeUsed: Date.now(), iconBase64: dummyIcon },
+    { packageName: 'com.zhiliaoapp.musically', appName: 'TikTok', totalTimeInForeground: 6300, lastTimeUsed: Date.now(), iconBase64: dummyIcon },
   ];
 }
 
 // ── Export the native module or the mock ─────────────────────────────────
-const ScreenTimeNative = NativeModules.ScreenTimeModule;
+import { requireNativeModule } from 'expo-modules-core';
+
+let ScreenTimeNative: any = null;
+try {
+  ScreenTimeNative = requireNativeModule('ScreenTimeModule');
+} catch (e) {
+  console.warn('[ScreenTime] Native module not found, using mock');
+}
 
 const ScreenTimeModule: ScreenTimeNativeInterface =
   Platform.OS === 'android' && ScreenTimeNative
@@ -80,6 +96,7 @@ const ScreenTimeModule: ScreenTimeNativeInterface =
         requestPermission: () => ScreenTimeNative.requestPermission(),
         getUsageStats: (start, end) => ScreenTimeNative.getUsageStats(start, end),
         getTodayUsage: () => ScreenTimeNative.getTodayUsage(),
+        getWeeklyTrend: () => ScreenTimeNative.getWeeklyTrend(),
       }
     : MockScreenTime;
 

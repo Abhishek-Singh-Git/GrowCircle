@@ -7,6 +7,7 @@ import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import { useAuthStore } from '../stores/authStore';
 import { Colors, Typography } from '../theme/tokens';
@@ -144,13 +145,28 @@ export const navTheme = {
 
 export default function RootNavigation() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const [hasOnboarded, setHasOnboarded] = useState(false);
+  const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    AsyncStorage.getItem('hasOnboarded').then((value) => {
+      setHasOnboarded(value === 'true');
+    });
+  }, []);
+
+  const handleOnboardingComplete = async () => {
+    await AsyncStorage.setItem('hasOnboarded', 'true');
+    setHasOnboarded(true);
+  };
+
+  if (hasOnboarded === null) {
+    return null; // or a splash screen
+  }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!hasOnboarded ? (
         <Stack.Screen name="Onboarding">
-          {() => <OnboardingScreen onComplete={() => setHasOnboarded(true)} />}
+          {() => <OnboardingScreen onComplete={handleOnboardingComplete} />}
         </Stack.Screen>
       ) : !isAuthenticated ? (
         <Stack.Screen name="Auth" component={AuthStack} />

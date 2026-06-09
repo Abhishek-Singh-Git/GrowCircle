@@ -41,6 +41,8 @@ export default function FocusScreen() {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState(false);
   const [usageData, setUsageData] = useState<AppUsageEntry[]>([]);
+  const [unlocks, setUnlocks] = useState(0);
+  const [weeklyTrend, setWeeklyTrend] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalSeconds, setTotalSeconds] = useState(0);
   const maxDuration = Math.max(...usageData.map((app) => app.totalTimeInForeground), 1);
@@ -91,12 +93,16 @@ export default function FocusScreen() {
     setConsentMissing(false);
     try {
       if (viewMode === 'own') {
-        const data = await ScreenTimeModule.getTodayUsage();
+        const { apps, unlocks: dayUnlocks } = await ScreenTimeModule.getTodayUsage();
+        const trend = await ScreenTimeModule.getWeeklyTrend();
+
         // Sort by usage time descending
-        const sorted = data.sort(
+        const sorted = apps.sort(
           (a, b) => b.totalTimeInForeground - a.totalTimeInForeground,
         );
         setUsageData(sorted);
+        setUnlocks(dayUnlocks);
+        setWeeklyTrend(trend);
         setTotalSeconds(
           sorted.reduce((sum, app) => sum + app.totalTimeInForeground, 0),
         );
@@ -136,6 +142,8 @@ export default function FocusScreen() {
           }));
           setUsageData(apps);
           setTotalSeconds(res.totalSeconds);
+          setUnlocks(Math.round(res.totalSeconds / 600)); // Estimated unlocks for partner
+          setWeeklyTrend([60, 45, 90, 30, 75, 40, 55]); // Placeholder for partner trend
         } catch (err: any) {
           if (err?.message?.includes('403') || err?.response?.status === 403) {
             setConsentMissing(true);
@@ -307,9 +315,15 @@ export default function FocusScreen() {
                   {viewMode === 'own' ? "Today's Screen Time" : "Partner's Screen Time"}
                 </Text>
                 <Text style={styles.heroValue}>{formatDuration(totalSeconds)}</Text>
-                <View style={styles.heroTrend}>
-                  <Text style={styles.heroTrendText}>↓ 1h 12m from Yesterday</Text>
-                </View>
+                {weeklyTrend.length > 5 && (
+                  <View style={styles.heroTrend}>
+                    <Text style={styles.heroTrendText}>
+                      {totalSeconds > weeklyTrend[5] * 60
+                        ? `↑ ${formatDuration(totalSeconds - weeklyTrend[5] * 60)} more than Yesterday`
+                        : `↓ ${formatDuration(weeklyTrend[5] * 60 - totalSeconds)} from Yesterday`}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -323,22 +337,31 @@ export default function FocusScreen() {
               </View>
               <View style={styles.statBox}>
                 <Text style={styles.statBoxLabel}>Unlocks</Text>
-                <Text style={styles.statBoxValue}>42</Text>
+                <Text style={styles.statBoxValue}>{unlocks}</Text>
               </View>
               <View style={styles.statBox}>
                 <Text style={styles.statBoxLabel}>Focus Score</Text>
-                <Text style={[styles.statBoxValue, { color: Colors.accentSuccess }]}>92</Text>
+                <Text style={[
+                  styles.statBoxValue, 
+                  { color: totalSeconds > 18000 ? Colors.accentDanger : totalSeconds > 10800 ? Colors.accentWarning : Colors.accentSuccess }
+                ]}>
+                   {Math.max(0, 100 - Math.floor(totalSeconds / 360))}
+                </Text>
               </View>
             </View>
 
-            {/* Weekly Trend (Placeholder) */}
+            {/* Weekly Trend */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Weekly Trend</Text>
               <View style={styles.trendCard}>
                  <View style={styles.trendChart}>
-                    {[45, 60, 30, 80, 40, 95, 70].map((h, i) => (
-                      <View key={i} style={[styles.trendBar, { height: h, backgroundColor: i === 5 ? Colors.accentPrimary : Colors.surfaceHover }]} />
-                    ))}
+                    {weeklyTrend.map((val, i) => {
+                      const maxTrend = Math.max(...weeklyTrend, 1);
+                      const barHeight = Math.max((val / maxTrend) * 100, 5);
+                      return (
+                        <View key={i} style={[styles.trendBar, { height: barHeight, backgroundColor: i === 6 ? Colors.accentPrimary : Colors.surfaceHover }]} />
+                      );
+                    })}
                  </View>
                  <View style={styles.trendLabels}>
                     {['M','T','W','T','F','S','S'].map(d => <Text key={d} style={styles.trendLabelText}>{d}</Text>)}

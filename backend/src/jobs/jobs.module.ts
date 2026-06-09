@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { JobsService } from './jobs.service';
 import { DailyCronProcessor } from './processors/daily-cron.processor';
+import { CleanupProcessor } from './processors/cleanup.processor';
 import { GoalsModule } from '../goals/goals.module';
 
 @Module({
@@ -11,6 +12,6 @@ import { GoalsModule } from '../goals/goals.module';
     }),
     GoalsModule,
   ],
-  providers: [JobsService, DailyCronProcessor],
+  providers: [JobsService, DailyCronProcessor, CleanupProcessor],
 })
 export class JobsModule {}

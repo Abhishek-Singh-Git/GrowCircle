@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { useCircleStore } from '../stores/circleStore';
+import { wsService } from '../services/websocket';
 
 export interface FeedMember {
   user: {
@@ -52,6 +53,14 @@ export function useCircleFeed() {
 
   useEffect(() => {
     fetchFeed();
+
+    const unsubscribe = wsService.on('goal_completed', (payload: any) => {
+      // Re-fetch the feed when someone completes a goal so stats update
+      // In a perfectly optimized app, we'd update the specific feed member in-place
+      fetchFeed();
+    });
+
+    return () => unsubscribe();
   }, [fetchFeed]);
 
   return { feed, isLoading, refetch: fetchFeed };

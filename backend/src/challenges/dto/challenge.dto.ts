@@ -53,8 +53,9 @@ export class CreateChallengeDto {
 }
 
 export class ResolveChallengeDto {
+  @IsOptional()
   @IsUUID()
-  winnerId: string;
+  winnerId?: string;
 
   @IsIn(['win', 'draw', 'forfeit'])
   outcomeType: string;

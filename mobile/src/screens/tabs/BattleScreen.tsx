@@ -22,28 +22,30 @@ export default function BattleScreen() {
   const [deadlineDays, setDeadlineDays] = useState('7');
   const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'resolved'>('active');
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
 
   const handleOpenModal = () => {
     if (!activeCircleId) {
       alert('Join or create a circle first!');
       return;
     }
-    const activeCircle = useCircleStore.getState().activeCircle;
-    const partner = activeCircle?.members?.find((m: any) => m.id !== user?.id);
-    if (!partner) {
+    const partners = useCircleStore.getState().activeCircle?.members?.filter((m: any) => m.id !== user?.id) || [];
+    if (partners.length === 0) {
       alert('No partner in your circle yet! Share your invite code first.');
       return;
+    }
+    if (partners.length === 1) {
+      setSelectedPartnerId(partners[0].id);
     }
     setModalVisible(true);
   };
 
   const handleCreateChallenge = async () => {
-    const activeCircle = useCircleStore.getState().activeCircle;
-    const partner = activeCircle?.members?.find((m: any) => m.id !== user?.id);
-    if (!partner) {
-      alert('Partner not found');
+    if (!selectedPartnerId) {
+      alert('Please select a partner for this challenge.');
       return;
     }
+
     const deadlineMs = parseInt(deadlineDays, 10) * 24 * 60 * 60 * 1000;
     const deadline = new Date(Date.now() + deadlineMs).toISOString();
     
@@ -58,12 +60,13 @@ export default function BattleScreen() {
         stakeDescription: 'Loser buys dinner',
         proofRequired: true,
         deadline,
-        participantIds: [user?.id, partner.id],
+        participantIds: [user?.id || '', selectedPartnerId].filter(Boolean),
       });
       setModalVisible(false);
       setTitle('');
       setDescription('');
       setDeadlineDays('7');
+      setSelectedPartnerId(null);
       setActiveTab('pending');
     } catch (e: any) {
       console.warn('Cannot create challenge:', e?.message || e);
@@ -143,19 +146,35 @@ export default function BattleScreen() {
         )}
 
         {challenge.status === 'active' && (
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
-            <TouchableOpacity
-              style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 8, borderRadius: 6, alignItems: 'center' }}
-              onPress={() => incrementProgress(challenge.id)}
-            >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>+1 Progress</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ flex: 1, backgroundColor: Colors.accentPrimary, padding: 8, borderRadius: 6, alignItems: 'center' }}
-              onPress={() => resolveChallenge(challenge.id, { outcomeType: 'win', winnerId: user?.id })}
-            >
-              <Text style={{ color: 'white' }}>I Won!</Text>
-            </TouchableOpacity>
+          <View style={{ flexDirection: 'column', gap: 10, marginTop: 15 }}>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 8, borderRadius: 6, alignItems: 'center' }}
+                onPress={() => incrementProgress(challenge.id)}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>+1 Progress</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: Colors.accentPrimary, padding: 8, borderRadius: 6, alignItems: 'center' }}
+                onPress={() => resolveChallenge(challenge.id, { outcomeType: 'win', winnerId: user?.id })}
+              >
+                <Text style={{ color: 'white' }}>I Won!</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 8, borderRadius: 6, alignItems: 'center' }}
+                onPress={() => resolveChallenge(challenge.id, { outcomeType: 'draw' })}
+              >
+                <Text style={{ color: 'white' }}>Draw</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 8, borderRadius: 6, alignItems: 'center' }}
+                onPress={() => resolveChallenge(challenge.id, { outcomeType: 'forfeit' })}
+              >
+                <Text style={{ color: 'white' }}>Forfeit</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -230,12 +249,31 @@ export default function BattleScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>New Challenge</Text>
-              <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={styles.input} />
-              <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={styles.input} />
-              <TextInput placeholder="Deadline (days)" value={deadlineDays} onChangeText={setDeadlineDays} keyboardType="numeric" style={styles.input} />
+
+              <Text style={styles.inputLabel}>Select Partner</Text>
+              <View style={styles.partnerPicker}>
+                {useCircleStore.getState().activeCircle?.members?.filter((m: any) => m.id !== user?.id).map((p: any) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.partnerOption, selectedPartnerId === p.id && styles.partnerOptionSelected]}
+                    onPress={() => setSelectedPartnerId(p.id)}
+                  >
+                    <Text style={[styles.partnerOptionText, selectedPartnerId === p.id && styles.partnerOptionTextSelected]}>{p.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={styles.input} placeholderTextColor={Colors.textTertiary} />
+              <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={styles.input} placeholderTextColor={Colors.textTertiary} />
+              <TextInput placeholder="Deadline (days)" value={deadlineDays} onChangeText={setDeadlineDays} keyboardType="numeric" style={styles.input} placeholderTextColor={Colors.textTertiary} />
+
               <View style={styles.modalButtons}>
-                <Button title="Cancel" onPress={() => setModalVisible(false)} disabled={isCreating} />
-                <Button title={isCreating ? "Creating..." : "Create"} onPress={handleCreateChallenge} disabled={isCreating} />
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.submitBtn, (!title || !selectedPartnerId) && { opacity: 0.5 }]} onPress={handleCreateChallenge} disabled={isCreating || !title || !selectedPartnerId}>
+                  <Text style={styles.submitBtnText}>{isCreating ? "Creating..." : "Create"}</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -411,5 +449,60 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  inputLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.small,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  partnerPicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: Spacing.md,
+  },
+  partnerOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    backgroundColor: Colors.background,
+  },
+  partnerOptionSelected: {
+    backgroundColor: Colors.accentPrimary,
+    borderColor: Colors.accentPrimary,
+  },
+  partnerOptionText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  partnerOptionTextSelected: {
+    color: Colors.textPrimary,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.surfaceHover,
+  },
+  cancelBtnText: {
+    fontFamily: Typography.fontFamily.bold,
+    color: Colors.textSecondary,
+  },
+  submitBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.accentPrimary,
+  },
+  submitBtnText: {
+    fontFamily: Typography.fontFamily.bold,
+    color: Colors.textPrimary,
   },
 });

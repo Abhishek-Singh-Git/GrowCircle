@@ -201,6 +201,11 @@ export class ChallengesService {
         outcomeType: dto.outcomeType,
         resolvedAt: new Date(),
       },
+      include: {
+        participants: {
+          include: { user: true },
+        },
+      },
     });
 
     // Handle Stake (Points transfer)
