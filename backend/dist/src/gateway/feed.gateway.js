@@ -19,6 +19,7 @@ const socket_io_1 = require("socket.io");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const jwt_1 = require("@nestjs/jwt");
 const common_1 = require("@nestjs/common");
+const luxon_1 = require("luxon");
 const prisma_service_1 = require("../prisma/prisma.service");
 let FeedGateway = FeedGateway_1 = class FeedGateway {
     jwtService;
@@ -73,20 +74,26 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
         return { status: 'left', room };
     }
     async handleHeartbeat(client, data) {
-        const now = new Date();
-        const hour = now.getHours();
-        const minute = now.getMinutes();
+        if (!client.userId || !data?.circleId) {
+            return { status: 'alive' };
+        }
+        const user = await this.prisma.user.findUnique({
+            where: { id: client.userId },
+            select: { timezone: true, preferences: { select: { shareLateNightActivity: true } } },
+        });
+        if (!user)
+            return { status: 'alive' };
+        const userTz = user.timezone || 'UTC';
+        const nowLocal = luxon_1.DateTime.now().setZone(userTz);
+        const hour = nowLocal.hour;
+        const minute = nowLocal.minute;
         const isLate = (hour === 23 && minute >= 30) || (hour >= 0 && hour < 4);
-        if (isLate && data?.circleId && client.userId) {
-            const prefs = await this.prisma.userPreference.findUnique({
-                where: { userId: client.userId },
-                select: { shareLateNightActivity: true },
-            });
-            if (prefs?.shareLateNightActivity) {
+        if (isLate) {
+            if (user.preferences?.shareLateNightActivity) {
                 const room = `circle:${data.circleId}`;
                 this.server.to(room).emit('partner_up_late', {
                     userId: client.userId,
-                    timestamp: now.toISOString(),
+                    timestamp: new Date().toISOString(),
                 });
                 this.eventEmitter.emit('late_night.detected', {
                     userId: client.userId,
@@ -94,7 +101,7 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
                 });
             }
         }
-        return { status: 'alive', timestamp: now.toISOString() };
+        return { status: 'alive', timestamp: new Date().toISOString() };
     }
     handleLogCreated(payload) {
         const room = `circle:${payload.circleId}`;

@@ -29,7 +29,11 @@ export declare class FeedGateway implements OnGatewayConnection, OnGatewayDiscon
     };
     handleHeartbeat(client: AuthenticatedSocket, data?: {
         circleId?: string;
+        clientTimestamp?: string;
     }): Promise<{
+        status: string;
+        timestamp?: undefined;
+    } | {
         status: string;
         timestamp: string;
     }>;

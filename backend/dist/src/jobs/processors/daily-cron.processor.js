@@ -15,6 +15,7 @@ const bullmq_1 = require("@nestjs/bullmq");
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const goals_service_1 = require("../../goals/goals.service");
+const luxon_1 = require("luxon");
 let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends bullmq_1.WorkerHost {
     prisma;
     goalsService;
@@ -31,16 +32,16 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
         }
     }
     async handleMidnightCron() {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
         this.logger.log('Starting Midnight Cron...');
         const activeUsers = await this.prisma.user.findMany({
             where: { accountStatus: 'active' },
-            select: { id: true, gamificationProfiles: true },
+            select: { id: true, timezone: true, gamificationProfiles: true },
         });
         for (const user of activeUsers) {
+            const userTz = user.timezone || 'UTC';
+            const nowLocal = luxon_1.DateTime.now().setZone(userTz);
+            const today = nowLocal.startOf('day').toJSDate();
+            const yesterday = nowLocal.minus({ days: 1 }).startOf('day').toJSDate();
             for (const profile of user.gamificationProfiles) {
                 const yesterdayInstances = await this.prisma.goalInstance.findMany({
                     where: {
@@ -49,23 +50,52 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
                         date: yesterday,
                     },
                 });
-                const missedRequired = yesterdayInstances.some((i) => i.status !== 'completed' && i.status !== 'skipped');
-                if (missedRequired) {
-                    await this.prisma.gamificationProfile.update({
-                        where: { userId_circleId: { userId: profile.userId, circleId: profile.circleId } },
-                        data: { currentStreak: 0 },
-                    });
-                }
-                else if (yesterdayInstances.length > 0) {
-                    await this.prisma.gamificationProfile.update({
-                        where: { userId_circleId: { userId: profile.userId, circleId: profile.circleId } },
-                        data: {
-                            currentStreak: { increment: 1 },
-                            longestStreak: {
-                                set: Math.max(profile.currentStreak + 1, profile.longestStreak),
-                            },
+                const totalCount = yesterdayInstances.length;
+                const completedCount = yesterdayInstances.filter((i) => i.status === 'completed' || i.status === 'skipped').length;
+                const completionFraction = totalCount > 0 ? completedCount / totalCount : 0;
+                await this.prisma.dailyScore.upsert({
+                    where: {
+                        userId_circleId_date: {
+                            userId: user.id,
+                            circleId: profile.circleId,
+                            date: yesterday,
                         },
-                    });
+                    },
+                    update: {
+                        dailyPerformanceScore: completionFraction * 100,
+                        consistencyScore: completionFraction * 100,
+                        goalsActive: totalCount,
+                        goalsCompleted: completedCount,
+                    },
+                    create: {
+                        userId: user.id,
+                        circleId: profile.circleId,
+                        date: yesterday,
+                        dailyPerformanceScore: completionFraction * 100,
+                        consistencyScore: completionFraction * 100,
+                        goalsActive: totalCount,
+                        goalsCompleted: completedCount,
+                        xpEarnedToday: 0,
+                    },
+                });
+                if (totalCount > 0) {
+                    if (completionFraction < 0.8) {
+                        await this.prisma.gamificationProfile.update({
+                            where: { userId_circleId: { userId: profile.userId, circleId: profile.circleId } },
+                            data: { currentStreak: 0 },
+                        });
+                    }
+                    else {
+                        await this.prisma.gamificationProfile.update({
+                            where: { userId_circleId: { userId: profile.userId, circleId: profile.circleId } },
+                            data: {
+                                currentStreak: { increment: 1 },
+                                longestStreak: {
+                                    set: Math.max(profile.currentStreak + 1, profile.longestStreak),
+                                },
+                            },
+                        });
+                    }
                 }
                 await this.goalsService.generateAllInstancesForDate(user.id, profile.circleId, today);
             }

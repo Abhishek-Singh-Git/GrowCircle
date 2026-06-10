@@ -83,7 +83,12 @@ let AppController = class AppController {
                 data: { userId: req.user.id },
             });
         }
-        return prefs;
+        const consents = await this.prisma.consentRecord.findMany({
+            where: { userId: req.user.id, revokedAt: null }
+        });
+        const timeoutConsent = consents.some(c => c.feature === 'timeout');
+        const screenTimeConsent = consents.some(c => c.feature === 'screen_time');
+        return { ...prefs, timeoutConsent, screenTimeConsent };
     }
     async updatePreferences(req, body) {
         const userId = req.user?.id;
@@ -102,45 +107,44 @@ let AppController = class AppController {
             });
             for (const cm of activeCircles) {
                 if (timeoutConsent !== undefined) {
-                    await this.prisma.consentRecord.upsert({
-                        where: { id: `${userId}-${cm.circleId}-timeout` },
-                        update: { revokedAt: timeoutConsent ? null : new Date() },
-                        create: {
-                            userId,
-                            circleId: cm.circleId,
-                            feature: 'timeout',
-                            revokedAt: timeoutConsent ? null : new Date(),
-                        },
-                    }).catch(async () => {
-                        const existing = await this.prisma.consentRecord.findFirst({
-                            where: { userId, circleId: cm.circleId, feature: 'timeout' }
-                        });
-                        if (existing) {
-                            await this.prisma.consentRecord.update({
-                                where: { id: existing.id },
-                                data: { revokedAt: timeoutConsent ? null : new Date() }
-                            });
-                        }
-                        else {
-                            await this.prisma.consentRecord.create({
-                                data: { userId, circleId: cm.circleId, feature: 'timeout', revokedAt: timeoutConsent ? null : new Date() }
-                            });
-                        }
-                    });
-                }
-                if (screenTimeConsent !== undefined) {
                     const existing = await this.prisma.consentRecord.findFirst({
-                        where: { userId, circleId: cm.circleId, feature: 'screen_time' }
+                        where: { userId, circleId: cm.circleId, feature: 'timeout' },
                     });
                     if (existing) {
                         await this.prisma.consentRecord.update({
                             where: { id: existing.id },
-                            data: { revokedAt: screenTimeConsent ? null : new Date() }
+                            data: { revokedAt: timeoutConsent ? null : new Date() },
                         });
                     }
                     else {
                         await this.prisma.consentRecord.create({
-                            data: { userId, circleId: cm.circleId, feature: 'screen_time', revokedAt: screenTimeConsent ? null : new Date() }
+                            data: {
+                                userId,
+                                circleId: cm.circleId,
+                                feature: 'timeout',
+                                revokedAt: timeoutConsent ? null : new Date(),
+                            },
+                        });
+                    }
+                }
+                if (screenTimeConsent !== undefined) {
+                    const existing = await this.prisma.consentRecord.findFirst({
+                        where: { userId, circleId: cm.circleId, feature: 'screen_time' },
+                    });
+                    if (existing) {
+                        await this.prisma.consentRecord.update({
+                            where: { id: existing.id },
+                            data: { revokedAt: screenTimeConsent ? null : new Date() },
+                        });
+                    }
+                    else {
+                        await this.prisma.consentRecord.create({
+                            data: {
+                                userId,
+                                circleId: cm.circleId,
+                                feature: 'screen_time',
+                                revokedAt: screenTimeConsent ? null : new Date(),
+                            },
                         });
                     }
                 }

@@ -60,9 +60,17 @@ async function registerForPushNotificationsAsync() {
     if (finalStatus !== 'granted') {
       console.log('Push notification permission not granted, but proceeding with token registration.');
     }
-    token = (
-      await Notifications.getDevicePushTokenAsync()
-    ).data;
+    try {
+      token = (
+        await Notifications.getDevicePushTokenAsync()
+      ).data;
+    } catch (e) {
+      console.warn('Failed to get device push token:', e);
+      // Fallback Expo push token if native token fails
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId: Constants.expoConfig?.extra?.eas?.projectId || 'dummy-project-id',
+      })).data;
+    }
   } else {
     console.log('Using simulator. Fetching Expo push token for testing.');
     try {

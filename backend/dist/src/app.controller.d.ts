@@ -41,6 +41,8 @@ export declare class AppController {
         fcmToken: string | null;
     }>;
     getPreferences(req: any): Promise<{
+        timeoutConsent: boolean;
+        screenTimeConsent: boolean;
         updatedAt: Date;
         userId: string;
         notifyPartnerLog: boolean;

@@ -13,6 +13,6 @@ export declare class CreateChallengeDto {
     participantIds: string[];
 }
 export declare class ResolveChallengeDto {
-    winnerId: string;
+    winnerId?: string;
     outcomeType: string;
 }

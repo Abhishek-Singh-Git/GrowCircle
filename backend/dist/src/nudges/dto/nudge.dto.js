@@ -14,7 +14,6 @@ const class_validator_1 = require("class-validator");
 class SendNudgeDto {
     recipientId;
     circleId;
-    goalId;
     goalInstanceId;
     message;
 }
@@ -27,11 +26,6 @@ __decorate([
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], SendNudgeDto.prototype, "circleId", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsUUID)(),
-    __metadata("design:type", String)
-], SendNudgeDto.prototype, "goalId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsUUID)(),

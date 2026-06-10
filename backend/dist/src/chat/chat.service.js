@@ -173,14 +173,9 @@ let ChatService = class ChatService {
         if (!participant) {
             throw new common_1.ForbiddenException('You are not a participant in this thread');
         }
-        const thread = await this.prisma.chatThread.findUnique({
-            where: { id: threadId },
-        });
-        if (!thread)
-            throw new common_1.NotFoundException('Thread not found');
         await this.prisma.chatThreadParticipant.update({
             where: { threadId_userId: { threadId, userId } },
-            data: { lastReadAt: new Date() },
+            data: { clearedAt: new Date() },
         });
         return { clearedAt: new Date() };
     }
@@ -191,9 +186,17 @@ let ChatService = class ChatService {
         if (!participant) {
             throw new common_1.ForbiddenException('You are not a participant in this thread');
         }
-        await this.prisma.message.updateMany({
-            where: { threadId },
-            data: { isDeleted: true, deletedAt: new Date() },
+        const thread = await this.prisma.chatThread.findUnique({
+            where: { id: threadId },
+            include: { circle: true },
+        });
+        if (!thread)
+            throw new common_1.NotFoundException('Thread not found');
+        if (thread.circle.ownerId !== userId) {
+            throw new common_1.ForbiddenException('Only the circle owner can delete the group thread');
+        }
+        await this.prisma.chatThread.delete({
+            where: { id: threadId },
         });
         return { deletedAt: new Date() };
     }

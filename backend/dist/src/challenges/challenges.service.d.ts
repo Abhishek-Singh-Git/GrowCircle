@@ -68,6 +68,35 @@ export declare class ChallengesService {
         challengeId: string;
     }>;
     resolveChallenge(userId: string, challengeId: string, dto: ResolveChallengeDto): Promise<{
+        participants: ({
+            user: {
+                id: string;
+                name: string;
+                createdAt: Date;
+                email: string | null;
+                phone: string | null;
+                passwordHash: string;
+                avatarUrl: string | null;
+                bio: string | null;
+                timezone: string;
+                plan: string;
+                accountStatus: string;
+                ageVerifiedAt: Date | null;
+                parentalConsentAt: Date | null;
+                lastActiveAt: Date | null;
+                deletedAt: Date | null;
+                fcmToken: string | null;
+            };
+        } & {
+            id: string;
+            userId: string;
+            status: string;
+            acceptedAt: Date | null;
+            withdrawnAt: Date | null;
+            manualProgress: number;
+            challengeId: string;
+        })[];
+    } & {
         id: string;
         createdAt: Date;
         circleId: string;

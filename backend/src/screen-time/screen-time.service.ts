@@ -121,9 +121,47 @@ export class ScreenTimeService {
       0,
     );
 
+    const totalUnlocks = snapshots.reduce(
+      (sum, s) => sum + (s.openCount || 0),
+      0,
+    );
+
+    // Calculate weekly trend
+    const sevenDaysAgo = new Date(dateObj);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+    const weeklySnapshots = await this.prisma.screenTimeSnapshot.groupBy({
+      by: ['date'],
+      where: {
+        userId: targetUserId,
+        date: {
+          gte: sevenDaysAgo,
+          lte: dateObj,
+        },
+        isHidden: false,
+      },
+      _sum: {
+        durationSeconds: true,
+      },
+    });
+
+    // Create an array of 7 values
+    const weeklyTrend = Array(7).fill(0);
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(dateObj);
+      d.setDate(d.getDate() - i);
+      const isoDate = d.toISOString().split('T')[0];
+      const match = weeklySnapshots.find(s => s.date.toISOString().split('T')[0] === isoDate);
+      if (match) {
+        weeklyTrend[6 - i] = Math.round((match._sum.durationSeconds || 0) / 60); // In minutes, matching the mobile format
+      }
+    }
+
     return {
       date: dateObj.toISOString().split('T')[0],
       totalSeconds,
+      unlocks: totalUnlocks,
+      weeklyTrend,
       apps: snapshots.map((s) => ({
         appPackage: s.appPackage,
         appDisplayName: s.appDisplayName,

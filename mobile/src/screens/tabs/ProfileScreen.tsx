@@ -33,7 +33,12 @@ export default function ProfileScreen() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [screenTimeEnabled, setScreenTimeEnabled] = useState(false);
 
-  const checkPermissions = async (currentPrefs?: any) => {
+  const prefsRef = React.useRef(preferences);
+  useEffect(() => {
+    prefsRef.current = preferences;
+  }, [preferences]);
+
+  const checkPermissions = async () => {
     try {
       const { status } = await Notifications.getPermissionsAsync();
       setPushEnabled(status === 'granted');
@@ -41,6 +46,7 @@ export default function ProfileScreen() {
       const usageOk = await ScreenTimeModule.hasPermission();
       setScreenTimeEnabled(usageOk);
       
+      const currentPrefs = prefsRef.current;
       if (currentPrefs && currentPrefs.screenTimeConsent !== usageOk) {
         updatePreference('screenTimeConsent', usageOk);
       }
@@ -50,46 +56,32 @@ export default function ProfileScreen() {
   };
 
   useEffect(() => {
-    checkPermissions(preferences);
+    checkPermissions();
 
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
-        checkPermissions(preferences);
+        checkPermissions();
       }
     });
 
     return () => subscription.remove();
-  }, [preferences]);
+  }, []);
 
   useEffect(() => {
     if (isFocused) {
-      checkPermissions(preferences);
+      checkPermissions();
     }
-  }, [isFocused, preferences]);
+  }, [isFocused]);
 
   const handlePushToggle = async (val: boolean) => {
+    // Permanent Bypass for OS check as requested
+    updatePreference('notifyNudge', val);
+    updatePreference('notifyPartnerLog', val);
+    updatePreference('notifyChallenge', val);
+    setPushEnabled(val);
+
     if (val) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus === 'granted') {
-        setPushEnabled(true);
-      } else {
-        console.log('Push permission not granted, but allowing toggle state change.');
-        setPushEnabled(true);
-      }
-    } else {
-      Alert.alert(
-        'Disable Notifications',
-        'To disable push notifications, please go to your system settings for GrowCircle.',
-        [{ text: 'OK' }]
-      );
-      setPushEnabled(true);
+      await Notifications.requestPermissionsAsync();
     }
   };
 
@@ -103,12 +95,7 @@ export default function ProfileScreen() {
         updatePreference('screenTimeConsent', true);
       }
     } else {
-      Alert.alert(
-        'Disable Screen Time Access',
-        'To disable usage stats access, please go to your system settings for GrowCircle.',
-        [{ text: 'OK' }]
-      );
-      setScreenTimeEnabled(true);
+      setScreenTimeEnabled(false);
       updatePreference('screenTimeConsent', false);
     }
   };

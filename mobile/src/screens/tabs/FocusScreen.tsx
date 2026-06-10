@@ -142,8 +142,8 @@ export default function FocusScreen() {
           }));
           setUsageData(apps);
           setTotalSeconds(res.totalSeconds);
-          setUnlocks(Math.round(res.totalSeconds / 600)); // Estimated unlocks for partner
-          setWeeklyTrend([60, 45, 90, 30, 75, 40, 55]); // Placeholder for partner trend
+          setUnlocks(res.unlocks || 0);
+          setWeeklyTrend(res.weeklyTrend || [0, 0, 0, 0, 0, 0, 0]);
         } catch (err: any) {
           if (err?.message?.includes('403') || err?.response?.status === 403) {
             setConsentMissing(true);

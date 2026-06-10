@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const bullmq_1 = require("@nestjs/bullmq");
 const jobs_service_1 = require("./jobs.service");
 const daily_cron_processor_1 = require("./processors/daily-cron.processor");
+const cleanup_processor_1 = require("./processors/cleanup.processor");
 const goals_module_1 = require("../goals/goals.module");
 let JobsModule = class JobsModule {
 };
@@ -23,7 +24,7 @@ exports.JobsModule = JobsModule = __decorate([
             }),
             goals_module_1.GoalsModule,
         ],
-        providers: [jobs_service_1.JobsService, daily_cron_processor_1.DailyCronProcessor],
+        providers: [jobs_service_1.JobsService, daily_cron_processor_1.DailyCronProcessor, cleanup_processor_1.CleanupProcessor],
     })
 ], JobsModule);
 //# sourceMappingURL=jobs.module.js.map

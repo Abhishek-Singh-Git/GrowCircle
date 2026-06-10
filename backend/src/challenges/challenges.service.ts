@@ -163,12 +163,39 @@ export class ChallengesService {
       throw new BadRequestException('Can only increment active challenges');
     }
 
+    // Enforce once-per-24-hour rule for manual progress to prevent abuse
+    if (participant.lastProgressAt) {
+      const hoursSinceLast = (Date.now() - participant.lastProgressAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLast < 24) {
+        throw new BadRequestException(`You can only check-in once every 24 hours. Next check-in available in ${Math.ceil(24 - hoursSinceLast)}h.`);
+      }
+    }
+
     const updated = await this.prisma.challengeParticipant.update({
       where: { id: participant.id },
-      data: { manualProgress: { increment: 1 } },
+      data: {
+        manualProgress: { increment: 1 },
+        lastProgressAt: new Date(),
+      },
     });
 
-    // We can emit a specific event if needed, but the client will refetch.
+    // Emit event for circle notification
+    this.eventEmitter.emit('challenge.progress_updated', {
+      challengeId: participant.challenge.id,
+      userId,
+      progress: updated.manualProgress,
+      total: participant.challenge.conditionTarget || 7
+    });
+
+    // Check if progress target has been reached
+    const target = participant.challenge.conditionTarget ? Number(participant.challenge.conditionTarget) : 7;
+    if (updated.manualProgress >= target) {
+      await this.resolveChallenge(userId, participant.challenge.id, {
+        outcomeType: 'win',
+        winnerId: userId
+      });
+    }
+
     return updated;
   }
 
@@ -208,27 +235,27 @@ export class ChallengesService {
       },
     });
 
+    // Award XP for completion regardless of outcome
+    for (const participant of resolvedChallenge.participants) {
+      await this.updateXp(participant.userId, challenge.circleId, 20); // Base participation XP
+    }
+
     // Handle Stake (Points transfer)
     if (resolvedChallenge.stakeType === 'points' && resolvedChallenge.stakePoints && resolvedChallenge.winnerId) {
       // Winner gets points
-      await this.prisma.gamificationProfile.update({
-        where: { userId_circleId: { userId: resolvedChallenge.winnerId, circleId: challenge.circleId } },
-        data: { totalXp: { increment: resolvedChallenge.stakePoints } },
-      });
+      await this.updateXp(resolvedChallenge.winnerId, challenge.circleId, resolvedChallenge.stakePoints);
 
       // Losers lose points
-      const participants = await this.prisma.challengeParticipant.findMany({
-        where: { challengeId, userId: { not: resolvedChallenge.winnerId } },
-      });
+      const losers = resolvedChallenge.participants.filter(p => p.userId !== resolvedChallenge.winnerId);
 
-      for (const participant of participants) {
+      for (const loser of losers) {
         const profile = await this.prisma.gamificationProfile.findUnique({
-          where: { userId_circleId: { userId: participant.userId, circleId: challenge.circleId } },
+          where: { userId_circleId: { userId: loser.userId, circleId: challenge.circleId } },
         });
         if (profile) {
           const newXp = Math.max(0, profile.totalXp - resolvedChallenge.stakePoints);
           await this.prisma.gamificationProfile.update({
-            where: { userId_circleId: { userId: participant.userId, circleId: challenge.circleId } },
+            where: { userId_circleId: { userId: loser.userId, circleId: challenge.circleId } },
             data: { totalXp: newXp },
           });
         }
@@ -238,6 +265,15 @@ export class ChallengesService {
     this.eventEmitter.emit('challenge.resolved', { challenge: resolvedChallenge });
 
     return resolvedChallenge;
+  }
+
+  private async updateXp(userId: string, circleId: string, xp: number) {
+    await this.prisma.gamificationProfile.update({
+      where: { userId_circleId: { userId, circleId } },
+      data: {
+        totalXp: { increment: xp },
+      },
+    });
   }
 
   // ── GET CHALLENGES ──────────────────────────────────────────────────

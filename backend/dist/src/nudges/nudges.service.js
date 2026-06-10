@@ -56,7 +56,6 @@ let NudgesService = class NudgesService {
                 senderId,
                 recipientId: dto.recipientId,
                 circleId: dto.circleId,
-                goalId: dto.goalId,
                 goalInstanceId: dto.goalInstanceId,
                 message: dto.message,
                 result: 'delivered',

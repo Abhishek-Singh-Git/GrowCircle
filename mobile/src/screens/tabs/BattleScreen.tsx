@@ -10,6 +10,7 @@ import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 import { useChallenges, Challenge } from '../../hooks/useChallenges';
 import { useAuthStore } from '../../stores/authStore';
 import { useCircleStore } from '../../stores/circleStore';
+import * as Haptics from 'expo-haptics';
 
 export default function BattleScreen() {
   const { challenges, fetchChallenges, createChallenge, respondToChallenge, incrementProgress, resolveChallenge } = useChallenges();
@@ -17,12 +18,49 @@ export default function BattleScreen() {
   const activeCircleId = useCircleStore((s) => s.activeCircleId);
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
+  const [holdProgress, setHoldProgress] = useState(0);
+  const [isHolding, setIsCreating] = useState(false); // Using existing setIsCreating for loading state logic
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [deadlineDays, setDeadlineDays] = useState('7');
   const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'resolved'>('active');
-  const [isCreating, setIsCreating] = useState(false);
+  const [isCreating, setIsCreatingState] = useState(false);
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
+
+  const handleProgressConfirm = (challenge: Challenge) => {
+    setActiveChallenge(challenge);
+    setConfirmModalVisible(true);
+    setHoldProgress(0);
+  };
+
+  const startHold = () => {
+    let current = 0;
+    const interval = setInterval(() => {
+      current += 0.05;
+      if (current >= 1) {
+        clearInterval(interval);
+        handleIncrement();
+      }
+      setHoldProgress(Math.min(current, 1));
+    }, 50);
+    return interval;
+  };
+
+  const handleIncrement = async () => {
+    if (!activeChallenge) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      await incrementProgress(activeChallenge.id);
+      setConfirmModalVisible(false);
+    } catch (e: any) {
+      alert(e.message || "Failed to update progress");
+      setConfirmModalVisible(false);
+    }
+  };
 
   const handleOpenModal = () => {
     if (!activeCircleId) {
@@ -146,35 +184,18 @@ export default function BattleScreen() {
         )}
 
         {challenge.status === 'active' && (
-          <View style={{ flexDirection: 'column', gap: 10, marginTop: 15 }}>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TouchableOpacity
-                style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 8, borderRadius: 6, alignItems: 'center' }}
-                onPress={() => incrementProgress(challenge.id)}
+          <View style={styles.actionContainer}>
+            <TouchableOpacity
+              style={styles.checkInBtn}
+              onPress={() => handleProgressConfirm(challenge)}
+            >
+              <LinearGradient
+                colors={['#4F46E5', '#7C3AED']}
+                style={styles.checkInGradient}
               >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>+1 Progress</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ flex: 1, backgroundColor: Colors.accentPrimary, padding: 8, borderRadius: 6, alignItems: 'center' }}
-                onPress={() => resolveChallenge(challenge.id, { outcomeType: 'win', winnerId: user?.id })}
-              >
-                <Text style={{ color: 'white' }}>I Won!</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TouchableOpacity
-                style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 8, borderRadius: 6, alignItems: 'center' }}
-                onPress={() => resolveChallenge(challenge.id, { outcomeType: 'draw' })}
-              >
-                <Text style={{ color: 'white' }}>Draw</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 8, borderRadius: 6, alignItems: 'center' }}
-                onPress={() => resolveChallenge(challenge.id, { outcomeType: 'forfeit' })}
-              >
-                <Text style={{ color: 'white' }}>Forfeit</Text>
-              </TouchableOpacity>
-            </View>
+                <Text style={styles.checkInText}>Daily Check-In</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -275,6 +296,38 @@ export default function BattleScreen() {
                   <Text style={styles.submitBtnText}>{isCreating ? "Creating..." : "Create"}</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Hold-to-Confirm Modal */}
+        <Modal visible={confirmModalVisible} transparent animationType="fade">
+          <View style={styles.holdOverlay}>
+            <View style={styles.holdCard}>
+              <Text style={styles.holdTitle}>Hold to Confirm</Text>
+              <Text style={styles.holdSubtitle}>Verifying your progress for today</Text>
+
+              <TouchableOpacity
+                activeOpacity={1}
+                onPressIn={() => {
+                  const timer = startHold();
+                  holdTimerRef.current = timer;
+                }}
+                onPressOut={() => {
+                  if (holdTimerRef.current) clearInterval(holdTimerRef.current);
+                  setHoldProgress(0);
+                }}
+                style={styles.fingerprintArea}
+              >
+                <View style={styles.fingerprintCircle}>
+                  <Text style={{ fontSize: 40 }}>☝️</Text>
+                  <View style={[styles.progressRing, { height: `${holdProgress * 100}%` }]} />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.closeHoldBtn} onPress={() => setConfirmModalVisible(false)}>
+                <Text style={styles.closeHoldText}>Cancel</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -504,5 +557,93 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontFamily: Typography.fontFamily.bold,
     color: Colors.textPrimary,
+  },
+  actionContainer: {
+    flexDirection: 'row',
+    marginTop: 15,
+    gap: 12,
+  },
+  checkInBtn: {
+    flex: 2,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+  },
+  checkInGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  checkInText: {
+    color: 'white',
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: 14,
+  },
+  forfeitBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  forfeitText: {
+    color: '#EF4444',
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 12,
+  },
+  holdOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  holdCard: {
+    width: '80%',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    alignItems: 'center',
+  },
+  holdTitle: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.heading,
+    color: Colors.textPrimary,
+  },
+  holdSubtitle: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.small,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xl,
+  },
+  fingerprintArea: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: Colors.surfaceHover,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: Colors.glassBorder,
+  },
+  fingerprintCircle: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressRing: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(124, 58, 237, 0.4)',
+  },
+  closeHoldBtn: {
+    marginTop: Spacing.xl,
+  },
+  closeHoldText: {
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.textTertiary,
   },
 });

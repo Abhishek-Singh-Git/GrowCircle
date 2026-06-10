@@ -117,6 +117,15 @@ export class DailyCronProcessor extends WorkerHost {
       }
     }
 
+    // 3. Cleanup: Hard-delete tasks that expired more than 24 hours ago
+    const oneDayAgo = DateTime.now().minus({ days: 1 }).toJSDate();
+    const deleteCount = await this.prisma.goalInstance.deleteMany({
+      where: {
+        expiresAt: { lt: oneDayAgo }
+      }
+    });
+    this.logger.log(`Cleanup: Deleted ${deleteCount.count} expired task instances.`);
+
     this.logger.log('Midnight Cron completed successfully');
   }
 }

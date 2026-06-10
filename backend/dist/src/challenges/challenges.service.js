@@ -172,6 +172,11 @@ let ChallengesService = class ChallengesService {
                 outcomeType: dto.outcomeType,
                 resolvedAt: new Date(),
             },
+            include: {
+                participants: {
+                    include: { user: true },
+                },
+            },
         });
         if (resolvedChallenge.stakeType === 'points' && resolvedChallenge.stakePoints && resolvedChallenge.winnerId) {
             await this.prisma.gamificationProfile.update({

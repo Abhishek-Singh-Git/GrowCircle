@@ -14,10 +14,13 @@ class ScreenTimeModule : Module() {
 
     Function("hasPermission") {
       val context = appContext.reactContext ?: return@Function false
-      val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-      val currentTime = System.currentTimeMillis()
-      val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, currentTime - 1000 * 60, currentTime)
-      return@Function stats != null && stats.isNotEmpty()
+      val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+      val mode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+          appOps.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName)
+      } else {
+          appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName)
+      }
+      return@Function mode == android.app.AppOpsManager.MODE_ALLOWED
     }
 
     Function("requestPermission") {
