@@ -42,7 +42,7 @@ export function useCircleFeed() {
     if (!activeCircleId) return;
     setIsLoading(true);
     try {
-      const data: FeedMember[] = await api.get(`/logging/feed?circle_id=${activeCircleId}`);
+      const data: FeedMember[] = await api.get(`/circles/${activeCircleId}/feed`);
       setFeed(data);
     } catch (err) {
       console.error('Failed to fetch circle feed:', err);

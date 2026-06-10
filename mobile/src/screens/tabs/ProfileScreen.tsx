@@ -89,7 +89,14 @@ export default function ProfileScreen() {
     if (val) {
       const usageOk = await ScreenTimeModule.hasPermission();
       if (!usageOk) {
-        await ScreenTimeModule.requestPermission();
+        try {
+          const { Linking } = require('react-native');
+          await Linking.sendIntent('android.settings.USAGE_ACCESS_SETTINGS');
+        } catch {
+          const { Linking } = require('react-native');
+          await Linking.openSettings();
+        }
+        // State will update when the app returns from settings via AppState listener
       } else {
         setScreenTimeEnabled(true);
         updatePreference('screenTimeConsent', true);

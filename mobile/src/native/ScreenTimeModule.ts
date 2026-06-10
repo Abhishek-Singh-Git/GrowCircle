@@ -47,12 +47,14 @@ interface ScreenTimeNativeInterface {
 }
 
 // ── Mock implementation for when native module is unavailable ────────────
+let mockPermission = false;
 const MockScreenTime: ScreenTimeNativeInterface = {
   async hasPermission() {
-    return false;
+    return mockPermission;
   },
   async requestPermission() {
-    console.warn('[ScreenTime] Native module not available');
+    console.warn('[ScreenTime] Native module not available. Mocking permission grant.');
+    mockPermission = true;
   },
   async getUsageStats(_startTime: number, _endTime: number) {
     return getMockUsageData();

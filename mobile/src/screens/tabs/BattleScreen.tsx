@@ -2,7 +2,7 @@
  * GrowCircle — Battle Tab
  * Challenges, leaderboard, and tug-of-war competitions.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Modal, TextInput, Button } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
