@@ -24,10 +24,11 @@ class ScreenTimeModule : Module() {
     }
 
     Function("requestPermission") {
-      val context = appContext.reactContext ?: return@Function
+      val context = appContext.reactContext ?: return@Function null
       val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       context.startActivity(intent)
+      return@Function null
     }
 
     AsyncFunction("getTodayUsage") {
@@ -50,7 +51,7 @@ class ScreenTimeModule : Module() {
       val event = android.app.usage.UsageEvents.Event()
       while (events.hasNextEvent()) {
           events.getNextEvent(event)
-          if (event.eventType == android.app.usage.UsageEvents.Event.KEYGUARD_DISMISSED || 
+          if (event.eventType == android.app.usage.UsageEvents.Event.KEYGUARD_HIDDEN || 
               event.eventType == android.app.usage.UsageEvents.Event.SCREEN_INTERACTIVE) {
               unlockCount++
           }
