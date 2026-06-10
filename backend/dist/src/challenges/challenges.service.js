@@ -142,10 +142,32 @@ let ChallengesService = class ChallengesService {
         if (participant.challenge.status !== 'active') {
             throw new common_1.BadRequestException('Can only increment active challenges');
         }
+        if (participant.lastProgressAt) {
+            const hoursSinceLast = (Date.now() - participant.lastProgressAt.getTime()) / (1000 * 60 * 60);
+            if (hoursSinceLast < 24) {
+                throw new common_1.BadRequestException(`You can only check-in once every 24 hours. Next check-in available in ${Math.ceil(24 - hoursSinceLast)}h.`);
+            }
+        }
         const updated = await this.prisma.challengeParticipant.update({
             where: { id: participant.id },
-            data: { manualProgress: { increment: 1 } },
+            data: {
+                manualProgress: { increment: 1 },
+                lastProgressAt: new Date(),
+            },
         });
+        this.eventEmitter.emit('challenge.progress_updated', {
+            challengeId: participant.challenge.id,
+            userId,
+            progress: updated.manualProgress,
+            total: participant.challenge.conditionTarget || 7
+        });
+        const target = participant.challenge.conditionTarget ? Number(participant.challenge.conditionTarget) : 7;
+        if (updated.manualProgress >= target) {
+            await this.resolveChallenge(userId, participant.challenge.id, {
+                outcomeType: 'win',
+                winnerId: userId
+            });
+        }
         return updated;
     }
     async resolveChallenge(userId, challengeId, dto) {
@@ -178,22 +200,20 @@ let ChallengesService = class ChallengesService {
                 },
             },
         });
+        for (const participant of resolvedChallenge.participants) {
+            await this.updateXp(participant.userId, challenge.circleId, 20);
+        }
         if (resolvedChallenge.stakeType === 'points' && resolvedChallenge.stakePoints && resolvedChallenge.winnerId) {
-            await this.prisma.gamificationProfile.update({
-                where: { userId_circleId: { userId: resolvedChallenge.winnerId, circleId: challenge.circleId } },
-                data: { totalXp: { increment: resolvedChallenge.stakePoints } },
-            });
-            const participants = await this.prisma.challengeParticipant.findMany({
-                where: { challengeId, userId: { not: resolvedChallenge.winnerId } },
-            });
-            for (const participant of participants) {
+            await this.updateXp(resolvedChallenge.winnerId, challenge.circleId, resolvedChallenge.stakePoints);
+            const losers = resolvedChallenge.participants.filter(p => p.userId !== resolvedChallenge.winnerId);
+            for (const loser of losers) {
                 const profile = await this.prisma.gamificationProfile.findUnique({
-                    where: { userId_circleId: { userId: participant.userId, circleId: challenge.circleId } },
+                    where: { userId_circleId: { userId: loser.userId, circleId: challenge.circleId } },
                 });
                 if (profile) {
                     const newXp = Math.max(0, profile.totalXp - resolvedChallenge.stakePoints);
                     await this.prisma.gamificationProfile.update({
-                        where: { userId_circleId: { userId: participant.userId, circleId: challenge.circleId } },
+                        where: { userId_circleId: { userId: loser.userId, circleId: challenge.circleId } },
                         data: { totalXp: newXp },
                     });
                 }
@@ -201,6 +221,14 @@ let ChallengesService = class ChallengesService {
         }
         this.eventEmitter.emit('challenge.resolved', { challenge: resolvedChallenge });
         return resolvedChallenge;
+    }
+    async updateXp(userId, circleId, xp) {
+        await this.prisma.gamificationProfile.update({
+            where: { userId_circleId: { userId, circleId } },
+            data: {
+                totalXp: { increment: xp },
+            },
+        });
     }
     async getChallenges(userId, circleId, status) {
         await this.circlesService.validateMembership(userId, circleId);

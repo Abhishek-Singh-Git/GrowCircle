@@ -42,9 +42,17 @@ async function bootstrap() {
         console.log('Starting NestJS application...');
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
         if (!admin.apps.length) {
-            admin.initializeApp({
-                credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK)),
-            });
+            try {
+                admin.initializeApp({
+                    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK)),
+                });
+            }
+            catch (error) {
+                if (!/already exists/i.test(error.message)) {
+                    throw error;
+                }
+                console.log('ℹ️ Firebase Admin already initialized, reusing existing app.');
+            }
         }
         app.useGlobalPipes(new common_1.ValidationPipe({
             whitelist: true,

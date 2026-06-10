@@ -157,6 +157,27 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             totalPages: Math.ceil(total / limit),
         };
     }
+    async handleChallengeProgress(payload) {
+        const challenge = await this.prisma.challenge.findUnique({
+            where: { id: payload.challengeId },
+            include: { participants: { select: { userId: true } } }
+        });
+        if (!challenge)
+            return;
+        const user = await this.prisma.user.findUnique({ where: { id: payload.userId }, select: { name: true } });
+        const members = await this.prisma.circleMember.findMany({
+            where: { circleId: challenge.circleId, status: 'active', userId: { not: payload.userId } }
+        });
+        for (const member of members) {
+            await this.sendNotification({
+                userId: member.userId,
+                type: 'challenge',
+                title: 'Challenge Progress ⚔️',
+                body: `${user?.name} checked in for Day ${payload.progress} of ${payload.total} in "${challenge.title}"!`,
+                metadata: { challengeId: challenge.id, circleId: challenge.circleId }
+            });
+        }
+    }
     async handleNudgeSent(payload) {
         await this.sendNotification({
             userId: payload.nudge.recipientId,
@@ -301,6 +322,12 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
     }
 };
 exports.NotificationsService = NotificationsService;
+__decorate([
+    (0, event_emitter_1.OnEvent)('challenge.progress_updated'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], NotificationsService.prototype, "handleChallengeProgress", null);
 __decorate([
     (0, event_emitter_1.OnEvent)('nudge.sent'),
     __metadata("design:type", Function),

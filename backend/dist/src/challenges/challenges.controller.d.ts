@@ -21,6 +21,7 @@ export declare class ChallengesController {
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
             manualProgress: number;
+            lastProgressAt: Date | null;
             challengeId: string;
         })[];
         proposer: {
@@ -67,6 +68,7 @@ export declare class ChallengesController {
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
             manualProgress: number;
+            lastProgressAt: Date | null;
             challengeId: string;
         }[];
         proposer: {
@@ -110,6 +112,7 @@ export declare class ChallengesController {
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
         manualProgress: number;
+        lastProgressAt: Date | null;
         challengeId: string;
     }>;
     incrementProgress(req: {
@@ -123,6 +126,7 @@ export declare class ChallengesController {
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
         manualProgress: number;
+        lastProgressAt: Date | null;
         challengeId: string;
     }>;
     resolveChallenge(req: {
@@ -156,6 +160,7 @@ export declare class ChallengesController {
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
             manualProgress: number;
+            lastProgressAt: Date | null;
             challengeId: string;
         })[];
     } & {

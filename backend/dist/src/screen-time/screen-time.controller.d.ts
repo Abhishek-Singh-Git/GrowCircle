@@ -17,6 +17,8 @@ export declare class ScreenTimeController {
     }, userId: string, date: string): Promise<{
         date: string;
         totalSeconds: number;
+        unlocks: number;
+        weeklyTrend: any[];
         apps: {
             appPackage: string;
             appDisplayName: string | null;

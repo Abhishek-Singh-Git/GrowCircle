@@ -100,6 +100,13 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
                 await this.goalsService.generateAllInstancesForDate(user.id, profile.circleId, today);
             }
         }
+        const oneDayAgo = luxon_1.DateTime.now().minus({ days: 1 }).toJSDate();
+        const deleteCount = await this.prisma.goalInstance.deleteMany({
+            where: {
+                expiresAt: { lt: oneDayAgo }
+            }
+        });
+        this.logger.log(`Cleanup: Deleted ${deleteCount.count} expired task instances.`);
         this.logger.log('Midnight Cron completed successfully');
     }
 };

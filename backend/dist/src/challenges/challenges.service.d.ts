@@ -21,6 +21,7 @@ export declare class ChallengesService {
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
             manualProgress: number;
+            lastProgressAt: Date | null;
             challengeId: string;
         })[];
         proposer: {
@@ -56,6 +57,7 @@ export declare class ChallengesService {
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
         manualProgress: number;
+        lastProgressAt: Date | null;
         challengeId: string;
     }>;
     incrementProgress(userId: string, challengeId: string): Promise<{
@@ -65,6 +67,7 @@ export declare class ChallengesService {
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
         manualProgress: number;
+        lastProgressAt: Date | null;
         challengeId: string;
     }>;
     resolveChallenge(userId: string, challengeId: string, dto: ResolveChallengeDto): Promise<{
@@ -94,6 +97,7 @@ export declare class ChallengesService {
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
             manualProgress: number;
+            lastProgressAt: Date | null;
             challengeId: string;
         })[];
     } & {
@@ -117,6 +121,7 @@ export declare class ChallengesService {
         resolvedAt: Date | null;
         proposerId: string;
     }>;
+    private updateXp;
     getChallenges(userId: string, circleId: string, status?: string): Promise<{
         participants: {
             progress: number;
@@ -131,6 +136,7 @@ export declare class ChallengesService {
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
             manualProgress: number;
+            lastProgressAt: Date | null;
             challengeId: string;
         }[];
         proposer: {

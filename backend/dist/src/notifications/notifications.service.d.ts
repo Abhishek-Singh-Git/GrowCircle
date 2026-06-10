@@ -35,6 +35,12 @@ export declare class NotificationsService {
         page: number;
         totalPages: number;
     }>;
+    handleChallengeProgress(payload: {
+        challengeId: string;
+        userId: string;
+        progress: number;
+        total: number;
+    }): Promise<void>;
     handleNudgeSent(payload: {
         nudge: any;
     }): Promise<void>;
