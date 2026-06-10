@@ -10,9 +10,16 @@ async function bootstrap() {
 
     // Prevent duplicate initialization
     if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK as string)),
-      });
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK as string)),
+        });
+      } catch (error: any) {
+        if (!/already exists/i.test(error.message)) {
+          throw error;
+        }
+        console.log('ℹ️ Firebase Admin already initialized, reusing existing app.');
+      }
     }
 
     // Global validation pipe for DTO validation (class-validator)
