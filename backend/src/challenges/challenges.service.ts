@@ -196,13 +196,13 @@ export class ChallengesService {
     this.eventEmitter.emit('challenge.progress_updated', {
       challengeId: participant.challenge.id,
       userId,
-      progress: updated.manualProgress,
-      total: participant.challenge.conditionTarget || 7
+      progress: Number(updated.manualProgress),
+      total: participant.challenge.conditionTarget ? Number(participant.challenge.conditionTarget) : 7
     });
 
     // Check if progress target has been reached
     const target = participant.challenge.conditionTarget ? Number(participant.challenge.conditionTarget) : 7;
-    if (updated.manualProgress >= target) {
+    if (Number(updated.manualProgress) >= target) {
       await this.resolveChallenge(userId, participant.challenge.id, {
         outcomeType: 'win',
         winnerId: userId
@@ -602,7 +602,7 @@ export class ChallengesService {
             });
             progress = Math.round((snapshots._sum.durationSeconds || 0) / 60);
           } else if (challenge.conditionType === 'custom') {
-            progress = (participant as any).manualProgress || 0;
+            progress = Number((participant as any).manualProgress) || 0;
           } else {
             progress = await this.prisma.activityLog.count({
               where: {

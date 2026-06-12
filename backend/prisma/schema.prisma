@@ -543,7 +543,7 @@ model ChallengeParticipant {
   status             String    @default("pending") @db.VarChar(20)
   acceptedAt         DateTime? @map("accepted_at")
   withdrawnAt        DateTime? @map("withdrawn_at")
-  manualProgress     Int       @default(0) @map("manual_progress")
+  manualProgress     Decimal   @default(0) @map("manual_progress") @db.Decimal(10, 2)
   lastProgressAt     DateTime? @map("last_progress_at")
   proofText          String?   @map("proof_text")
   verificationStatus String    @default("pending") @map("verification_status") @db.VarChar(20)
