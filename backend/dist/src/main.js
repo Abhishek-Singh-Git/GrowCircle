@@ -37,28 +37,39 @@ const core_1 = require("@nestjs/core");
 const common_1 = require("@nestjs/common");
 const app_module_1 = require("./app.module");
 const admin = __importStar(require("firebase-admin"));
+const requiredEnvVars = [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'FIREBASE_ADMIN_SDK',
+    'GOOGLE_CLIENT_ID_WEB',
+    'GOOGLE_CLIENT_ID_ANDROID',
+];
+for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+        console.error(`❌ CRITICAL: Missing required environment variable: ${envVar}`);
+        process.exit(1);
+    }
+}
 async function bootstrap() {
     try {
         console.log('Starting NestJS application...');
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
         if (!admin.apps.length) {
+            const firebaseSdkJson = process.env.FIREBASE_ADMIN_SDK;
+            if (!firebaseSdkJson) {
+                console.error('❌ CRITICAL: FIREBASE_ADMIN_SDK environment variable is not set.');
+                process.exit(1);
+            }
             try {
-                let certData;
-                try {
-                    certData = JSON.parse(process.env.FIREBASE_ADMIN_SDK);
-                }
-                catch (parseError) {
-                    console.error('❌ CRITICAL: FIREBASE_ADMIN_SDK is missing or invalid JSON. Firebase features will fail.');
-                }
-                if (certData) {
-                    admin.initializeApp({
-                        credential: admin.credential.cert(certData),
-                    });
-                }
+                const certData = JSON.parse(firebaseSdkJson);
+                admin.initializeApp({
+                    credential: admin.credential.cert(certData),
+                });
             }
             catch (error) {
                 if (!/already exists/i.test(error.message)) {
-                    throw error;
+                    console.error('❌ CRITICAL: FIREBASE_ADMIN_SDK is invalid JSON:', error.message);
+                    process.exit(1);
                 }
                 console.log('ℹ️ Firebase Admin already initialized, reusing existing app.');
             }
@@ -69,8 +80,9 @@ async function bootstrap() {
             transform: true,
         }));
         app.enableCors({
-            origin: '*',
+            origin: process.env.CORS_ORIGINS?.split(',') || ['https://growcircle-production.up.railway.app'],
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+            credentials: true,
             allowedHeaders: ['Content-Type', 'Authorization'],
         });
         const port = process.env.PORT || 3001;

@@ -13,11 +13,6 @@ const passport_1 = require("@nestjs/passport");
 const auth_controller_1 = require("./auth.controller");
 const auth_service_1 = require("./auth.service");
 const jwt_strategy_1 = require("./jwt.strategy");
-const jwtSecret = process.env.JWT_SECRET || 'dev-secret';
-if (process.env.NODE_ENV === 'production' && jwtSecret === 'dev-secret') {
-    console.error('❌ CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing in production!');
-    process.exit(1);
-}
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -26,7 +21,9 @@ exports.AuthModule = AuthModule = __decorate([
         imports: [
             passport_1.PassportModule.register({ defaultStrategy: 'jwt' }),
             jwt_1.JwtModule.register({
-                secret: jwtSecret,
+                secret: process.env.JWT_SECRET || (() => {
+                    throw new Error('JWT_SECRET environment variable is required but not set.');
+                })(),
                 signOptions: { expiresIn: 900 },
             }),
         ],

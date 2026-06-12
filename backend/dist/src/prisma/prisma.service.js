@@ -16,14 +16,17 @@ const pg_1 = require("pg");
 const adapter_pg_1 = require("@prisma/adapter-pg");
 let PrismaService = class PrismaService extends client_1.PrismaClient {
     constructor() {
-        if (!process.env.DATABASE_URL) {
-            console.error('❌ CRITICAL ERROR: DATABASE_URL environment variable is missing.');
-            if (process.env.NODE_ENV === 'production') {
-                process.exit(1);
-            }
+        const databaseUrl = process.env.DATABASE_URL;
+        if (!databaseUrl) {
+            throw new Error('DATABASE_URL environment variable is not set. Unable to connect to database.');
         }
         super({
-            adapter: new adapter_pg_1.PrismaPg(new pg_1.Pool({ connectionString: process.env.DATABASE_URL || 'postgres://localhost:5432' })),
+            adapter: new adapter_pg_1.PrismaPg(new pg_1.Pool({
+                connectionString: databaseUrl,
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 5000,
+            })),
         });
     }
     async onModuleInit() {

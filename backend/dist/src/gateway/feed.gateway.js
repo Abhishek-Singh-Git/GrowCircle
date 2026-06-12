@@ -289,7 +289,10 @@ __decorate([
 ], FeedGateway.prototype, "handleDrawClear", null);
 exports.FeedGateway = FeedGateway = FeedGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
-        cors: { origin: '*' },
+        cors: {
+            origin: process.env.CORS_ORIGINS?.split(',') || ['https://growcircle-production.up.railway.app'],
+            credentials: true,
+        },
         namespace: '/feed',
     }),
     __metadata("design:paramtypes", [jwt_1.JwtService,

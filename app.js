@@ -25,8 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     $$('.tab-view').forEach(t => t.classList.remove('active'));
     $$('.nav-tab').forEach(t => t.classList.remove('active'));
     
-    $(`tab-${tabId}`).classList.add('active');
-    $(`nav-${tabId}`).classList.add('active');
+    const tabView = $(`tab-${tabId}`);
+    const navTab = $(`nav-${tabId}`);
+    if (tabView) tabView.classList.add('active');
+    if (navTab) navTab.classList.add('active');
     currentState.tab = tabId;
   };
 

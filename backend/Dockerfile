@@ -1,12 +1,12 @@
-# Single-stage build — ensures all dependencies are available at runtime
-FROM node:22-alpine
+# Build Stage
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install build tools for native modules (bcrypt, sharp, etc.)
+# Install build tools for native modules
 RUN apk add --no-cache openssl python3 make g++
 
-# Copy package files and install ALL dependencies
+# Install all dependencies and build
 COPY package*.json ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
@@ -15,14 +15,30 @@ RUN npm ci
 # Generate Prisma client
 RUN npx prisma generate
 
-# Copy source code
+# Copy source and build
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Expose port (Railway overrides with PORT env var)
+# Production Stage
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Prisma needs openssl
+RUN apk add --no-cache openssl
+
+# Install production dependencies only
+COPY package*.json ./
+COPY prisma ./prisma/
+COPY prisma.config.ts ./
+RUN npm ci --omit=dev
+
+# Generate Prisma client for production
+RUN npx prisma generate
+
+# Copy built artifacts from builder
+COPY --from=builder /app/dist ./dist
+
 EXPOSE 3001
 
-# Start the application
 CMD ["node", "dist/main"]

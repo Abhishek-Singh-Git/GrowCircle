@@ -21,7 +21,10 @@ interface AuthenticatedSocket extends Socket {
 import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: {
+    origin: process.env.CORS_ORIGINS?.split(',') || ['https://growcircle-production.up.railway.app'],
+    credentials: true,
+  },
   namespace: '/feed',
 })
 export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
