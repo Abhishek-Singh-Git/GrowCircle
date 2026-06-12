@@ -14,6 +14,7 @@ const WS_URL = __DEV__
 class WebSocketService {
   private socket: Socket | null = null;
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+  private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Event listeners
   private listeners: Map<string, Set<(data: unknown) => void>> = new Map();
@@ -23,7 +24,7 @@ class WebSocketService {
       const token = useAuthStore.getState().accessToken;
       if (!token) {
         // Wait for token to be available
-        setTimeout(connectWithToken, 1000);
+        this.connectionTimeout = setTimeout(connectWithToken, 1000);
         return;
       }
       
@@ -96,6 +97,10 @@ class WebSocketService {
   }
 
   disconnect() {
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
     this.stopHeartbeat();
     this.socket?.disconnect();
     this.socket = null;

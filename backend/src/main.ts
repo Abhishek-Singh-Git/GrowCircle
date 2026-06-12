@@ -3,6 +3,20 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import * as admin from 'firebase-admin';
 
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'JWT_SECRET',
+  'FIREBASE_ADMIN_SDK',
+  'GOOGLE_CLIENT_ID_WEB',
+  'GOOGLE_CLIENT_ID_ANDROID',
+];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`❌ CRITICAL: Missing required environment variable: ${envVar}`);
+    process.exit(1);
+  }
+}
+
 async function bootstrap() {
   try {
     console.log('Starting NestJS application...');
@@ -10,22 +24,20 @@ async function bootstrap() {
 
     // Prevent duplicate initialization
     if (!admin.apps.length) {
+      const firebaseSdkJson = process.env.FIREBASE_ADMIN_SDK;
+      if (!firebaseSdkJson) {
+        console.error('❌ CRITICAL: FIREBASE_ADMIN_SDK environment variable is not set.');
+        process.exit(1);
+      }
       try {
-        let certData;
-        try {
-          certData = JSON.parse(process.env.FIREBASE_ADMIN_SDK as string);
-        } catch (parseError) {
-          console.error('❌ CRITICAL: FIREBASE_ADMIN_SDK is missing or invalid JSON. Firebase features will fail.');
-        }
-
-        if (certData) {
-          admin.initializeApp({
-            credential: admin.credential.cert(certData),
-          });
-        }
+        const certData = JSON.parse(firebaseSdkJson);
+        admin.initializeApp({
+          credential: admin.credential.cert(certData),
+        });
       } catch (error: any) {
         if (!/already exists/i.test(error.message)) {
-          throw error;
+          console.error('❌ CRITICAL: FIREBASE_ADMIN_SDK is invalid JSON:', error.message);
+          process.exit(1);
         }
         console.log('ℹ️ Firebase Admin already initialized, reusing existing app.');
       }

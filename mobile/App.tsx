@@ -114,10 +114,22 @@ function AppInner() {
       if (isAuthenticated) {
         const storedToken = await AsyncStorage.getItem('accessToken');
         if (storedToken) {
-          const pushToken = await registerForPushNotificationsAsync();
-          if (pushToken) {
-            api.patch('/users/me', { fcmToken: pushToken }).catch(console.error);
-          }
+          const registerPushToken = async (retries = 5, delay = 2000) => {
+            for (let i = 0; i < retries; i++) {
+              try {
+                const pushToken = await registerForPushNotificationsAsync();
+                if (pushToken) {
+                  await api.patch('/users/me', { fcmToken: pushToken });
+                  return;
+                }
+              } catch (error) {
+                console.warn(`Push token registration attempt ${i + 1} failed:`, error);
+              }
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            console.error('All push token registration attempts failed');
+          };
+          registerPushToken();
         }
       }
     };
