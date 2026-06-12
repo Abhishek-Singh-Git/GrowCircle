@@ -32,7 +32,7 @@ class ScreenTimeModule : Module() {
     }
 
     AsyncFunction("getTodayUsage") {
-      val context = appContext.reactContext ?: return@AsyncFunction emptyList<Map<String, Any>>()
+      val context = appContext.reactContext ?: return@AsyncFunction mapOf("apps" to emptyList<Map<String, Any>>(), "unlocks" to 0)
       val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
       
       val calendar = Calendar.getInstance()
@@ -101,7 +101,7 @@ class ScreenTimeModule : Module() {
         val end = start + 24 * 60 * 60 * 1000
         
         val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end)
-        val dailyTotal = stats?.sumOf { it.totalTimeInForeground / 1000 / 60 } ?: 0 // minutes
+        val dailyTotal = stats?.sumOf { it.totalTimeInForeground / 1000 / 60 } ?: 0L // minutes
         trend.add(dailyTotal.toInt())
       }
       return@AsyncFunction trend
