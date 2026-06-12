@@ -35,7 +35,7 @@ let JobsService = JobsService_1 = class JobsService {
             },
             jobId: 'hourly-cron',
         });
-        this.logger.log('Midnight cron job registered (00:05 AM)');
+        this.logger.log('Hourly cron job registered (runs every hour)');
     }
 };
 exports.JobsService = JobsService;

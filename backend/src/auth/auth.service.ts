@@ -187,10 +187,9 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Mark this token as used (single-use with rotation, per PRD)
-    await this.prisma.authToken.update({
+    // Delete the consumed token to prevent database bloat
+    await this.prisma.authToken.delete({
       where: { id: storedToken.id },
-      data: { usedAt: new Date() },
     });
 
     // Generate new token pair

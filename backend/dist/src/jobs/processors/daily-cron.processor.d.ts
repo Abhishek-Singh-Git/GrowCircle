@@ -10,5 +10,5 @@ export declare class DailyCronProcessor extends WorkerHost {
     private readonly logger;
     constructor(prisma: PrismaService, goalsService: GoalsService, challengesService: ChallengesService);
     process(job: Job<any, any, string>): Promise<any>;
-    private handleMidnightCron;
+    private handleHourlyCron;
 }

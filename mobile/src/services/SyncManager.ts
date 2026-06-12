@@ -37,7 +37,15 @@ class SyncManager {
         return;
       }
 
-      let queue: QueuedRequest[] = JSON.parse(queueStr);
+      let queue: QueuedRequest[] = [];
+      try {
+        queue = JSON.parse(queueStr);
+      } catch (parseErr) {
+        console.error('[SyncManager] Corrupted offline queue. Clearing storage.', parseErr);
+        await AsyncStorage.removeItem('offlineQueue');
+        this.isSyncing = false;
+        return;
+      }
       if (queue.length === 0) {
         this.isSyncing = false;
         return;

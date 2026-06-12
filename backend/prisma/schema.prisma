@@ -30,6 +30,7 @@ model User {
   lastActiveAt      DateTime? @map("last_active_at")
   deletedAt         DateTime? @map("deleted_at")
   fcmToken          String?   @map("fcm_token") @db.VarChar(500)
+  lastCronProcessedDate String? @map("last_cron_processed_date") @db.VarChar(10)
 
   authTokens              AuthToken[]
   ownedCircles            Circle[]                @relation("CircleOwner")

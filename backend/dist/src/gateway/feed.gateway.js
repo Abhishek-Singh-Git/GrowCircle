@@ -27,6 +27,7 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
     eventEmitter;
     server;
     logger = new common_1.Logger(FeedGateway_1.name);
+    drawingState = new Map();
     constructor(jwtService, prisma, eventEmitter) {
         this.jwtService = jwtService;
         this.prisma = prisma;
@@ -61,6 +62,14 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
         this.server.to(room).emit('partner_online', {
             userId: client.userId,
             timestamp: new Date().toISOString(),
+        });
+        const currentStrokes = this.drawingState.get(data.circleId) || [];
+        currentStrokes.forEach((stroke) => {
+            client.emit('draw:stroke', {
+                circleId: data.circleId,
+                stroke,
+                userId: 'system',
+            });
         });
         return { status: 'joined', room };
     }
@@ -171,6 +180,9 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
             throw new websockets_1.WsException('Unauthorized to draw in this circle');
         }
         const room = `circle:${data.circleId}`;
+        const currentStrokes = this.drawingState.get(data.circleId) || [];
+        currentStrokes.push(data.stroke);
+        this.drawingState.set(data.circleId, currentStrokes);
         client.to(room).emit('draw:stroke', {
             circleId: data.circleId,
             stroke: data.stroke,
@@ -187,6 +199,7 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
             throw new websockets_1.WsException('Unauthorized to clear in this circle');
         }
         const room = `circle:${data.circleId}`;
+        this.drawingState.set(data.circleId, []);
         client.to(room).emit('draw:clear', {
             circleId: data.circleId,
             userId: client.userId,

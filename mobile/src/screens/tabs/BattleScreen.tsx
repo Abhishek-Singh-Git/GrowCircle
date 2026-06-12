@@ -361,7 +361,7 @@ export default function BattleScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   scroll: {
     paddingTop: 60,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     borderWidth: 1,
     borderColor: Colors.glassBorder,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   partnerOptionSelected: {
     backgroundColor: Colors.accentPrimary,

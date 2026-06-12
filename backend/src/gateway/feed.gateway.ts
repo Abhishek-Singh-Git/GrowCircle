@@ -29,6 +29,7 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(FeedGateway.name);
+  private drawingState = new Map<string, any[]>(); // Ephemeral state for late joiners
 
   constructor(
     private readonly jwtService: JwtService,
@@ -78,6 +79,16 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(room).emit('partner_online', {
       userId: client.userId,
       timestamp: new Date().toISOString(),
+    });
+
+    // Send ephemeral strokes to the late joiner
+    const currentStrokes = this.drawingState.get(data.circleId) || [];
+    currentStrokes.forEach((stroke) => {
+      client.emit('draw:stroke', {
+        circleId: data.circleId,
+        stroke,
+        userId: 'system', // or whoever drew it if we saved that
+      });
     });
 
     return { status: 'joined', room };
@@ -267,6 +278,12 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const room = `circle:${data.circleId}`;
+    
+    // Save to ephemeral state
+    const currentStrokes = this.drawingState.get(data.circleId) || [];
+    currentStrokes.push(data.stroke);
+    this.drawingState.set(data.circleId, currentStrokes);
+
     client.to(room).emit('draw:stroke', {
       circleId: data.circleId,
       stroke: data.stroke,
@@ -289,6 +306,8 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const room = `circle:${data.circleId}`;
+    this.drawingState.set(data.circleId, []); // Clear ephemeral state
+    
     client.to(room).emit('draw:clear', {
       circleId: data.circleId,
       userId: client.userId,

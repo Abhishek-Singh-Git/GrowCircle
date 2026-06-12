@@ -163,7 +163,8 @@ export class GoalsService {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
     const userTz = user?.timezone || 'UTC';
-    const today = DateTime.now().setZone(userTz).startOf('day').toJSDate();
+    const nowLocal = DateTime.now().setZone(userTz);
+    const today = new Date(Date.UTC(nowLocal.year, nowLocal.month - 1, nowLocal.day));
 
     return this.prisma.goalInstance.findMany({
       where: {
@@ -194,7 +195,9 @@ export class GoalsService {
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
     const userTz = user?.timezone || 'UTC';
-    const dateOnly = DateTime.fromJSDate(date).setZone(userTz).startOf('day').toJSDate();
+    const localStartOfDay = DateTime.fromJSDate(date).setZone(userTz).startOf('day');
+    const localEndOfDay = localStartOfDay.endOf('day');
+    const dateOnly = new Date(Date.UTC(localStartOfDay.year, localStartOfDay.month - 1, localStartOfDay.day));
 
     const goal = await this.prisma.goal.findUnique({ where: { id: goalId } });
     if (!goal || goal.status !== 'active') return null;
@@ -210,6 +213,7 @@ export class GoalsService {
           userId,
           circleId,
           date: dateOnly,
+          expiresAt: localEndOfDay.toJSDate(),
           targetValue: goal.targetValue,
           status: 'pending',
         },

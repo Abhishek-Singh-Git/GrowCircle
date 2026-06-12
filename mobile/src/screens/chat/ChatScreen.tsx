@@ -280,7 +280,7 @@ export default function ChatScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
     borderRadius: BorderRadius.md,
     padding: Spacing.sm,
     color: Colors.textPrimary,
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   canvasContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   canvasHeader: {
     flexDirection: 'row',

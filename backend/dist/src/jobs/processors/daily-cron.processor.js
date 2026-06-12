@@ -31,31 +31,38 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
     async process(job) {
         this.logger.log(`Processing job ${job.name} (ID: ${job.id})`);
         if (job.name === 'generate-instances-and-streaks') {
-            await this.handleMidnightCron();
+            await this.handleHourlyCron();
         }
     }
-    async handleMidnightCron() {
-        this.logger.log('Starting Midnight Cron...');
-        let skip = 0;
-        const take = 100;
+    async handleHourlyCron() {
+        this.logger.log('Starting Hourly Cron...');
+        let cursor = undefined;
         let hasMore = true;
         while (hasMore) {
             const activeUsers = await this.prisma.user.findMany({
+                take: 100,
+                skip: cursor ? 1 : 0,
+                cursor: cursor ? { id: cursor } : undefined,
                 where: { accountStatus: 'active' },
-                select: { id: true, timezone: true, plan: true, gamificationProfiles: true },
-                skip,
-                take,
+                select: { id: true, timezone: true, plan: true, gamificationProfiles: true, lastCronProcessedDate: true },
             });
-            if (activeUsers.length < take)
+            if (activeUsers.length === 0) {
                 hasMore = false;
-            skip += take;
+                break;
+            }
+            cursor = activeUsers[activeUsers.length - 1].id;
             for (const user of activeUsers) {
                 const userTz = user.timezone || 'UTC';
                 const nowLocal = luxon_1.DateTime.now().setZone(userTz);
                 if (nowLocal.hour !== 0)
                     continue;
-                const today = nowLocal.startOf('day').toJSDate();
-                const yesterday = nowLocal.minus({ days: 1 }).startOf('day').toJSDate();
+                const todayString = nowLocal.toFormat('yyyy-MM-dd');
+                if (user.lastCronProcessedDate === todayString)
+                    continue;
+                const todayLocal = nowLocal.startOf('day');
+                const today = new Date(Date.UTC(todayLocal.year, todayLocal.month - 1, todayLocal.day));
+                const yesterdayLocal = nowLocal.minus({ days: 1 }).startOf('day');
+                const yesterday = new Date(Date.UTC(yesterdayLocal.year, yesterdayLocal.month - 1, yesterdayLocal.day));
                 for (const profile of user.gamificationProfiles) {
                     const existingScore = await this.prisma.dailyScore.findUnique({
                         where: {
@@ -110,7 +117,7 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
                             if (profile.graceResetMonth !== currentMonth) {
                                 usedThisMonth = 0;
                             }
-                            const allowedGraceDays = user.plan === 'free' ? 1 : 3;
+                            const allowedGraceDays = 2;
                             const totalAllowed = allowedGraceDays + profile.graceDaysGiftedReceived;
                             if (usedThisMonth < totalAllowed) {
                                 await this.prisma.gamificationProfile.update({
@@ -118,6 +125,7 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
                                     data: {
                                         graceDaysUsedThisMonth: usedThisMonth + 1,
                                         graceResetMonth: currentMonth,
+                                        streakFreezeCount: profile.streakFreezeCount + 1,
                                     },
                                 });
                                 this.logger.log(`Grace period used for user ${user.id}`);
@@ -129,15 +137,17 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
                                         currentStreak: 0,
                                         graceDaysUsedThisMonth: usedThisMonth,
                                         graceResetMonth: currentMonth,
+                                        streakFreezeCount: 0,
                                     },
                                 });
                             }
                         }
                         else {
                             await this.prisma.gamificationProfile.update({
-                                where: { userId_circleId: { userId: profile.userId, circleId: profile.circleId } },
+                                where: { userId_circleId: { userId: user.id, circleId: profile.circleId } },
                                 data: {
                                     currentStreak: { increment: 1 },
+                                    streakFreezeCount: 0,
                                     longestStreak: {
                                         set: Math.max(profile.currentStreak + 1, profile.longestStreak),
                                     },
@@ -147,6 +157,10 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
                     }
                     await this.goalsService.generateAllInstancesForDate(user.id, profile.circleId, today);
                 }
+                await this.prisma.user.update({
+                    where: { id: user.id },
+                    data: { lastCronProcessedDate: todayString }
+                });
             }
         }
         const oneDayAgo = luxon_1.DateTime.now().minus({ days: 1 }).toJSDate();
@@ -157,7 +171,7 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
         });
         this.logger.log(`Cleanup: Deleted ${deleteCount.count} expired task instances.`);
         await this.challengesService.expireOverdueChallenges();
-        this.logger.log('Midnight Cron completed successfully');
+        this.logger.log('Hourly Cron completed successfully');
     }
 };
 exports.DailyCronProcessor = DailyCronProcessor;

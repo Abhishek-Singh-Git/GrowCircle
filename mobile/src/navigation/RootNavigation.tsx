@@ -129,7 +129,7 @@ export const navTheme = {
   dark: true,
   colors: {
     primary: Colors.accentPrimary,
-    background: Colors.background,
+    background: 'transparent',
     card: Colors.backgroundElevated,
     text: Colors.textPrimary,
     border: Colors.glassBorder,

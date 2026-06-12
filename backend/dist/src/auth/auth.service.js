@@ -180,9 +180,8 @@ let AuthService = class AuthService {
         if (!storedToken) {
             throw new common_1.UnauthorizedException('Invalid or expired refresh token');
         }
-        await this.prisma.authToken.update({
+        await this.prisma.authToken.delete({
             where: { id: storedToken.id },
-            data: { usedAt: new Date() },
         });
         return this.generateTokenPair(storedToken.userId);
     }

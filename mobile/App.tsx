@@ -15,6 +15,7 @@ import './src/services/SyncManager';
 import Toast from 'react-native-toast-message';
 import { useNudgeListener } from './src/hooks/useNudgeListener';
 import { useUpLateListener } from './src/hooks/useUpLateListener';
+import { useNotificationRouter } from './src/hooks/useNotificationRouter';
 import { api } from './src/services/api';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
@@ -22,6 +23,7 @@ import Constants from 'expo-constants';
 import { GlobalErrorBoundary } from './src/components/GlobalErrorBoundary';
 import { useCircles } from './src/hooks/useCircles';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { AmbientBackground } from './src/components/AmbientBackground';
 
 const defaultErrorHandler = ErrorUtils.getGlobalHandler();
 ErrorUtils.setGlobalHandler((error, isFatal) => {
@@ -126,6 +128,7 @@ function AppInner() {
   useInterventionListener();
   useNudgeListener();
   useUpLateListener();
+  useNotificationRouter();
   
   // Initialize circle fetching
   useCircles();
@@ -138,9 +141,11 @@ function AppInner() {
   );
 }
 
+import { Colors } from './src/theme/tokens';
+import { View } from 'react-native';
+
 export default function App() {
   useEffect(() => {
-    // Note: WebClientId should be read from Constants or env
     GoogleSignin.configure({
       webClientId: '219698102764-51h2o4j548fgrkb1k97d7govg5bqaelv.apps.googleusercontent.com',
       offlineAccess: true,
@@ -148,13 +153,16 @@ export default function App() {
   }, []);
 
   return (
-    <GlobalErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <NavigationContainer linking={linking} theme={navTheme} ref={navigationRef}>
-          <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-          <AppInner />
-        </NavigationContainer>
-      </GestureHandlerRootView>
-    </GlobalErrorBoundary>
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      <GlobalErrorBoundary>
+        <AmbientBackground />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <NavigationContainer linking={linking} theme={navTheme} ref={navigationRef}>
+            <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+            <AppInner />
+          </NavigationContainer>
+        </GestureHandlerRootView>
+      </GlobalErrorBoundary>
+    </View>
   );
 }

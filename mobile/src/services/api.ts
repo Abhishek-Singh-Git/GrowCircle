@@ -141,7 +141,14 @@ class ApiClient {
   private async queueRequest(method: 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, body?: Record<string, unknown>) {
     try {
       const queueStr = await AsyncStorage.getItem('offlineQueue');
-      const queue: QueuedRequest[] = queueStr ? JSON.parse(queueStr) : [];
+      let queue: QueuedRequest[] = [];
+      if (queueStr) {
+        try {
+          queue = JSON.parse(queueStr);
+        } catch {
+          queue = [];
+        }
+      }
       
       // Deduplicate: If an identical method+path exists, replace its body instead of adding duplicate
       const existingIndex = queue.findIndex(req => req.method === method && req.path === path);

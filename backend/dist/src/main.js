@@ -43,9 +43,18 @@ async function bootstrap() {
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
         if (!admin.apps.length) {
             try {
-                admin.initializeApp({
-                    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK)),
-                });
+                let certData;
+                try {
+                    certData = JSON.parse(process.env.FIREBASE_ADMIN_SDK);
+                }
+                catch (parseError) {
+                    console.error('❌ CRITICAL: FIREBASE_ADMIN_SDK is missing or invalid JSON. Firebase features will fail.');
+                }
+                if (certData) {
+                    admin.initializeApp({
+                        credential: admin.credential.cert(certData),
+                    });
+                }
             }
             catch (error) {
                 if (!/already exists/i.test(error.message)) {

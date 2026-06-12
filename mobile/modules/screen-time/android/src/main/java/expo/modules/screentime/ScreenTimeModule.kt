@@ -109,8 +109,21 @@ class ScreenTimeModule : Module() {
         val start = dayCalendar.timeInMillis
         val end = start + 24 * 60 * 60 * 1000
         
-        val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end)
-        val dailyTotal = stats?.sumOf { it.totalTimeInForeground / 1000 / 60 } ?: 0L // minutes
+        var stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end)
+        if (stats == null || stats.size < 3) {
+            stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, start, end)
+        }
+
+        var dailyTotal = 0L
+        if (stats != null) {
+            for (stat in stats) {
+                if (stat.totalTimeInForeground > 0 && 
+                    !stat.packageName.contains("com.android.launcher") && 
+                    !stat.packageName.contains("com.android.systemui")) {
+                    dailyTotal += stat.totalTimeInForeground / 1000 / 60
+                }
+            }
+        }
         trend.add(dailyTotal.toInt())
       }
       return@AsyncFunction trend
