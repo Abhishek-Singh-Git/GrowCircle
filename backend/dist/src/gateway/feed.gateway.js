@@ -161,6 +161,37 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
             timestamp: new Date().toISOString(),
         });
     }
+    async handleDrawStroke(client, data) {
+        if (!client.userId || !data.circleId)
+            return;
+        const member = await this.prisma.circleMember.findUnique({
+            where: { circleId_userId: { circleId: data.circleId, userId: client.userId } },
+        });
+        if (!member) {
+            throw new websockets_1.WsException('Unauthorized to draw in this circle');
+        }
+        const room = `circle:${data.circleId}`;
+        client.to(room).emit('draw:stroke', {
+            circleId: data.circleId,
+            stroke: data.stroke,
+            userId: client.userId,
+        });
+    }
+    async handleDrawClear(client, data) {
+        if (!client.userId || !data.circleId)
+            return;
+        const member = await this.prisma.circleMember.findUnique({
+            where: { circleId_userId: { circleId: data.circleId, userId: client.userId } },
+        });
+        if (!member) {
+            throw new websockets_1.WsException('Unauthorized to clear in this circle');
+        }
+        const room = `circle:${data.circleId}`;
+        client.to(room).emit('draw:clear', {
+            circleId: data.circleId,
+            userId: client.userId,
+        });
+    }
 };
 exports.FeedGateway = FeedGateway;
 __decorate([
@@ -227,6 +258,22 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], FeedGateway.prototype, "handleChatMessageSent", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('draw:stroke'),
+    __param(0, (0, websockets_1.ConnectedSocket)()),
+    __param(1, (0, websockets_1.MessageBody)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], FeedGateway.prototype, "handleDrawStroke", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('draw:clear'),
+    __param(0, (0, websockets_1.ConnectedSocket)()),
+    __param(1, (0, websockets_1.MessageBody)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], FeedGateway.prototype, "handleDrawClear", null);
 exports.FeedGateway = FeedGateway = FeedGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: { origin: '*' },

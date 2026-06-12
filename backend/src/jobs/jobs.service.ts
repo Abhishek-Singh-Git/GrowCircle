@@ -17,18 +17,18 @@ export class JobsService implements OnModuleInit {
       await this.dailyCronQueue.removeRepeatableByKey(job.key);
     }
 
-    // Add Midnight Cron Job (runs at 00:05 every day)
+    // Add Hourly Cron Job (runs at the top of every hour)
     await this.dailyCronQueue.add(
       'generate-instances-and-streaks',
       {},
       {
         repeat: {
-          pattern: '5 0 * * *', // 12:05 AM every day
+          pattern: '0 * * * *', // Top of every hour
         },
-        jobId: 'midnight-cron',
+        jobId: 'hourly-cron',
       },
     );
 
-    this.logger.log('Midnight cron job registered (00:05 AM)');
+    this.logger.log('Hourly cron job registered (runs every hour)');
   }
 }

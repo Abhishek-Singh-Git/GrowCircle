@@ -13,6 +13,7 @@ exports.ScreenTimeService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const circles_service_1 = require("../circles/circles.service");
+const luxon_1 = require("luxon");
 let ScreenTimeService = class ScreenTimeService {
     prisma;
     circlesService;
@@ -21,8 +22,9 @@ let ScreenTimeService = class ScreenTimeService {
         this.circlesService = circlesService;
     }
     async syncScreenTime(userId, dto) {
-        const date = new Date(dto.date);
-        date.setHours(0, 0, 0, 0);
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+        const userTz = user?.timezone || 'UTC';
+        const date = luxon_1.DateTime.fromISO(dto.date).setZone(userTz).startOf('day').toJSDate();
         let syncedCount = 0;
         for (const snapshot of dto.snapshots) {
             await this.prisma.screenTimeSnapshot.upsert({
@@ -81,8 +83,9 @@ let ScreenTimeService = class ScreenTimeService {
                 throw new common_1.ForbiddenException('User has not shared screen time data');
             }
         }
-        const dateObj = new Date(date);
-        dateObj.setHours(0, 0, 0, 0);
+        const user = await this.prisma.user.findUnique({ where: { id: targetUserId }, select: { timezone: true } });
+        const userTz = user?.timezone || 'UTC';
+        const dateObj = luxon_1.DateTime.fromISO(date).setZone(userTz).startOf('day').toJSDate();
         const snapshots = await this.prisma.screenTimeSnapshot.findMany({
             where: {
                 userId: targetUserId,
@@ -100,8 +103,7 @@ let ScreenTimeService = class ScreenTimeService {
         });
         const totalSeconds = snapshots.reduce((sum, s) => sum + s.durationSeconds, 0);
         const totalUnlocks = snapshots.reduce((sum, s) => sum + (s.openCount || 0), 0);
-        const sevenDaysAgo = new Date(dateObj);
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+        const sevenDaysAgo = luxon_1.DateTime.fromJSDate(dateObj).setZone(userTz).minus({ days: 6 }).toJSDate();
         const weeklySnapshots = await this.prisma.screenTimeSnapshot.groupBy({
             by: ['date'],
             where: {
@@ -118,16 +120,17 @@ let ScreenTimeService = class ScreenTimeService {
         });
         const weeklyTrend = Array(7).fill(0);
         for (let i = 6; i >= 0; i--) {
-            const d = new Date(dateObj);
-            d.setDate(d.getDate() - i);
-            const isoDate = d.toISOString().split('T')[0];
-            const match = weeklySnapshots.find(s => s.date.toISOString().split('T')[0] === isoDate);
+            const d = luxon_1.DateTime.fromJSDate(dateObj).setZone(userTz).minus({ days: i }).startOf('day');
+            const match = weeklySnapshots.find(s => {
+                const sDate = luxon_1.DateTime.fromJSDate(s.date).setZone(userTz).startOf('day');
+                return sDate.toMillis() === d.toMillis();
+            });
             if (match) {
                 weeklyTrend[6 - i] = Math.round((match._sum.durationSeconds || 0) / 60);
             }
         }
         return {
-            date: dateObj.toISOString().split('T')[0],
+            date: luxon_1.DateTime.fromJSDate(dateObj).setZone(userTz).toFormat('yyyy-MM-dd'),
             totalSeconds,
             unlocks: totalUnlocks,
             weeklyTrend,

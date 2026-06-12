@@ -6,14 +6,14 @@ export function useSendNudge() {
   const activeCircleId = useCircleStore((s) => s.activeCircleId);
 
   return useCallback(
-    async (targetId: string, goalId?: string) => {
+    async (recipientId: string, goalInstanceId?: string) => {
       if (!activeCircleId) throw new Error('No active circle');
       
       try {
         const result = await api.post<any>('/nudges', {
           circleId: activeCircleId,
-          targetId,
-          goalId,
+          recipientId,
+          goalInstanceId,
         });
         return result;
       } catch (err) {

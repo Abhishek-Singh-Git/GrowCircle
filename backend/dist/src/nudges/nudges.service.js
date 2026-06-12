@@ -30,6 +30,14 @@ let NudgesService = class NudgesService {
         }
         await this.circlesService.validateMembership(senderId, dto.circleId);
         await this.circlesService.validateMembership(dto.recipientId, dto.circleId);
+        if (dto.goalInstanceId) {
+            const instance = await this.prisma.goalInstance.findUnique({
+                where: { id: dto.goalInstanceId },
+            });
+            if (!instance || instance.userId !== dto.recipientId) {
+                throw new common_1.BadRequestException('Goal instance does not belong to the recipient');
+            }
+        }
         const rollingStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const count = await this.prisma.nudgeLog.count({
             where: {

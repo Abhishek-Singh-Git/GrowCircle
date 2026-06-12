@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CirclesService } from '../circles/circles.service';
 import { CreateGoalDto, UpdateGoalDto } from './dto/goals.dto';
 import { Prisma } from '@prisma/client';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class GoalsService {
@@ -160,8 +161,9 @@ export class GoalsService {
   async getTodayInstances(userId: string, circleId: string) {
     await this.circlesService.validateMembership(userId, circleId);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+    const userTz = user?.timezone || 'UTC';
+    const today = DateTime.now().setZone(userTz).startOf('day').toJSDate();
 
     return this.prisma.goalInstance.findMany({
       where: {
@@ -190,14 +192,15 @@ export class GoalsService {
     circleId: string,
     date: Date,
   ) {
-    const dateOnly = new Date(date);
-    dateOnly.setHours(0, 0, 0, 0);
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+    const userTz = user?.timezone || 'UTC';
+    const dateOnly = DateTime.fromJSDate(date).setZone(userTz).startOf('day').toJSDate();
 
     const goal = await this.prisma.goal.findUnique({ where: { id: goalId } });
     if (!goal || goal.status !== 'active') return null;
 
     // Check schedule
-    if (!this.isScheduledForDate(goal, dateOnly)) return null;
+    if (!this.isScheduledForDate(goal, dateOnly, userTz)) return null;
 
     // Upsert to avoid duplicates (UNIQUE constraint on goalId+date)
     try {
@@ -253,8 +256,10 @@ export class GoalsService {
   private isScheduledForDate(
     goal: { scheduleType: string; scheduleDays: number[]; scheduleWeeklyFreq: number | null },
     date: Date,
+    userTz: string,
   ): boolean {
-    const dayOfWeek = date.getDay(); // 0=Sun
+    const dt = DateTime.fromJSDate(date).setZone(userTz);
+    const dayOfWeek = dt.weekday === 7 ? 0 : dt.weekday; // 0=Sun
 
     switch (goal.scheduleType) {
       case 'daily':

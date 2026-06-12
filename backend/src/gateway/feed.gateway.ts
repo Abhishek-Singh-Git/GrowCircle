@@ -6,6 +6,7 @@ import {
   OnGatewayDisconnect,
   ConnectedSocket,
   MessageBody,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
@@ -245,6 +246,52 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
       threadId: payload.threadId,
       message: payload.message,
       timestamp: new Date().toISOString(),
+    });
+  }
+
+  // ── SHARED DRAWING EVENTS ───────────────────────────────────────────────
+
+  @SubscribeMessage('draw:stroke')
+  async handleDrawStroke(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { circleId: string; stroke: any },
+  ) {
+    if (!client.userId || !data.circleId) return;
+
+    // Security Fix: Verify circle membership
+    const member = await this.prisma.circleMember.findUnique({
+      where: { circleId_userId: { circleId: data.circleId, userId: client.userId } },
+    });
+    if (!member) {
+      throw new WsException('Unauthorized to draw in this circle');
+    }
+
+    const room = `circle:${data.circleId}`;
+    client.to(room).emit('draw:stroke', {
+      circleId: data.circleId,
+      stroke: data.stroke,
+      userId: client.userId,
+    });
+  }
+
+  @SubscribeMessage('draw:clear')
+  async handleDrawClear(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { circleId: string },
+  ) {
+    if (!client.userId || !data.circleId) return;
+
+    const member = await this.prisma.circleMember.findUnique({
+      where: { circleId_userId: { circleId: data.circleId, userId: client.userId } },
+    });
+    if (!member) {
+      throw new WsException('Unauthorized to clear in this circle');
+    }
+
+    const room = `circle:${data.circleId}`;
+    client.to(room).emit('draw:clear', {
+      circleId: data.circleId,
+      userId: client.userId,
     });
   }
 }

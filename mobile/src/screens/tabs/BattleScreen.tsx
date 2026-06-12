@@ -2,8 +2,8 @@
  * GrowCircle — Battle Tab
  * Challenges, leaderboard, and tug-of-war competitions.
  */
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Modal, TextInput, Button } from 'react-native';
+import React, { useState, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, Modal, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 
@@ -22,7 +22,7 @@ export default function BattleScreen() {
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsCreating] = useState(false); // Using existing setIsCreating for loading state logic
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const holdTimerRef = useRef<any>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -32,6 +32,13 @@ export default function BattleScreen() {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
 
   const handleProgressConfirm = (challenge: Challenge) => {
+    const yourParticipant = challenge.participants.find((p) => p.userId === user?.id);
+    const progress = yourParticipant?.progress || 0;
+    const target = challenge.conditionTarget || 7;
+    if (progress >= target) {
+      alert("You have already reached the target!");
+      return;
+    }
     setActiveChallenge(challenge);
     setConfirmModalVisible(true);
     setHoldProgress(0);
@@ -183,7 +190,7 @@ export default function BattleScreen() {
           </View>
         )}
 
-        {challenge.status === 'active' && (
+        {challenge.status === 'active' && yourProgress < total && (
           <View style={styles.actionContainer}>
             <TouchableOpacity
               style={styles.checkInBtn}
@@ -219,14 +226,16 @@ export default function BattleScreen() {
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>⚔️ Battle Arena</Text>
-        <Text style={styles.pageSubtitle}>Challenge your circle. Prove your discipline.</Text>
+  const filteredChallenges = useMemo(() => {
+    return challenges.filter((c) => c.status === activeTab || (activeTab === 'pending' && c.status === 'proposed'));
+  }, [challenges, activeTab]);
 
-        <View style={styles.tabsContainer}>
+  const renderHeader = () => (
+    <>
+      <Text style={styles.pageTitle}>⚔️ Battle Arena</Text>
+      <Text style={styles.pageSubtitle}>Challenge your circle. Prove your discipline.</Text>
+
+      <View style={styles.tabsContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'active' && styles.tabActive]}
             onPress={() => setActiveTab('active')}
@@ -245,13 +254,27 @@ export default function BattleScreen() {
           >
             <Text style={[styles.tabText, activeTab === 'resolved' && styles.tabTextActive]}>Resolved</Text>
           </TouchableOpacity>
-        </View>
+      </View>
+    </>
+  );
 
-        {challenges.filter((c) => c.status === activeTab || (activeTab === 'pending' && c.status === 'proposed')).length === 0 ? (
-          <Text style={{ color: Colors.textSecondary, marginBottom: 20 }}>No {activeTab} challenges.</Text>
-        ) : (
-          challenges.filter((c) => c.status === activeTab || (activeTab === 'pending' && c.status === 'proposed')).map(renderChallenge)
-        )}
+  const renderEmpty = () => (
+    <Text style={{ color: Colors.textSecondary, marginBottom: 20 }}>No {activeTab} challenges.</Text>
+  );
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
+      <FlatList
+        data={filteredChallenges}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => renderChallenge(item)}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      />
 
         {/* Create challenge CTA */}
         {activeTab !== 'resolved' && (
@@ -331,7 +354,6 @@ export default function BattleScreen() {
             </View>
           </View>
         </Modal>
-      </ScrollView>
     </View>
   );
 }

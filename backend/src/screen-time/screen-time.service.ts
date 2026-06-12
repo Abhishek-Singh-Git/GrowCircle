@@ -9,6 +9,7 @@ import {
   SyncScreenTimeDto,
   SetThresholdDto,
 } from './dto/screen-time.dto';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class ScreenTimeService {
@@ -19,8 +20,11 @@ export class ScreenTimeService {
 
   // ── SYNC SCREEN TIME DATA (from device) ───────────────────────────────
   async syncScreenTime(userId: string, dto: SyncScreenTimeDto) {
-    const date = new Date(dto.date);
-    date.setHours(0, 0, 0, 0);
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+    const userTz = user?.timezone || 'UTC';
+    
+    // Convert the provided date string to the start of that day in the user's timezone
+    const date = DateTime.fromISO(dto.date).setZone(userTz).startOf('day').toJSDate();
 
     let syncedCount = 0;
 
@@ -96,8 +100,10 @@ export class ScreenTimeService {
       }
     }
 
-    const dateObj = new Date(date);
-    dateObj.setHours(0, 0, 0, 0);
+    const user = await this.prisma.user.findUnique({ where: { id: targetUserId }, select: { timezone: true } });
+    const userTz = user?.timezone || 'UTC';
+
+    const dateObj = DateTime.fromISO(date).setZone(userTz).startOf('day').toJSDate();
 
     const snapshots = await this.prisma.screenTimeSnapshot.findMany({
       where: {
@@ -127,8 +133,7 @@ export class ScreenTimeService {
     );
 
     // Calculate weekly trend
-    const sevenDaysAgo = new Date(dateObj);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const sevenDaysAgo = DateTime.fromJSDate(dateObj).setZone(userTz).minus({ days: 6 }).toJSDate();
 
     const weeklySnapshots = await this.prisma.screenTimeSnapshot.groupBy({
       by: ['date'],
@@ -148,17 +153,20 @@ export class ScreenTimeService {
     // Create an array of 7 values
     const weeklyTrend = Array(7).fill(0);
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(dateObj);
-      d.setDate(d.getDate() - i);
-      const isoDate = d.toISOString().split('T')[0];
-      const match = weeklySnapshots.find(s => s.date.toISOString().split('T')[0] === isoDate);
+      const d = DateTime.fromJSDate(dateObj).setZone(userTz).minus({ days: i }).startOf('day');
+      
+      const match = weeklySnapshots.find(s => {
+         const sDate = DateTime.fromJSDate(s.date).setZone(userTz).startOf('day');
+         return sDate.toMillis() === d.toMillis();
+      });
+      
       if (match) {
-        weeklyTrend[6 - i] = Math.round((match._sum.durationSeconds || 0) / 60); // In minutes, matching the mobile format
+        weeklyTrend[6 - i] = Math.round((match._sum.durationSeconds || 0) / 60); // In minutes
       }
     }
 
     return {
-      date: dateObj.toISOString().split('T')[0],
+      date: DateTime.fromJSDate(dateObj).setZone(userTz).toFormat('yyyy-MM-dd'),
       totalSeconds,
       unlocks: totalUnlocks,
       weeklyTrend,

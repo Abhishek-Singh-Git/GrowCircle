@@ -199,7 +199,7 @@ export default function TodayScreen() {
                     <Text style={styles.partnerGoalName} numberOfLines={1}>{instance.goal.name}</Text>
                     <TouchableOpacity 
                       style={styles.smallNudgeBtn}
-                      onPress={() => handleSendNudge(partner.user.id, instance.goal.id, instance.goal.name)}
+                      onPress={() => handleSendNudge(partner.user.id, instance.id, instance.goal.name)}
                     >
                       <Text style={styles.smallNudgeText}>Nudge</Text>
                     </TouchableOpacity>

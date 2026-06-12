@@ -15,7 +15,10 @@ import {
   Platform,
   SafeAreaView,
   Alert,
+  Modal,
+  PanResponder,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -40,6 +43,12 @@ export default function ChatScreen({ navigation }: any) {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList>(null);
+
+  // Drawing state
+  const [showCanvas, setShowCanvas] = useState(false);
+  const [myStrokes, setMyStrokes] = useState<string[][]>([]);
+  const [partnerStrokes, setPartnerStrokes] = useState<string[][]>([]);
+  const [currentStroke, setCurrentStroke] = useState<string[]>([]);
 
   useEffect(() => {
     if (!activeCircleId) return;
@@ -84,7 +93,20 @@ export default function ChatScreen({ navigation }: any) {
       }
     });
 
-    return () => unsubscribe();
+    const unsubDraw = wsService.on('draw:stroke', (payload: any) => {
+      setPartnerStrokes((prev) => [...prev, payload.stroke]);
+    });
+
+    const unsubClear = wsService.on('draw:clear', () => {
+      setPartnerStrokes([]);
+      setMyStrokes([]);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubDraw();
+      unsubClear();
+    };
   }, [activeCircleId, threadId]);
 
   const sendMessage = async () => {
@@ -144,6 +166,44 @@ export default function ChatScreen({ navigation }: any) {
     );
   };
 
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        const { locationX, locationY } = evt.nativeEvent;
+        setCurrentStroke([`${locationX},${locationY}`]);
+      },
+      onPanResponderMove: (evt) => {
+        const { locationX, locationY } = evt.nativeEvent;
+        setCurrentStroke((prev) => [...prev, `${locationX},${locationY}`]);
+      },
+      onPanResponderRelease: () => {
+        setMyStrokes((prev) => {
+          const newStrokes = [...prev, currentStroke];
+          if (activeCircleId) {
+            wsService.sendDrawStroke(activeCircleId, currentStroke);
+          }
+          return newStrokes;
+        });
+        setCurrentStroke([]);
+      },
+    })
+  ).current;
+
+  const handleClearCanvas = () => {
+    setMyStrokes([]);
+    setPartnerStrokes([]);
+    if (activeCircleId) {
+      wsService.sendDrawClear(activeCircleId);
+    }
+  };
+
+  const renderPath = (stroke: string[], color: string) => {
+    if (stroke.length === 0) return null;
+    const d = `M ${stroke[0]} ` + stroke.slice(1).map((p) => `L ${p}`).join(' ');
+    return <Path key={stroke[0] + Math.random()} d={d} stroke={color} strokeWidth={4} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -151,9 +211,14 @@ export default function ChatScreen({ navigation }: any) {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Circle Chat</Text>
-        <TouchableOpacity onPress={clearChat} style={styles.optionsBtn}>
-          <Text style={styles.optionsText}>Clear</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => setShowCanvas(true)} style={styles.drawBtn}>
+            <Text style={styles.drawEmoji}>🎨</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={clearChat} style={styles.optionsBtn}>
+            <Text style={styles.optionsText}>Clear</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -187,6 +252,27 @@ export default function ChatScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal visible={showCanvas} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={styles.canvasContainer}>
+          <View style={styles.canvasHeader}>
+            <TouchableOpacity onPress={() => setShowCanvas(false)} style={styles.backBtn}>
+              <Text style={styles.backText}>Close</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Shared Canvas</Text>
+            <TouchableOpacity onPress={handleClearCanvas} style={styles.optionsBtn}>
+              <Text style={styles.optionsText}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.canvasBody} {...panResponder.panHandlers}>
+            <Svg style={StyleSheet.absoluteFill}>
+              {partnerStrokes.map((s) => renderPath(s, Colors.accentFire))}
+              {myStrokes.map((s) => renderPath(s, Colors.accentPrimary))}
+              {currentStroke.length > 0 && renderPath(currentStroke, Colors.accentPrimary)}
+            </Svg>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -212,6 +298,17 @@ const styles = StyleSheet.create({
   backText: {
     color: Colors.accentPrimary,
     fontFamily: Typography.fontFamily.medium,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  drawBtn: {
+    padding: Spacing.xs,
+    marginRight: Spacing.sm,
+  },
+  drawEmoji: {
+    fontSize: 20,
   },
   optionsBtn: {
     padding: Spacing.xs,
@@ -286,5 +383,21 @@ const styles = StyleSheet.create({
   sendText: {
     fontFamily: Typography.fontFamily.medium,
     color: Colors.textPrimary,
+  },
+  canvasContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  canvasHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.glassBorder,
+  },
+  canvasBody: {
+    flex: 1,
+    backgroundColor: Colors.surface,
   },
 });

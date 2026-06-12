@@ -7,9 +7,9 @@ export declare class NotificationsService {
     sendNotification(dto: CreateNotificationDto): Promise<{
         id: string;
         userId: string;
+        title: string;
         type: string;
         sentAt: Date;
-        title: string;
         body: string;
         metadata: import("@prisma/client/runtime/client").JsonValue | null;
         isRead: boolean;
@@ -22,9 +22,9 @@ export declare class NotificationsService {
         items: {
             id: string;
             userId: string;
+            title: string;
             type: string;
             sentAt: Date;
-            title: string;
             body: string;
             metadata: import("@prisma/client/runtime/client").JsonValue | null;
             isRead: boolean;

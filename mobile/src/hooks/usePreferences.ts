@@ -7,6 +7,9 @@ export interface UserPreferences {
   shareLateNightActivity: boolean;
   timeoutConsent: boolean;
   screenTimeConsent?: boolean;
+  notifyNudge?: boolean;
+  notifyPartnerLog?: boolean;
+  notifyChallenge?: boolean;
 }
 
 export function usePreferences() {

@@ -10,9 +10,9 @@ export declare class NotificationsController {
         items: {
             id: string;
             userId: string;
+            title: string;
             type: string;
             sentAt: Date;
-            title: string;
             body: string;
             metadata: import("@prisma/client/runtime/client").JsonValue | null;
             isRead: boolean;

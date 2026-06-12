@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const circles_service_1 = require("../circles/circles.service");
 const client_1 = require("@prisma/client");
+const luxon_1 = require("luxon");
 let GoalsService = class GoalsService {
     prisma;
     circlesService;
@@ -142,8 +143,9 @@ let GoalsService = class GoalsService {
     }
     async getTodayInstances(userId, circleId) {
         await this.circlesService.validateMembership(userId, circleId);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+        const userTz = user?.timezone || 'UTC';
+        const today = luxon_1.DateTime.now().setZone(userTz).startOf('day').toJSDate();
         return this.prisma.goalInstance.findMany({
             where: {
                 userId,
@@ -164,12 +166,13 @@ let GoalsService = class GoalsService {
         });
     }
     async generateInstanceForDate(goalId, userId, circleId, date) {
-        const dateOnly = new Date(date);
-        dateOnly.setHours(0, 0, 0, 0);
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+        const userTz = user?.timezone || 'UTC';
+        const dateOnly = luxon_1.DateTime.fromJSDate(date).setZone(userTz).startOf('day').toJSDate();
         const goal = await this.prisma.goal.findUnique({ where: { id: goalId } });
         if (!goal || goal.status !== 'active')
             return null;
-        if (!this.isScheduledForDate(goal, dateOnly))
+        if (!this.isScheduledForDate(goal, dateOnly, userTz))
             return null;
         try {
             return await this.prisma.goalInstance.create({
@@ -205,8 +208,9 @@ let GoalsService = class GoalsService {
         }
         return instances;
     }
-    isScheduledForDate(goal, date) {
-        const dayOfWeek = date.getDay();
+    isScheduledForDate(goal, date, userTz) {
+        const dt = luxon_1.DateTime.fromJSDate(date).setZone(userTz);
+        const dayOfWeek = dt.weekday === 7 ? 0 : dt.weekday;
         switch (goal.scheduleType) {
             case 'daily':
                 return true;

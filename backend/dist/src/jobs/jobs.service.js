@@ -31,9 +31,9 @@ let JobsService = JobsService_1 = class JobsService {
         }
         await this.dailyCronQueue.add('generate-instances-and-streaks', {}, {
             repeat: {
-                pattern: '5 0 * * *',
+                pattern: '0 * * * *',
             },
-            jobId: 'midnight-cron',
+            jobId: 'hourly-cron',
         });
         this.logger.log('Midnight cron job registered (00:05 AM)');
     }

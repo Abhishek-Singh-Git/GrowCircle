@@ -69,5 +69,12 @@ export declare class FeedGateway implements OnGatewayConnection, OnGatewayDiscon
         circleId: string;
         threadId: string;
     }): void;
+    handleDrawStroke(client: AuthenticatedSocket, data: {
+        circleId: string;
+        stroke: any;
+    }): Promise<void>;
+    handleDrawClear(client: AuthenticatedSocket, data: {
+        circleId: string;
+    }): Promise<void>;
 }
 export {};

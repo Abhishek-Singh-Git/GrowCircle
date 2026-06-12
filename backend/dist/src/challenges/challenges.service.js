@@ -331,6 +331,49 @@ let ChallengesService = class ChallengesService {
         }
         return enrichedChallenges;
     }
+    async expireOverdueChallenges() {
+        const overdue = await this.prisma.challenge.findMany({
+            where: {
+                status: { in: ['active', 'pending'] },
+                deadline: { lt: new Date() },
+            },
+            include: {
+                participants: true,
+            },
+        });
+        for (const challenge of overdue) {
+            if (challenge.status === 'pending') {
+                await this.prisma.challenge.update({
+                    where: { id: challenge.id },
+                    data: { status: 'cancelled' },
+                });
+                this.eventEmitter.emit('challenge.cancelled', { challengeId: challenge.id, reason: 'expired' });
+            }
+            else if (challenge.status === 'active') {
+                let highestProgress = -1;
+                let winners = [];
+                for (const p of challenge.participants) {
+                    const progress = p.manualProgress || 0;
+                    if (progress > highestProgress) {
+                        highestProgress = progress;
+                        winners = [p.userId];
+                    }
+                    else if (progress === highestProgress) {
+                        winners.push(p.userId);
+                    }
+                }
+                const outcomeType = winners.length === 1 ? 'win' : 'draw';
+                const winnerId = winners.length === 1 ? winners[0] : null;
+                const participantId = challenge.participants[0]?.userId;
+                if (participantId) {
+                    await this.resolveChallenge(participantId, challenge.id, { outcomeType, winnerId: winnerId });
+                }
+            }
+        }
+        if (overdue.length > 0) {
+            console.log(`Expired ${overdue.length} overdue challenges.`);
+        }
+    }
 };
 exports.ChallengesService = ChallengesService;
 exports.ChallengesService = ChallengesService = __decorate([

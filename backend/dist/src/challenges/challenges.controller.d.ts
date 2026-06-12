@@ -8,6 +8,11 @@ export declare class ChallengesController {
             id: string;
         };
     }, dto: CreateChallengeDto): Promise<{
+        proposer: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+        };
         participants: ({
             user: {
                 id: string;
@@ -24,11 +29,6 @@ export declare class ChallengesController {
             lastProgressAt: Date | null;
             challengeId: string;
         })[];
-        proposer: {
-            id: string;
-            name: string;
-            avatarUrl: string | null;
-        };
     } & {
         id: string;
         createdAt: Date;

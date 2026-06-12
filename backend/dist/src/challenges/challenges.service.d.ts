@@ -8,6 +8,11 @@ export declare class ChallengesService {
     private readonly eventEmitter;
     constructor(prisma: PrismaService, circlesService: CirclesService, eventEmitter: EventEmitter2);
     createChallenge(proposerId: string, dto: CreateChallengeDto): Promise<{
+        proposer: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+        };
         participants: ({
             user: {
                 id: string;
@@ -24,11 +29,6 @@ export declare class ChallengesService {
             lastProgressAt: Date | null;
             challengeId: string;
         })[];
-        proposer: {
-            id: string;
-            name: string;
-            avatarUrl: string | null;
-        };
     } & {
         id: string;
         createdAt: Date;
@@ -169,4 +169,5 @@ export declare class ChallengesService {
         resolvedAt: Date | null;
         proposerId: string;
     }[]>;
+    expireOverdueChallenges(): Promise<void>;
 }

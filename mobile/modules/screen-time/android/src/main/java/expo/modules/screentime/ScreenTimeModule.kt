@@ -15,11 +15,7 @@ class ScreenTimeModule : Module() {
     Function("hasPermission") {
       val context = appContext.reactContext ?: return@Function false
       val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
-      val mode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-          appOps.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName)
-      } else {
-          appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName)
-      }
+      val mode = appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName)
       return@Function mode == android.app.AppOpsManager.MODE_ALLOWED
     }
 
@@ -43,7 +39,11 @@ class ScreenTimeModule : Module() {
       val startTime = calendar.timeInMillis
       val endTime = System.currentTimeMillis()
 
-      val usageStats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+      var usageStats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+      
+      if (usageStats == null || usageStats.size < 3) {
+          usageStats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, startTime, endTime)
+      }
       
       // Also query events to count unlocks/interactions
       val events = usageStatsManager.queryEvents(startTime, endTime)
@@ -51,30 +51,39 @@ class ScreenTimeModule : Module() {
       val event = android.app.usage.UsageEvents.Event()
       while (events.hasNextEvent()) {
           events.getNextEvent(event)
-          if (event.eventType == android.app.usage.UsageEvents.Event.KEYGUARD_HIDDEN || 
-              event.eventType == android.app.usage.UsageEvents.Event.SCREEN_INTERACTIVE) {
+          if (event.eventType == android.app.usage.UsageEvents.Event.SCREEN_INTERACTIVE) {
               unlockCount++
           }
       }
 
       val result = mutableListOf<Map<String, Any>>()
+      val packageMap = mutableMapOf<String, Long>()
+
       if (usageStats != null) {
         for (stats in usageStats) {
-          if (stats.totalTimeInForeground > 0) {
+          if (stats.totalTimeInForeground > 0 && 
+              !stats.packageName.contains("com.android.launcher") && 
+              !stats.packageName.contains("com.android.systemui")) {
+              
+            val current = packageMap[stats.packageName] ?: 0L
+            packageMap[stats.packageName] = current + stats.totalTimeInForeground
+          }
+        }
+
+        for ((pkgName, totalTime) in packageMap) {
             try {
-              val appInfo = context.packageManager.getApplicationInfo(stats.packageName, 0)
+              val appInfo = context.packageManager.getApplicationInfo(pkgName, 0)
               val appName = context.packageManager.getApplicationLabel(appInfo).toString()
               
               result.add(mapOf(
-                "packageName" to stats.packageName,
+                "packageName" to pkgName,
                 "appName" to appName,
-                "totalTimeInForeground" to (stats.totalTimeInForeground / 1000), // convert to seconds
-                "lastTimeUsed" to stats.lastTimeUsed
+                "totalTimeInForeground" to (totalTime / 1000), // convert to seconds
+                "lastTimeUsed" to System.currentTimeMillis() // Approximate for now
               ))
             } catch (e: Exception) {
               // App might have been uninstalled
             }
-          }
         }
       }
       return@AsyncFunction mapOf(

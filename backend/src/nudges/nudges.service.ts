@@ -29,6 +29,15 @@ export class NudgesService {
     await this.circlesService.validateMembership(senderId, dto.circleId);
     await this.circlesService.validateMembership(dto.recipientId, dto.circleId);
 
+    if (dto.goalInstanceId) {
+      const instance = await this.prisma.goalInstance.findUnique({
+        where: { id: dto.goalInstanceId },
+      });
+      if (!instance || instance.userId !== dto.recipientId) {
+        throw new BadRequestException('Goal instance does not belong to the recipient');
+      }
+    }
+
     // Rate limiting: Check if sender has reached limit for this recipient in rolling 24 hours
     const rollingStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
 

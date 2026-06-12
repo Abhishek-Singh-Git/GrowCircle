@@ -81,6 +81,8 @@ class WebSocketService {
         'partner_online',
         'partner_offline',
         'chat_message',
+        'draw:stroke',
+        'draw:clear',
       ];
 
       events.forEach((event) => {
@@ -106,6 +108,15 @@ class WebSocketService {
 
   leaveCircle(circleId: string) {
     this.socket?.emit('leave_circle', { circleId });
+  }
+
+  // ── Shared Drawing ────────────────────────────────────────────────────
+  sendDrawStroke(circleId: string, stroke: any) {
+    this.socket?.emit('draw:stroke', { circleId, stroke });
+  }
+
+  sendDrawClear(circleId: string) {
+    this.socket?.emit('draw:clear', { circleId });
   }
 
   // ── Heartbeat Presence System ─────────────────────────────────────────
