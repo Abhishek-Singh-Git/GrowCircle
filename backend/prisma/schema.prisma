@@ -518,6 +518,7 @@ model Challenge {
   stakePoints          Int?      @map("stake_points")
   proofRequired        Boolean   @default(false) @map("proof_required")
   tieBreakRule         String    @default("extend_7_days") @map("tie_break_rule") @db.VarChar(30)
+  durationHours        Int       @default(12) @map("duration_hours")
   deadline             DateTime
   status               String    @default("pending") @db.VarChar(20)
   winnerId             String?   @map("winner_id") @db.Uuid
@@ -539,11 +540,14 @@ model ChallengeParticipant {
   id             String    @id @default(uuid()) @db.Uuid
   challengeId    String    @map("challenge_id") @db.Uuid
   userId         String    @map("user_id") @db.Uuid
-  status         String    @default("pending") @db.VarChar(20)
-  acceptedAt     DateTime? @map("accepted_at")
-  withdrawnAt    DateTime? @map("withdrawn_at")
-  manualProgress Int       @default(0) @map("manual_progress")
-  lastProgressAt DateTime? @map("last_progress_at")
+  status             String    @default("pending") @db.VarChar(20)
+  acceptedAt         DateTime? @map("accepted_at")
+  withdrawnAt        DateTime? @map("withdrawn_at")
+  manualProgress     Int       @default(0) @map("manual_progress")
+  lastProgressAt     DateTime? @map("last_progress_at")
+  proofText          String?   @map("proof_text")
+  verificationStatus String    @default("pending") @map("verification_status") @db.VarChar(20)
+  submittedAt        DateTime? @map("submitted_at")
 
   challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -582,6 +586,7 @@ model GamificationProfile {
   currentLevel            Int       @default(0) @map("current_level")
   currentStreak           Int       @default(0) @map("current_streak")
   longestStreak           Int       @default(0) @map("longest_streak")
+  challengesWon           Int       @default(0) @map("challenges_won")
   streakFreezeCount       Int       @default(0) @map("streak_freeze_count")
   graceDaysUsedThisMonth  Int       @default(0) @map("grace_days_used_this_month")
   graceDaysGiftedReceived Int       @default(0) @map("grace_days_gifted_received")

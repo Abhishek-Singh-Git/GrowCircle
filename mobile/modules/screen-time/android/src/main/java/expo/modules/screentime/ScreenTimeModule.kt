@@ -61,29 +61,32 @@ class ScreenTimeModule : Module() {
 
       if (usageStats != null) {
         for (stats in usageStats) {
-          if (stats.totalTimeInForeground > 0 && 
-              !stats.packageName.contains("com.android.launcher") && 
-              !stats.packageName.contains("com.android.systemui")) {
-              
+          if (stats.totalTimeInForeground > 0) {
+            if (stats.packageName.contains("com.android.launcher") || 
+                stats.packageName.contains("com.android.systemui")) {
+                android.util.Log.d("ScreenTimeModule", "Skipping system app: ${stats.packageName}")
+                continue
+            }
             val current = packageMap[stats.packageName] ?: 0L
             packageMap[stats.packageName] = current + stats.totalTimeInForeground
           }
         }
 
         for ((pkgName, totalTime) in packageMap) {
+            var appName = pkgName
             try {
               val appInfo = context.packageManager.getApplicationInfo(pkgName, 0)
-              val appName = context.packageManager.getApplicationLabel(appInfo).toString()
-              
-              result.add(mapOf(
-                "packageName" to pkgName,
-                "appName" to appName,
-                "totalTimeInForeground" to (totalTime / 1000), // convert to seconds
-                "lastTimeUsed" to System.currentTimeMillis() // Approximate for now
-              ))
+              appName = context.packageManager.getApplicationLabel(appInfo).toString()
             } catch (e: Exception) {
-              // App might have been uninstalled
+              android.util.Log.w("ScreenTimeModule", "Excluded app friendly name due to NameNotFoundException: $pkgName. Fallback to package name.")
             }
+            
+            result.add(mapOf(
+              "packageName" to pkgName,
+              "appName" to appName,
+              "totalTimeInForeground" to (totalTime / 1000), // convert to seconds
+              "lastTimeUsed" to System.currentTimeMillis() // Approximate for now
+            ))
         }
       }
       return@AsyncFunction mapOf(

@@ -1,6 +1,6 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { CirclesService } from '../circles/circles.service';
-import { CreateChallengeDto, ResolveChallengeDto } from './dto/challenge.dto';
+import { CreateChallengeDto, ResolveChallengeDto, SubmitVictoryDto } from './dto/challenge.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 export declare class ChallengesService {
     private readonly prisma;
@@ -8,11 +8,6 @@ export declare class ChallengesService {
     private readonly eventEmitter;
     constructor(prisma: PrismaService, circlesService: CirclesService, eventEmitter: EventEmitter2);
     createChallenge(proposerId: string, dto: CreateChallengeDto): Promise<{
-        proposer: {
-            id: string;
-            name: string;
-            avatarUrl: string | null;
-        };
         participants: ({
             user: {
                 id: string;
@@ -23,12 +18,20 @@ export declare class ChallengesService {
             id: string;
             userId: string;
             status: string;
+            proofText: string | null;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
             manualProgress: number;
             lastProgressAt: Date | null;
+            verificationStatus: string;
+            submittedAt: Date | null;
             challengeId: string;
         })[];
+        proposer: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+        };
     } & {
         id: string;
         createdAt: Date;
@@ -43,10 +46,11 @@ export declare class ChallengesService {
         stakeDescription: string | null;
         stakePoints: number | null;
         proofRequired: boolean;
-        deadline: Date;
+        durationHours: number;
         winnerId: string | null;
         outcomeType: string | null;
         tieBreakRule: string;
+        deadline: Date;
         resolvedAt: Date | null;
         proposerId: string;
     }>;
@@ -54,20 +58,66 @@ export declare class ChallengesService {
         id: string;
         userId: string;
         status: string;
+        proofText: string | null;
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
         manualProgress: number;
         lastProgressAt: Date | null;
+        verificationStatus: string;
+        submittedAt: Date | null;
         challengeId: string;
     }>;
     incrementProgress(userId: string, challengeId: string): Promise<{
         id: string;
         userId: string;
         status: string;
+        proofText: string | null;
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
         manualProgress: number;
         lastProgressAt: Date | null;
+        verificationStatus: string;
+        submittedAt: Date | null;
+        challengeId: string;
+    }>;
+    submitVictory(userId: string, challengeId: string, dto: SubmitVictoryDto): Promise<{
+        id: string;
+        userId: string;
+        status: string;
+        proofText: string | null;
+        acceptedAt: Date | null;
+        withdrawnAt: Date | null;
+        manualProgress: number;
+        lastProgressAt: Date | null;
+        verificationStatus: string;
+        submittedAt: Date | null;
+        challengeId: string;
+    }>;
+    checkAndResolveChallenge(challengeId: string): Promise<void>;
+    acceptVictory(reviewerId: string, challengeId: string, participantId: string): Promise<{
+        id: string;
+        userId: string;
+        status: string;
+        proofText: string | null;
+        acceptedAt: Date | null;
+        withdrawnAt: Date | null;
+        manualProgress: number;
+        lastProgressAt: Date | null;
+        verificationStatus: string;
+        submittedAt: Date | null;
+        challengeId: string;
+    }>;
+    rejectVictory(reviewerId: string, challengeId: string, participantId: string, reason: string): Promise<{
+        id: string;
+        userId: string;
+        status: string;
+        proofText: string | null;
+        acceptedAt: Date | null;
+        withdrawnAt: Date | null;
+        manualProgress: number;
+        lastProgressAt: Date | null;
+        verificationStatus: string;
+        submittedAt: Date | null;
         challengeId: string;
     }>;
     resolveChallenge(userId: string, challengeId: string, dto: ResolveChallengeDto): Promise<{
@@ -89,15 +139,19 @@ export declare class ChallengesService {
                 lastActiveAt: Date | null;
                 deletedAt: Date | null;
                 fcmToken: string | null;
+                lastCronProcessedDate: string | null;
             };
         } & {
             id: string;
             userId: string;
             status: string;
+            proofText: string | null;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
             manualProgress: number;
             lastProgressAt: Date | null;
+            verificationStatus: string;
+            submittedAt: Date | null;
             challengeId: string;
         })[];
     } & {
@@ -114,14 +168,16 @@ export declare class ChallengesService {
         stakeDescription: string | null;
         stakePoints: number | null;
         proofRequired: boolean;
-        deadline: Date;
+        durationHours: number;
         winnerId: string | null;
         outcomeType: string | null;
         tieBreakRule: string;
+        deadline: Date;
         resolvedAt: Date | null;
         proposerId: string;
     }>;
     private updateXp;
+    private incrementWin;
     getChallenges(userId: string, circleId: string, status?: string): Promise<{
         participants: {
             progress: number;
@@ -133,12 +189,17 @@ export declare class ChallengesService {
             id: string;
             userId: string;
             status: string;
+            proofText: string | null;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
             manualProgress: number;
             lastProgressAt: Date | null;
+            verificationStatus: string;
+            submittedAt: Date | null;
             challengeId: string;
         }[];
+        durationHours: number;
+        remainingMs: number;
         proposer: {
             id: string;
             name: string;
@@ -162,12 +223,15 @@ export declare class ChallengesService {
         stakeDescription: string | null;
         stakePoints: number | null;
         proofRequired: boolean;
-        deadline: Date;
         winnerId: string | null;
         outcomeType: string | null;
         tieBreakRule: string;
+        deadline: Date;
         resolvedAt: Date | null;
         proposerId: string;
     }[]>;
     expireOverdueChallenges(): Promise<void>;
+    clearHistory(userId: string, challengeId: string): Promise<{
+        success: boolean;
+    }>;
 }

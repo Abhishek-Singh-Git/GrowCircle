@@ -23,17 +23,17 @@ export declare class ChatService {
         } & {
             userId: string;
             joinedAt: Date;
+            threadId: string;
             lastReadAt: Date | null;
             clearedAt: Date | null;
-            threadId: string;
         })[];
         messages: {
             id: string;
             deletedAt: Date | null;
+            threadId: string;
             content: string | null;
             mediaUrl: string | null;
             mediaType: string | null;
-            threadId: string;
             sentAt: Date;
             isDeleted: boolean;
             senderId: string;
@@ -53,10 +53,10 @@ export declare class ChatService {
     } & {
         id: string;
         deletedAt: Date | null;
+        threadId: string;
         content: string | null;
         mediaUrl: string | null;
         mediaType: string | null;
-        threadId: string;
         sentAt: Date;
         isDeleted: boolean;
         senderId: string;
@@ -71,10 +71,10 @@ export declare class ChatService {
         } & {
             id: string;
             deletedAt: Date | null;
+            threadId: string;
             content: string | null;
             mediaUrl: string | null;
             mediaType: string | null;
-            threadId: string;
             sentAt: Date;
             isDeleted: boolean;
             senderId: string;

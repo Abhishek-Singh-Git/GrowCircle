@@ -2,22 +2,43 @@ import { useState, useCallback, useEffect } from 'react';
 import { api } from '../services/api';
 import { useCircleStore } from '../stores/circleStore';
 
+export interface ChallengeParticipant {
+  userId: string;
+  status: string;
+  progress: number;
+  proofText: string | null;
+  verificationStatus: string;
+  submittedAt: string | null;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
+}
+
 export interface Challenge {
   id: string;
   title: string;
   status: string;
   deadline: string;
+  durationHours: number;
+  remainingMs: number;
   proposerId: string;
   conditionType: string;
   conditionTarget: number | null;
+  conditionDescription: string;
+  outcomeType: string | null;
   proposer: {
+    id: string;
     name: string;
+    avatarUrl: string | null;
   };
-  participants: {
-    userId: string;
-    status: string;
-    progress: number;
-  }[];
+  winner: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  } | null;
+  participants: ChallengeParticipant[];
 }
 
 export function useChallenges() {
@@ -57,10 +78,43 @@ export function useChallenges() {
     await fetchChallenges();
   };
 
+  // Battle Arena 2.0: Submit victory with proof text
+  const submitVictory = async (challengeId: string, proofText: string) => {
+    await api.post(`/challenges/${challengeId}/submit-victory`, { proofText });
+    await fetchChallenges();
+  };
+
   const resolveChallenge = async (challengeId: string, payload: any) => {
     await api.post(`/challenges/${challengeId}/resolve`, payload);
     await fetchChallenges();
   };
 
-  return { challenges, isLoading, fetchChallenges, createChallenge, respondToChallenge, incrementProgress, resolveChallenge };
+  const acceptVictory = async (challengeId: string, participantId: string) => {
+    await api.post(`/challenges/${challengeId}/participants/${participantId}/accept-victory`, {});
+    await fetchChallenges();
+  };
+
+  const rejectVictory = async (challengeId: string, participantId: string, reason: string) => {
+    await api.post(`/challenges/${challengeId}/participants/${participantId}/reject-victory`, { reason });
+    await fetchChallenges();
+  };
+
+  const clearHistory = async (challengeId: string) => {
+    await api.delete(`/challenges/${challengeId}/history`);
+    await fetchChallenges();
+  };
+
+  return {
+    challenges,
+    isLoading,
+    fetchChallenges,
+    createChallenge,
+    respondToChallenge,
+    incrementProgress,
+    submitVictory,
+    resolveChallenge,
+    acceptVictory,
+    rejectVictory,
+    clearHistory,
+  };
 }

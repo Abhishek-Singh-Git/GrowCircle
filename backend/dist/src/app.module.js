@@ -10,6 +10,7 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const event_emitter_1 = require("@nestjs/event-emitter");
+const schedule_1 = require("@nestjs/schedule");
 const bullmq_1 = require("@nestjs/bullmq");
 const prisma_module_1 = require("./prisma/prisma.module");
 const auth_module_1 = require("./auth/auth.module");
@@ -44,6 +45,7 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
             event_emitter_1.EventEmitterModule.forRoot(),
+            schedule_1.ScheduleModule.forRoot(),
             ...optionalImports,
             prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,

@@ -34,8 +34,20 @@ let ChallengesController = class ChallengesController {
     async incrementProgress(req, challengeId) {
         return this.challengesService.incrementProgress(req.user.id, challengeId);
     }
+    async submitVictory(req, challengeId, dto) {
+        return this.challengesService.submitVictory(req.user.id, challengeId, dto);
+    }
     async resolveChallenge(req, challengeId, dto) {
         return this.challengesService.resolveChallenge(req.user.id, challengeId, dto);
+    }
+    async acceptVictory(req, challengeId, participantId) {
+        return this.challengesService.acceptVictory(req.user.id, challengeId, participantId);
+    }
+    async rejectVictory(req, challengeId, participantId, reason) {
+        return this.challengesService.rejectVictory(req.user.id, challengeId, participantId, reason);
+    }
+    async clearHistory(req, challengeId) {
+        return this.challengesService.clearHistory(req.user.id, challengeId);
     }
 };
 exports.ChallengesController = ChallengesController;
@@ -75,6 +87,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ChallengesController.prototype, "incrementProgress", null);
 __decorate([
+    (0, common_1.Post)(':challengeId/submit-victory'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('challengeId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, challenge_dto_1.SubmitVictoryDto]),
+    __metadata("design:returntype", Promise)
+], ChallengesController.prototype, "submitVictory", null);
+__decorate([
     (0, common_1.Post)(':challengeId/resolve'),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('challengeId')),
@@ -83,6 +104,33 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, challenge_dto_1.ResolveChallengeDto]),
     __metadata("design:returntype", Promise)
 ], ChallengesController.prototype, "resolveChallenge", null);
+__decorate([
+    (0, common_1.Post)(':challengeId/participants/:participantId/accept-victory'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('challengeId')),
+    __param(2, (0, common_1.Param)('participantId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", Promise)
+], ChallengesController.prototype, "acceptVictory", null);
+__decorate([
+    (0, common_1.Post)(':challengeId/participants/:participantId/reject-victory'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('challengeId')),
+    __param(2, (0, common_1.Param)('participantId')),
+    __param(3, (0, common_1.Body)('reason')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, String]),
+    __metadata("design:returntype", Promise)
+], ChallengesController.prototype, "rejectVictory", null);
+__decorate([
+    (0, common_1.Delete)(':challengeId/history'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('challengeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChallengesController.prototype, "clearHistory", null);
 exports.ChallengesController = ChallengesController = __decorate([
     (0, common_1.Controller)('v1/challenges'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

@@ -97,21 +97,138 @@ document.addEventListener('DOMContentLoaded', () => {
     startCountdown();
     renderRadarChart();
     renderCalendar();
-    initAtmosphere();
+    initArena();
   };
 
-  // --- GLOBAL ATMOSPHERE ---
-  const initAtmosphere = () => {
-    const pf = $('global-particles');
-    for(let i=0; i<30; i++) {
-      const p = document.createElement('div');
-      p.className = 'particle';
-      p.style.width = Math.random() * 4 + 2 + 'px';
-      p.style.height = p.style.width;
-      p.style.left = Math.random() * 100 + 'vw';
-      p.style.animationDuration = Math.random() * 10 + 10 + 's';
-      p.style.animationDelay = Math.random() * 10 + 's';
-      pf.appendChild(p);
+  // --- BATTLE ARENA 2.0 ENGINE ---
+  const initArena = () => {
+    // Arena sub-tab switching
+    $$('[data-arena-tab]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        $$('[data-arena-tab]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const tab = e.currentTarget.dataset.arenaTab;
+        ['arena-active', 'arena-pending', 'arena-history'].forEach(id => {
+          const el = $(id);
+          if (el) el.style.display = id === `arena-${tab}` ? 'block' : 'none';
+        });
+      });
+    });
+
+    // Demo countdown (simulates a 12h battle with 8h 23m 41s remaining)
+    const demoDuration = 12 * 60 * 60; // 12 hours in seconds
+    let demoRemaining = 8 * 3600 + 23 * 60 + 41; // 8h 23m 41s
+    const circumference = 2 * Math.PI * 42; // r=42
+
+    const arenaTimer = $('arena-timer');
+    const arenaRing = $('arena-ring-progress');
+    const arenaCard = $('arena-card-demo');
+    const arenaPhaseLabel = $('arena-phase-label');
+
+    if (arenaTimer && arenaRing && arenaCard) {
+      arenaRing.style.strokeDasharray = circumference;
+
+      const updateArena = () => {
+        if (demoRemaining <= 0) {
+          arenaTimer.textContent = '00:00:00';
+          arenaRing.style.strokeDashoffset = circumference;
+          arenaCard.className = 'arena-battle-card arena-final';
+          if (arenaPhaseLabel) arenaPhaseLabel.textContent = '💀 EXPIRED';
+          return;
+        }
+
+        demoRemaining--;
+        const h = Math.floor(demoRemaining / 3600);
+        const m = Math.floor((demoRemaining % 3600) / 60);
+        const s = demoRemaining % 60;
+        arenaTimer.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+        // Progress ring
+        const elapsed = demoDuration - demoRemaining;
+        const ratio = elapsed / demoDuration;
+        arenaRing.style.strokeDashoffset = circumference * (1 - ratio);
+
+        // Atmosphere phase transitions
+        if (ratio < 0.5) {
+          arenaCard.className = 'arena-battle-card arena-dawn';
+          if (arenaPhaseLabel) arenaPhaseLabel.textContent = 'Remaining';
+        } else if (ratio < 0.85) {
+          arenaCard.className = 'arena-battle-card arena-mid';
+          if (arenaPhaseLabel) arenaPhaseLabel.textContent = 'Remaining';
+        } else {
+          arenaCard.className = 'arena-battle-card arena-final';
+          if (arenaPhaseLabel) arenaPhaseLabel.textContent = '🔥 FINAL HOUR';
+        }
+
+        requestAnimationFrame(() => setTimeout(updateArena, 1000));
+      };
+      updateArena();
+    }
+
+    // Claim Victory modal
+    const btnClaim = $('btn-claim-victory');
+    const modalVictory = $('modal-claim-victory');
+    const btnCloseVictory = $('btn-close-victory');
+    const btnHoldVerify = $('btn-hold-verify');
+    const modalResult = $('modal-battle-result');
+
+    if (btnClaim && modalVictory) {
+      btnClaim.addEventListener('click', () => {
+        modalVictory.style.display = '';
+        modalVictory.classList.add('active');
+      });
+    }
+    if (btnCloseVictory && modalVictory) {
+      btnCloseVictory.addEventListener('click', () => {
+        modalVictory.classList.remove('active');
+        modalVictory.style.display = 'none';
+      });
+    }
+
+    // Hold to Verify Victory (reuses oath hold mechanic)
+    if (btnHoldVerify && modalVictory && modalResult) {
+      let verifyTimer; let verifyProgress = 0;
+
+      const startVerify = () => {
+        verifyTimer = setInterval(() => {
+          verifyProgress += 2;
+          btnHoldVerify.style.setProperty('--oath-fill', `${verifyProgress}%`);
+          if (verifyProgress >= 100) completeVerify();
+        }, 20);
+      };
+      const stopVerify = () => {
+        clearInterval(verifyTimer);
+        if (verifyProgress < 100) { verifyProgress = 0; btnHoldVerify.style.setProperty('--oath-fill', '0%'); }
+      };
+      const completeVerify = () => {
+        clearInterval(verifyTimer);
+        if (window.confetti) confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+        if (window.navigator && window.navigator.vibrate) navigator.vibrate(100);
+
+        // Close victory modal, show result
+        setTimeout(() => {
+          modalVictory.classList.remove('active');
+          modalVictory.style.display = 'none';
+          verifyProgress = 0;
+          btnHoldVerify.style.setProperty('--oath-fill', '0%');
+
+          // Show battle result
+          modalResult.style.display = '';
+          modalResult.classList.add('active');
+
+          // Auto-dismiss after 5 seconds
+          setTimeout(() => {
+            modalResult.classList.remove('active');
+            modalResult.style.display = 'none';
+          }, 5000);
+        }, 800);
+      };
+
+      btnHoldVerify.addEventListener('mousedown', startVerify);
+      btnHoldVerify.addEventListener('mouseup', stopVerify);
+      btnHoldVerify.addEventListener('mouseleave', stopVerify);
+      btnHoldVerify.addEventListener('touchstart', (e) => { e.preventDefault(); startVerify(); });
+      btnHoldVerify.addEventListener('touchend', stopVerify);
     }
   };
 

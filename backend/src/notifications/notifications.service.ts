@@ -179,31 +179,7 @@ export class NotificationsService {
     }
   }
 
-  @OnEvent('challenge.resolved')
-  async handleChallengeResolved(payload: { challenge: any }) {
-    for (const participant of payload.challenge.participants) {
-      await this.sendNotification({
-        userId: participant.userId || participant.user?.id,
-        type: 'challenge',
-        title: 'Challenge Resolved',
-        body: `The challenge "${payload.challenge.title}" has been resolved.`,
-        metadata: { challengeId: payload.challenge.id, circleId: payload.challenge.circleId },
-      });
-    }
-  }
 
-  @OnEvent('challenge.activated')
-  async handleChallengeActivated(payload: { challengeId: string; participants: any[] }) {
-    for (const participant of payload.participants) {
-      await this.sendNotification({
-        userId: participant.userId,
-        type: 'challenge',
-        title: 'Challenge Activated',
-        body: `Your challenge is now active! All participants have accepted.`,
-        metadata: { challengeId: payload.challengeId },
-      });
-    }
-  }
 
   @OnEvent('challenge.accepted')
   async handleChallengeAccepted(payload: { challenge: any; acceptorId: string }) {
@@ -320,6 +296,144 @@ export class NotificationsService {
         body: `${target?.name || 'Partner'} is still up late! Nudge them to sleep.`,
         metadata: { circleId: payload.circleId, targetId: payload.userId },
       });
+    }
+  }
+
+  @OnEvent('challenge.victory_submitted')
+  async handleVictorySubmitted(payload: { challengeId: string; userId: string; challengeTitle: string }) {
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: payload.challengeId },
+      include: { participants: true },
+    });
+    if (!challenge) return;
+
+    const claimer = await this.prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { name: true },
+    });
+
+    const reviewers = new Set<string>();
+    if (challenge.proposerId !== payload.userId) {
+      reviewers.add(challenge.proposerId);
+    }
+    challenge.participants.forEach(p => {
+      if (p.userId !== payload.userId) reviewers.add(p.userId);
+    });
+
+    for (const reviewerId of reviewers) {
+      await this.sendNotification({
+        userId: reviewerId,
+        type: 'challenge',
+        title: 'Victory Claimed!',
+        body: `${claimer?.name} claims they completed "${payload.challengeTitle}". Please review.`,
+        metadata: { challengeId: payload.challengeId },
+      });
+    }
+  }
+
+  @OnEvent('challenge.victory_accepted')
+  async handleVictoryAccepted(payload: { challengeId: string; participantId: string; challengeTitle: string }) {
+    await this.sendNotification({
+      userId: payload.participantId,
+      type: 'challenge',
+      title: 'Victory Verified!',
+      body: `Your victory for "${payload.challengeTitle}" was accepted.`,
+      metadata: { challengeId: payload.challengeId },
+    });
+  }
+
+  @OnEvent('challenge.victory_rejected')
+  async handleVictoryRejected(payload: { challengeId: string; participantId: string; reason: string; challengeTitle: string }) {
+    await this.sendNotification({
+      userId: payload.participantId,
+      type: 'challenge',
+      title: 'Victory Rejected',
+      body: `Your victory claim for "${payload.challengeTitle}" was rejected. Reason: ${payload.reason}`,
+      metadata: { challengeId: payload.challengeId },
+    });
+  }
+
+  @OnEvent('challenge.activated')
+  async handleChallengeActivated(payload: { challengeId: string; participants: { userId: string }[] }) {
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: payload.challengeId },
+    });
+    if (!challenge) return;
+
+    for (const participant of payload.participants) {
+      await this.sendNotification({
+        userId: participant.userId,
+        type: 'challenge',
+        title: 'Battle Commenced! ⚔️',
+        body: `The battle "${challenge.title}" is now active! Show your discipline.`,
+        metadata: { challengeId: challenge.id },
+      });
+    }
+  }
+
+  @OnEvent('challenge.expired')
+  async handleChallengeExpired(payload: { challengeId: string; outcomeType: string }) {
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: payload.challengeId },
+      include: { participants: true },
+    });
+    if (!challenge) return;
+
+    for (const participant of challenge.participants) {
+      await this.sendNotification({
+        userId: participant.userId,
+        type: 'challenge',
+        title: 'Battle Lost 💀',
+        body: `The battle "${challenge.title}" has expired.`,
+        metadata: { challengeId: challenge.id },
+      });
+    }
+  }
+
+  @OnEvent('challenge.resolved')
+  async handleChallengeResolved(payload: { challengeId?: string; outcomeType?: string; winnerId?: string; challenge?: any }) {
+    let challengeId = payload.challengeId;
+    let outcomeType = payload.outcomeType;
+    let winnerId = payload.winnerId;
+
+    if (payload.challenge) {
+      challengeId = payload.challenge.id;
+      outcomeType = payload.challenge.outcomeType;
+      winnerId = payload.challenge.winnerId;
+    }
+
+    if (!challengeId) return;
+
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: challengeId },
+      include: { participants: true },
+    });
+    if (!challenge) return;
+
+    if (outcomeType === 'win' && winnerId) {
+      const winner = await this.prisma.user.findUnique({ where: { id: winnerId }, select: { name: true } });
+      for (const participant of challenge.participants) {
+        const isWinner = participant.userId === winnerId;
+        await this.sendNotification({
+          userId: participant.userId,
+          type: 'challenge',
+          title: isWinner ? 'Victory Achieved! 🏆' : 'Battle Lost 💀',
+          body: isWinner 
+            ? `You won the battle "${challenge.title}"!`
+            : `${winner?.name || 'Your opponent'} won the battle "${challenge.title}".`,
+          metadata: { challengeId: challenge.id },
+        });
+      }
+    } else if (outcomeType === 'draw') {
+      for (const participant of challenge.participants) {
+        await this.sendNotification({
+          userId: participant.userId,
+          type: 'challenge',
+          title: 'Battle Drawn! 🤝',
+          body: `All participants completed "${challenge.title}".`,
+          metadata: { challengeId: challenge.id },
+        });
+      }
     }
   }
 }

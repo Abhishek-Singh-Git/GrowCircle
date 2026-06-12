@@ -6,8 +6,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CirclesService } from '../circles/circles.service';
-import { CreateChallengeDto, ResolveChallengeDto } from './dto/challenge.dto';
+import { CreateChallengeDto, ResolveChallengeDto, SubmitVictoryDto } from './dto/challenge.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class ChallengesService {
@@ -18,15 +19,14 @@ export class ChallengesService {
   ) {}
 
   // ── CREATE CHALLENGE ────────────────────────────────────────────────
+  // Battle Arena 2.0: deadline is computed from durationHours instead of
+  // being passed directly by the client.
   async createChallenge(proposerId: string, dto: CreateChallengeDto) {
     await this.circlesService.validateMembership(proposerId, dto.circleId);
 
     // Validate participants
-    if (!dto.participantIds.includes(proposerId)) {
-      dto.participantIds.push(proposerId);
-    }
-    if (dto.participantIds.length < 2) {
-      throw new BadRequestException('A challenge requires at least 2 participants');
+    if (dto.participantIds.length < 1) {
+      throw new BadRequestException('A challenge requires at least 1 participant');
     }
 
     // Server partner-ID guard: check that all participants are in the circle
@@ -41,6 +41,9 @@ export class ChallengesService {
       acceptedAt: userId === proposerId ? new Date() : null,
     }));
 
+    // Battle Arena 2.0: compute deadline from durationHours
+    const deadline = new Date(Date.now() + dto.durationHours * 60 * 60 * 1000);
+
     const challenge = await this.prisma.challenge.create({
       data: {
         circleId: dto.circleId,
@@ -54,7 +57,8 @@ export class ChallengesService {
         stakeDescription: dto.stakeDescription,
         stakePoints: dto.stakePoints,
         proofRequired: dto.proofRequired,
-        deadline: new Date(dto.deadline),
+        durationHours: dto.durationHours,
+        deadline,
         participants: {
           create: participantsData,
         },
@@ -131,16 +135,25 @@ export class ChallengesService {
         where: { challengeId, status: 'pending' },
       });
       if (remainingPending === 0) {
-        const challenge = await this.prisma.challenge.update({
+        // Battle Arena 2.0: recompute deadline from NOW when battle actually starts
+        const challenge = await this.prisma.challenge.findUnique({
           where: { id: challengeId },
-          data: { status: 'active' },
+        });
+        const newDeadline = new Date(Date.now() + (challenge?.durationHours || 12) * 60 * 60 * 1000);
+
+        const updatedChallenge = await this.prisma.challenge.update({
+          where: { id: challengeId },
+          data: {
+            status: 'active',
+            deadline: newDeadline,
+          },
           include: { participants: { select: { userId: true } } },
         });
-        
-        const participantIds = challenge.participants.map((p) => p.userId);
+
+        const participantIds = updatedChallenge.participants.map((p) => p.userId);
 
         this.eventEmitter.emit('challenge.activated', {
-          challengeId: challenge.id,
+          challengeId: updatedChallenge.id,
           participants: participantIds.map((id: string) => ({ userId: id })),
         });
       }
@@ -149,7 +162,7 @@ export class ChallengesService {
     return updatedParticipant;
   }
 
-  // ── INCREMENT PROGRESS ──────────────────────────────────────────────
+  // ── INCREMENT PROGRESS (Legacy — kept for backward compatibility) ───
   async incrementProgress(userId: string, challengeId: string) {
     const participant = await this.prisma.challengeParticipant.findUnique({
       where: { challengeId_userId: { challengeId, userId } },
@@ -199,6 +212,240 @@ export class ChallengesService {
     return updated;
   }
 
+  // ── SUBMIT VICTORY (Battle Arena 2.0) ───────────────────────────────
+  // Both participants can independently claim victory by submitting proof
+  // text and holding to verify. Victory is self-certified.
+  async submitVictory(userId: string, challengeId: string, dto: SubmitVictoryDto) {
+    const participant = await this.prisma.challengeParticipant.findUnique({
+      where: { challengeId_userId: { challengeId, userId } },
+      include: { challenge: true },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Challenge or participant not found');
+    }
+    if (participant.challenge.status !== 'active') {
+      throw new BadRequestException('Can only submit victory for active challenges');
+    }
+    if (participant.verificationStatus === 'verified') {
+      throw new BadRequestException('You have already claimed victory for this challenge');
+    }
+
+    // Check the challenge hasn't expired
+    if (new Date() >= participant.challenge.deadline) {
+      throw new BadRequestException('This challenge has expired. 💀 Battle Lost.');
+    }
+
+    // Mark this participant as pending review
+    const updated = await this.prisma.challengeParticipant.update({
+      where: { id: participant.id },
+      data: {
+        proofText: dto.proofText,
+        verificationStatus: 'pending_review',
+        submittedAt: new Date(),
+      },
+    });
+
+    // Emit event — notifications will be sent to other participants or proposer
+    this.eventEmitter.emit('challenge.victory_submitted', {
+      challengeId,
+      userId,
+      proofText: dto.proofText,
+      challengeTitle: participant.challenge.title,
+    });
+
+    return updated;
+  }
+
+  // ── RESOLUTION HELPER (Battle Arena 2.0 State Machine) ────────────────
+  async checkAndResolveChallenge(challengeId: string) {
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: challengeId },
+      include: { participants: true },
+    });
+
+    if (!challenge || challenge.status === 'resolved' || challenge.status === 'expired' || challenge.status === 'cancelled') {
+      return;
+    }
+
+    const now = new Date();
+    const isPastDeadline = now >= challenge.deadline;
+    const totalParticipants = challenge.participants.length;
+
+    // Count states
+    const verifiedParticipants = challenge.participants.filter(p => p.verificationStatus === 'verified');
+    const pendingReviewParticipants = challenge.participants.filter(p => p.verificationStatus === 'pending_review');
+    const verifiedCount = verifiedParticipants.length;
+
+    if (isPastDeadline) {
+      // If past deadline, we can only resolve if there are no pending reviews left
+      if (pendingReviewParticipants.length > 0) {
+        // Skip for now, wait for 24h grace period reviews to be accepted or rejected
+        return;
+      }
+
+      // Mark all remaining 'pending' participants as 'expired'
+      await this.prisma.challengeParticipant.updateMany({
+        where: {
+          challengeId,
+          verificationStatus: 'pending',
+        },
+        data: {
+          verificationStatus: 'expired',
+        },
+      });
+
+      let outcomeType: string;
+      let winnerId: string | null = null;
+
+      if (verifiedCount === 0) {
+        outcomeType = 'expired';
+        await this.prisma.challenge.update({
+          where: { id: challengeId },
+          data: {
+            status: 'expired',
+            outcomeType,
+            winnerId,
+            resolvedAt: now,
+          },
+        });
+        this.eventEmitter.emit('challenge.expired', { challengeId, outcomeType });
+      } else if (verifiedCount === 1) {
+        outcomeType = 'win';
+        winnerId = verifiedParticipants[0].userId;
+        await this.prisma.challenge.update({
+          where: { id: challengeId },
+          data: {
+            status: 'resolved',
+            outcomeType,
+            winnerId,
+            resolvedAt: now,
+          },
+        });
+        await this.incrementWin(winnerId, challenge.circleId);
+        this.eventEmitter.emit('challenge.resolved', { challengeId, outcomeType, winnerId });
+      } else {
+        outcomeType = 'draw';
+        await this.prisma.challenge.update({
+          where: { id: challengeId },
+          data: {
+            status: 'resolved',
+            outcomeType,
+            winnerId,
+            resolvedAt: now,
+          },
+        });
+        for (const p of verifiedParticipants) {
+          await this.incrementWin(p.userId, challenge.circleId);
+        }
+        this.eventEmitter.emit('challenge.resolved', { challengeId, outcomeType });
+      }
+    } else {
+      // If not past deadline, we can resolve early ONLY if all participants are verified
+      if (verifiedCount === totalParticipants) {
+        const outcomeType = totalParticipants > 1 ? 'draw' : 'win';
+        const winnerId = totalParticipants === 1 ? verifiedParticipants[0].userId : null;
+
+        await this.prisma.challenge.update({
+          where: { id: challengeId },
+          data: {
+            status: 'resolved',
+            outcomeType,
+            winnerId,
+            resolvedAt: now,
+          },
+        });
+
+        if (totalParticipants === 1) {
+          await this.incrementWin(verifiedParticipants[0].userId, challenge.circleId);
+        } else {
+          for (const p of verifiedParticipants) {
+            await this.incrementWin(p.userId, challenge.circleId);
+          }
+        }
+
+        this.eventEmitter.emit('challenge.resolved', { challengeId, outcomeType, winnerId });
+      }
+    }
+  }
+
+  // ── ACCEPT VICTORY ──────────────────────────────────────────────────
+  async acceptVictory(reviewerId: string, challengeId: string, participantId: string) {
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: challengeId },
+      include: { participants: true },
+    });
+
+    if (!challenge) throw new NotFoundException('Challenge not found');
+
+    const participant = challenge.participants.find(p => p.userId === participantId);
+    if (!participant || participant.verificationStatus !== 'pending_review') {
+      throw new BadRequestException('Participant is not pending review');
+    }
+
+    // Verify reviewer is authorized (proposer or another participant)
+    const isProposer = challenge.proposerId === reviewerId;
+    const isOtherParticipant = challenge.participants.some(p => p.userId === reviewerId && p.userId !== participantId);
+    if (!isProposer && !isOtherParticipant) {
+      throw new ForbiddenException('You are not authorized to review this claim');
+    }
+
+    const updated = await this.prisma.challengeParticipant.update({
+      where: { id: participant.id },
+      data: { verificationStatus: 'verified' },
+    });
+
+    // Award XP
+    await this.updateXp(participantId, challenge.circleId, 30);
+
+    this.eventEmitter.emit('challenge.victory_accepted', { challengeId, participantId, challengeTitle: challenge.title });
+
+    // Call helper to resolve if needed
+    await this.checkAndResolveChallenge(challengeId);
+
+    return updated;
+  }
+
+  // ── REJECT VICTORY ──────────────────────────────────────────────────
+  async rejectVictory(reviewerId: string, challengeId: string, participantId: string, reason: string) {
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: challengeId },
+      include: { participants: true },
+    });
+
+    if (!challenge) throw new NotFoundException('Challenge not found');
+
+    const participant = challenge.participants.find(p => p.userId === participantId);
+    if (!participant || participant.verificationStatus !== 'pending_review') {
+      throw new BadRequestException('Participant is not pending review');
+    }
+
+    const isProposer = challenge.proposerId === reviewerId;
+    const isOtherParticipant = challenge.participants.some(p => p.userId === reviewerId && p.userId !== participantId);
+    if (!isProposer && !isOtherParticipant) {
+      throw new ForbiddenException('You are not authorized to review this claim');
+    }
+
+    const updated = await this.prisma.challengeParticipant.update({
+      where: { id: participant.id },
+      data: { verificationStatus: 'rejected' },
+    });
+
+    // Optionally auto-open dispute ticket if rejected
+    await this.prisma.disputeTicket.create({
+      data: {
+        challengeId,
+        raisedBy: participantId,
+        description: `Victory claim rejected by reviewer. Reason: ${reason || 'No reason provided'}`,
+        status: 'open',
+      }
+    });
+
+    this.eventEmitter.emit('challenge.victory_rejected', { challengeId, participantId, reason, challengeTitle: challenge.title });
+
+    return updated;
+  }
+
   // ── RESOLVE CHALLENGE ───────────────────────────────────────────────
   async resolveChallenge(userId: string, challengeId: string, dto: ResolveChallengeDto) {
     const challenge = await this.prisma.challenge.findUnique({
@@ -211,8 +458,6 @@ export class ChallengesService {
     if (challenge.status !== 'active' && challenge.status !== 'pending_resolution') {
       throw new BadRequestException(`Cannot resolve a challenge in status: ${challenge.status}`);
     }
-    // Only the proposer can manually resolve it, or the winner claiming it (if proof validated)
-    // For simplicity, we allow any participant to claim resolution, but we notify others to dispute if needed.
     const isParticipant = await this.prisma.challengeParticipant.findUnique({
       where: { challengeId_userId: { challengeId, userId } },
     });
@@ -237,15 +482,13 @@ export class ChallengesService {
 
     // Award XP for completion regardless of outcome
     for (const participant of resolvedChallenge.participants) {
-      await this.updateXp(participant.userId, challenge.circleId, 20); // Base participation XP
+      await this.updateXp(participant.userId, challenge.circleId, 20);
     }
 
     // Handle Stake (Points transfer)
     if (resolvedChallenge.stakeType === 'points' && resolvedChallenge.stakePoints && resolvedChallenge.winnerId) {
-      // Winner gets points
       await this.updateXp(resolvedChallenge.winnerId, challenge.circleId, resolvedChallenge.stakePoints);
 
-      // Losers lose points
       const losers = resolvedChallenge.participants.filter(p => p.userId !== resolvedChallenge.winnerId);
 
       for (const loser of losers) {
@@ -273,6 +516,13 @@ export class ChallengesService {
       data: {
         totalXp: { increment: xp },
       },
+    });
+  }
+
+  private async incrementWin(userId: string, circleId: string) {
+    await this.prisma.gamificationProfile.update({
+      where: { userId_circleId: { userId, circleId } },
+      data: { challengesWon: { increment: 1 } },
     });
   }
 
@@ -304,7 +554,7 @@ export class ChallengesService {
       const participantsWithProgress = [];
       for (const participant of challenge.participants) {
         let progress = 0;
-        if (challenge.status === 'active' || challenge.status === 'resolved' || challenge.status === 'pending_resolution') {
+        if (challenge.status === 'active' || challenge.status === 'resolved' || challenge.status === 'expired' || challenge.status === 'pending_resolution') {
           if (challenge.conditionType === 'goal_based' && challenge.conditionGoalId) {
             const proposerGoal = await this.prisma.goal.findUnique({
               where: { id: challenge.conditionGoalId },
@@ -372,9 +622,18 @@ export class ChallengesService {
           progress,
         });
       }
+
+      // Battle Arena 2.0: compute remaining time for active challenges
+      let remainingMs = 0;
+      if (challenge.status === 'active') {
+        remainingMs = Math.max(0, new Date(challenge.deadline).getTime() - Date.now());
+      }
+
       enrichedChallenges.push({
         ...challenge,
         participants: participantsWithProgress,
+        durationHours: challenge.durationHours,
+        remainingMs,
       });
     }
 
@@ -382,14 +641,39 @@ export class ChallengesService {
   }
 
   // ── AUTO-EXPIRY CRON ──────────────────────────────────────────────────
+  // Battle Arena 2.0: Challenges that pass their deadline without verified
+  // submissions are marked as "expired" (💀 Battle Lost).
+  @Cron(CronExpression.EVERY_MINUTE)
   async expireOverdueChallenges() {
+    // 1. Auto-accept pending reviews older than 24 hours
+    const staleReviews = await this.prisma.challengeParticipant.findMany({
+      where: {
+        verificationStatus: 'pending_review',
+        submittedAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+      }
+    });
+
+    for (const pr of staleReviews) {
+      await this.prisma.challengeParticipant.update({
+        where: { id: pr.id },
+        data: { verificationStatus: 'verified' },
+      });
+      // Award XP
+      const challenge = await this.prisma.challenge.findUnique({ where: { id: pr.challengeId } });
+      if (challenge) {
+        await this.updateXp(pr.userId, challenge.circleId, 30);
+      }
+      this.eventEmitter.emit('challenge.victory_accepted', { challengeId: pr.challengeId, participantId: pr.userId, challengeTitle: challenge?.title || '' });
+
+      // Call helper to resolve if needed
+      await this.checkAndResolveChallenge(pr.challengeId);
+    }
+
+    // 2. Expire overdue challenges
     const overdue = await this.prisma.challenge.findMany({
       where: {
         status: { in: ['active', 'pending'] },
         deadline: { lt: new Date() },
-      },
-      include: {
-        participants: true,
       },
     });
 
@@ -399,33 +683,33 @@ export class ChallengesService {
           where: { id: challenge.id },
           data: { status: 'cancelled' },
         });
-        this.eventEmitter.emit('challenge.cancelled', { challengeId: challenge.id, reason: 'expired' });
+        this.eventEmitter.emit('challenge.cancelled', { challengeId: challenge.id, reason: 'expired_pending' });
       } else if (challenge.status === 'active') {
-        let highestProgress = -1;
-        let winners: string[] = [];
-
-        for (const p of challenge.participants) {
-          const progress = p.manualProgress || 0;
-          if (progress > highestProgress) {
-            highestProgress = progress;
-            winners = [p.userId];
-          } else if (progress === highestProgress) {
-            winners.push(p.userId);
-          }
-        }
-
-        const outcomeType = winners.length === 1 ? 'win' : 'draw';
-        const winnerId = winners.length === 1 ? winners[0] : null;
-
-        const participantId = challenge.participants[0]?.userId;
-        if (participantId) {
-          await this.resolveChallenge(participantId, challenge.id, { outcomeType, winnerId: winnerId as any });
-        }
+        // Call helper to resolve
+        await this.checkAndResolveChallenge(challenge.id);
       }
     }
-    
+
     if (overdue.length > 0) {
-      console.log(`Expired ${overdue.length} overdue challenges.`);
+      console.log(`Processed ${overdue.length} overdue challenges.`);
     }
   }
+
+  async clearHistory(userId: string, challengeId: string) {
+    const participant = await this.prisma.challengeParticipant.findUnique({
+      where: { challengeId_userId: { challengeId, userId } },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Participant history not found');
+    }
+
+    // Delete history record
+    await this.prisma.challengeParticipant.delete({
+      where: { id: participant.id },
+    });
+
+    return { success: true };
+  }
 }
+

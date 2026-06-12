@@ -9,10 +9,13 @@ export declare class CreateChallengeDto {
     stakeDescription?: string;
     stakePoints?: number;
     proofRequired: boolean;
-    deadline: string;
+    durationHours: number;
     participantIds: string[];
 }
 export declare class ResolveChallengeDto {
     winnerId?: string;
     outcomeType: string;
+}
+export declare class SubmitVictoryDto {
+    proofText: string;
 }

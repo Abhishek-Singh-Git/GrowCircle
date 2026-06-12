@@ -23,7 +23,6 @@ import Constants from 'expo-constants';
 import { GlobalErrorBoundary } from './src/components/GlobalErrorBoundary';
 import { useCircles } from './src/hooks/useCircles';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { AmbientBackground } from './src/components/AmbientBackground';
 
 const defaultErrorHandler = ErrorUtils.getGlobalHandler();
 ErrorUtils.setGlobalHandler((error, isFatal) => {
@@ -167,7 +166,6 @@ export default function App() {
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
       <GlobalErrorBoundary>
-        <AmbientBackground />
         <GestureHandlerRootView style={{ flex: 1 }}>
           <NavigationContainer linking={linking} theme={navTheme} ref={navigationRef}>
             <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />

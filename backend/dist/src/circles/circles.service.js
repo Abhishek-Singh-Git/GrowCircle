@@ -145,6 +145,22 @@ let CirclesService = class CirclesService {
                 updatedAt: new Date(),
             },
         });
+        const groupThread = await this.prisma.chatThread.findFirst({
+            where: { circleId: circle.id, threadType: 'group' },
+        });
+        if (groupThread) {
+            await this.prisma.chatThreadParticipant.upsert({
+                where: { threadId_userId: { threadId: groupThread.id, userId } },
+                create: {
+                    threadId: groupThread.id,
+                    userId,
+                },
+                update: {
+                    clearedAt: null,
+                    lastReadAt: null,
+                },
+            });
+        }
         return {
             id: circle.id,
             name: circle.name,

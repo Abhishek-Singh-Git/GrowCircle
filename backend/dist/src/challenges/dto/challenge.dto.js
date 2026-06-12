@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ResolveChallengeDto = exports.CreateChallengeDto = void 0;
+exports.SubmitVictoryDto = exports.ResolveChallengeDto = exports.CreateChallengeDto = void 0;
 const class_validator_1 = require("class-validator");
 class CreateChallengeDto {
     circleId;
@@ -22,7 +22,7 @@ class CreateChallengeDto {
     stakeDescription;
     stakePoints;
     proofRequired;
-    deadline;
+    durationHours;
     participantIds;
 }
 exports.CreateChallengeDto = CreateChallengeDto;
@@ -72,9 +72,11 @@ __decorate([
     __metadata("design:type", Boolean)
 ], CreateChallengeDto.prototype, "proofRequired", void 0);
 __decorate([
-    (0, class_validator_1.IsDateString)(),
-    __metadata("design:type", String)
-], CreateChallengeDto.prototype, "deadline", void 0);
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(168),
+    __metadata("design:type", Number)
+], CreateChallengeDto.prototype, "durationHours", void 0);
 __decorate([
     (0, class_validator_1.IsUUID)("4", { each: true }),
     __metadata("design:type", Array)
@@ -93,4 +95,12 @@ __decorate([
     (0, class_validator_1.IsIn)(['win', 'draw', 'forfeit']),
     __metadata("design:type", String)
 ], ResolveChallengeDto.prototype, "outcomeType", void 0);
+class SubmitVictoryDto {
+    proofText;
+}
+exports.SubmitVictoryDto = SubmitVictoryDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SubmitVictoryDto.prototype, "proofText", void 0);
 //# sourceMappingURL=challenge.dto.js.map

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -38,6 +39,7 @@ if (process.env.REDIS_HOST) {
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     ...optionalImports,
     PrismaModule,
     AuthModule,

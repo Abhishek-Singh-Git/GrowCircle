@@ -47,13 +47,6 @@ export declare class NotificationsService {
     handleChallengeCreated(payload: {
         challenge: any;
     }): Promise<void>;
-    handleChallengeResolved(payload: {
-        challenge: any;
-    }): Promise<void>;
-    handleChallengeActivated(payload: {
-        challengeId: string;
-        participants: any[];
-    }): Promise<void>;
     handleChallengeAccepted(payload: {
         challenge: any;
         acceptorId: string;
@@ -78,5 +71,37 @@ export declare class NotificationsService {
     handleLateNightDetected(payload: {
         userId: string;
         circleId: string;
+    }): Promise<void>;
+    handleVictorySubmitted(payload: {
+        challengeId: string;
+        userId: string;
+        challengeTitle: string;
+    }): Promise<void>;
+    handleVictoryAccepted(payload: {
+        challengeId: string;
+        participantId: string;
+        challengeTitle: string;
+    }): Promise<void>;
+    handleVictoryRejected(payload: {
+        challengeId: string;
+        participantId: string;
+        reason: string;
+        challengeTitle: string;
+    }): Promise<void>;
+    handleChallengeActivated(payload: {
+        challengeId: string;
+        participants: {
+            userId: string;
+        }[];
+    }): Promise<void>;
+    handleChallengeExpired(payload: {
+        challengeId: string;
+        outcomeType: string;
+    }): Promise<void>;
+    handleChallengeResolved(payload: {
+        challengeId?: string;
+        outcomeType?: string;
+        winnerId?: string;
+        challenge?: any;
     }): Promise<void>;
 }

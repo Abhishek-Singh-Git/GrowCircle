@@ -130,6 +130,25 @@ export class CirclesService {
       },
     });
 
+    // Add user to the circle's group chat thread if it exists
+    const groupThread = await this.prisma.chatThread.findFirst({
+      where: { circleId: circle.id, threadType: 'group' },
+    });
+
+    if (groupThread) {
+      await this.prisma.chatThreadParticipant.upsert({
+        where: { threadId_userId: { threadId: groupThread.id, userId } },
+        create: {
+          threadId: groupThread.id,
+          userId,
+        },
+        update: {
+          clearedAt: null,
+          lastReadAt: null,
+        },
+      });
+    }
+
     return {
       id: circle.id,
       name: circle.name,
@@ -226,6 +245,29 @@ export class CirclesService {
     });
 
     return { message: 'You have left the circle.' };
+  }
+
+  // ── DELETE CIRCLE ────────────────────────────────────────────────────
+  async deleteCircle(userId: string, circleId: string) {
+    const membership = await this.validateMembership(userId, circleId);
+
+    if (membership.role !== 'owner') {
+      throw new ForbiddenException('Only the circle owner can delete the circle.');
+    }
+
+    // Mark circle as disbanded
+    await this.prisma.circle.update({
+      where: { id: circleId },
+      data: { disbandedAt: new Date() },
+    });
+
+    // Mark all members as inactive
+    await this.prisma.circleMember.updateMany({
+      where: { circleId },
+      data: { status: 'inactive', leftAt: new Date() },
+    });
+
+    return { message: 'Circle has been deleted.' };
   }
 
   // ── MEMBERSHIP VALIDATION (reused across all services) ────────────────

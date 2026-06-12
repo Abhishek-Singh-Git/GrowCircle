@@ -1,75 +1,145 @@
 /**
- * GrowCircle — Battle Tab
- * Challenges, leaderboard, and tug-of-war competitions.
+ * GrowCircle — Battle Arena 2.0
+ * Immersive time-bound challenge system with dynamic atmosphere,
+ * hold-to-verify victory claims, and battle results.
  */
-import React, { useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, Modal, TextInput } from 'react-native';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  StatusBar,
+  Modal,
+  TextInput,
+  Animated,
+  Dimensions,
+  Image,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
-
 import { useChallenges, Challenge } from '../../hooks/useChallenges';
 import { useAuthStore } from '../../stores/authStore';
 import { useCircleStore } from '../../stores/circleStore';
 import * as Haptics from 'expo-haptics';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// ── Duration Options ─────────────────────────────────────────────────
+const DURATION_OPTIONS = [
+  { label: '1h', value: 1 },
+  { label: '6h', value: 6 },
+  { label: '12h', value: 12 },
+  { label: '24h', value: 24 },
+  { label: '48h', value: 48 },
+];
+
+// ── Countdown Hook ───────────────────────────────────────────────────
+function useCountdown(deadlineStr: string | null) {
+  const [remaining, setRemaining] = useState(0);
+  useEffect(() => {
+    if (!deadlineStr) return;
+    const tick = () => {
+      const ms = new Date(deadlineStr).getTime() - Date.now();
+      setRemaining(Math.max(0, ms));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [deadlineStr]);
+  return remaining;
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return '00:00:00';
+  const totalSecs = Math.floor(ms / 1000);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// ── Atmosphere Phase ─────────────────────────────────────────────────
+function getAtmospherePhase(remainingMs: number, durationHours: number): 'dawn' | 'mid' | 'final' {
+  const totalMs = durationHours * 60 * 60 * 1000;
+  const elapsed = totalMs - remainingMs;
+  const ratio = elapsed / totalMs;
+  if (ratio < 0.5) return 'dawn';
+  if (ratio < 0.85) return 'mid';
+  return 'final';
+}
+
+const ATMOSPHERE_COLORS = {
+  dawn: { bg: ['#1a1a2e', '#16213e'] as const, accent: Colors.accentPrimary },
+  mid: { bg: ['#1a1a2e', '#2d1b3d'] as const, accent: Colors.accentWarning },
+  final: { bg: ['#2d1117', '#1a0a0a'] as const, accent: Colors.accentDanger },
+};
+
+// ── Avatar Component ─────────────────────────────────────────────────
+function UserAvatar({ uri, size = 56 }: { uri?: string | null; size?: number }) {
+  return (
+    <View style={[styles.avatarRing, { width: size + 6, height: size + 6 }]}>
+      {uri ? (
+        <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />
+      ) : (
+        <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2 }]}>
+          <Text style={{ fontSize: size * 0.4 }}>👤</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// MAIN SCREEN
+// ══════════════════════════════════════════════════════════════════════
 export default function BattleScreen() {
-  const { challenges, fetchChallenges, createChallenge, respondToChallenge, incrementProgress, resolveChallenge } = useChallenges();
+  const { challenges, fetchChallenges, createChallenge, respondToChallenge, submitVictory, acceptVictory, rejectVictory, clearHistory } = useChallenges();
   const user = useAuthStore((s) => s.user);
   const activeCircleId = useCircleStore((s) => s.activeCircleId);
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  // ── State ──────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'resolved'>('active');
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [victoryModalVisible, setVictoryModalVisible] = useState(false);
+  const [resultModalVisible, setResultModalVisible] = useState(false);
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
-  const [holdProgress, setHoldProgress] = useState(0);
-  const [isHolding, setIsCreating] = useState(false); // Using existing setIsCreating for loading state logic
-  const holdTimerRef = useRef<any>(null);
 
+  // Create form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [deadlineDays, setDeadlineDays] = useState('7');
-  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'resolved'>('active');
-  const [isCreating, setIsCreatingState] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState(12);
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
-  const handleProgressConfirm = (challenge: Challenge) => {
-    const yourParticipant = challenge.participants.find((p) => p.userId === user?.id);
-    const progress = yourParticipant?.progress || 0;
-    const target = challenge.conditionTarget || 7;
-    if (progress >= target) {
-      alert("You have already reached the target!");
-      return;
-    }
-    setActiveChallenge(challenge);
-    setConfirmModalVisible(true);
-    setHoldProgress(0);
-  };
+  // Victory claim state
+  const [proofText, setProofText] = useState('');
+  const [holdProgress, setHoldProgress] = useState(0);
+  const holdTimerRef = useRef<any>(null);
+  const [victoryClaimed, setVictoryClaimed] = useState(false);
 
-  const startHold = () => {
-    let current = 0;
-    const interval = setInterval(() => {
-      current += 0.05;
-      if (current >= 1) {
-        clearInterval(interval);
-        handleIncrement();
-      }
-      setHoldProgress(Math.min(current, 1));
-    }, 50);
-    return interval;
-  };
+  // Result display
+  const [resultChallenge, setResultChallenge] = useState<Challenge | null>(null);
 
-  const handleIncrement = async () => {
-    if (!activeChallenge) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    try {
-      await incrementProgress(activeChallenge.id);
-      setConfirmModalVisible(false);
-    } catch (e: any) {
-      alert(e.message || "Failed to update progress");
-      setConfirmModalVisible(false);
-    }
-  };
+  // Pulsing animation for Final Hour mode
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const handleOpenModal = () => {
+  // ── Filtered Lists ─────────────────────────────────────────────────
+  const filteredChallenges = useMemo(() => {
+    return challenges.filter((c) => {
+      if (activeTab === 'active') return c.status === 'active';
+      if (activeTab === 'pending') return c.status === 'pending';
+      if (activeTab === 'resolved') return c.status === 'resolved' || c.status === 'expired';
+      return false;
+    });
+  }, [challenges, activeTab]);
+
+  const victories = useMemo(() => filteredChallenges.filter(c => c.status === 'resolved'), [filteredChallenges]);
+  const expired = useMemo(() => filteredChallenges.filter(c => c.status === 'expired'), [filteredChallenges]);
+
+  // ── Create Challenge ───────────────────────────────────────────────
+  const handleOpenCreate = () => {
     if (!activeCircleId) {
       alert('Join or create a circle first!');
       return;
@@ -82,143 +152,147 @@ export default function BattleScreen() {
     if (partners.length === 1) {
       setSelectedPartnerId(partners[0].id);
     }
-    setModalVisible(true);
+    setCreateModalVisible(true);
   };
 
   const handleCreateChallenge = async () => {
-    if (!selectedPartnerId) {
-      alert('Please select a partner for this challenge.');
-      return;
-    }
-
-    const deadlineMs = parseInt(deadlineDays, 10) * 24 * 60 * 60 * 1000;
-    const deadline = new Date(Date.now() + deadlineMs).toISOString();
-    
+    if (!selectedPartnerId || !title) return;
     setIsCreating(true);
     try {
       await createChallenge({
         circleId: activeCircleId,
         title,
-        conditionDescription: description,
+        conditionDescription: description || title,
         conditionType: 'custom',
         stakeType: 'iou',
-        stakeDescription: 'Loser buys dinner',
+        stakeDescription: '',
         proofRequired: true,
-        deadline,
-        participantIds: [user?.id || '', selectedPartnerId].filter(Boolean),
+        durationHours: selectedDuration,
+        participantIds: [selectedPartnerId].filter(Boolean),
       });
-      setModalVisible(false);
+      setCreateModalVisible(false);
       setTitle('');
       setDescription('');
-      setDeadlineDays('7');
+      setSelectedDuration(12);
       setSelectedPartnerId(null);
       setActiveTab('pending');
     } catch (e: any) {
-      console.warn('Cannot create challenge:', e?.message || e);
       alert(e?.message || 'Failed to create challenge');
     } finally {
       setIsCreating(false);
     }
   };
 
+  // ── Respond ────────────────────────────────────────────────────────
   const handleRespond = async (challengeId: string, accept: boolean) => {
     try {
       await respondToChallenge(challengeId, accept);
-      if (accept) {
-        setActiveTab('active');
-      }
+      if (accept) setActiveTab('active');
     } catch (err) {
       console.warn('Failed to respond', err);
     }
   };
 
-  const renderChallenge = (challenge: Challenge) => {
-    const yourParticipant = challenge.participants.find((p) => p.userId === user?.id);
-    const partnerParticipant = challenge.participants.find((p) => p.userId !== user?.id);
+  // ── Claim Victory ──────────────────────────────────────────────────
+  const openVictoryModal = (challenge: Challenge) => {
+    const yours = challenge.participants.find(p => p.userId === user?.id);
+    if (yours?.verificationStatus === 'verified') {
+      alert('You have already claimed victory!');
+      return;
+    }
+    setActiveChallenge(challenge);
+    setProofText('');
+    setHoldProgress(0);
+    setVictoryClaimed(false);
+    setVictoryModalVisible(true);
+  };
 
-    const yourProgress = yourParticipant?.progress || 0;
-    const partnerProgress = partnerParticipant?.progress || 0;
-    const total = challenge.conditionTarget || 7;
-    const isPending = challenge.status === 'pending';
+  const startHold = () => {
+    if (!proofText.trim()) {
+      alert('Please describe what you accomplished.');
+      return;
+    }
+    let current = 0;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const interval = setInterval(() => {
+      current += 0.025; // 2 seconds to fill
+      if (current >= 1) {
+        clearInterval(interval);
+        handleSubmitVictory();
+      }
+      setHoldProgress(Math.min(current, 1));
+    }, 50);
+    holdTimerRef.current = interval;
+  };
 
+  const stopHold = () => {
+    if (holdTimerRef.current) clearInterval(holdTimerRef.current);
+    if (holdProgress < 1) setHoldProgress(0);
+  };
+
+  const handleSubmitVictory = async () => {
+    if (!activeChallenge) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setVictoryClaimed(true);
+    try {
+      await submitVictory(activeChallenge.id, proofText);
+      // Show result
+      setTimeout(() => {
+        setVictoryModalVisible(false);
+        setResultChallenge(activeChallenge);
+        setResultModalVisible(true);
+        // Auto-dismiss result after 5 seconds
+        setTimeout(() => {
+          setResultModalVisible(false);
+          setResultChallenge(null);
+        }, 5000);
+      }, 1500);
+    } catch (e: any) {
+      alert(e?.message || 'Failed to submit victory');
+      setVictoryClaimed(false);
+      setHoldProgress(0);
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // RENDER: Active Battle Card
+  // ══════════════════════════════════════════════════════════════════
+  const renderActiveBattle = ({ item: challenge }: { item: Challenge }) => {
+    return <ActiveBattleCard challenge={challenge} userId={user?.id || ''} onClaimVictory={openVictoryModal} onAcceptVictory={acceptVictory} onRejectVictory={rejectVictory} />;
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // RENDER: Pending Card
+  // ══════════════════════════════════════════════════════════════════
+  const renderPendingCard = ({ item: challenge }: { item: Challenge }) => {
+    const isProposer = challenge.proposerId === user?.id;
     return (
-      <View key={challenge.id} style={styles.challengeCard}>
-        <View style={styles.challengeHeader}>
-          <Text style={styles.challengeEmoji}>⚔️</Text>
-          <View style={styles.challengeInfo}>
-            <Text style={styles.challengeTitle}>{challenge.title}</Text>
-            <Text style={styles.challengeDeadline}>
-              {isPending ? `Proposed by ${challenge.proposer.name}` : 'Deadline: ' + new Date(challenge.deadline).toLocaleDateString()}
+      <View style={styles.pendingCard}>
+        <View style={styles.pendingHeader}>
+          <Text style={styles.pendingEmoji}>⚔️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pendingTitle}>{challenge.title}</Text>
+            <Text style={styles.pendingMeta}>
+              {isProposer ? 'Waiting for response...' : `From ${challenge.proposer.name}`}
             </Text>
-          </View>
-          <View
-            style={[
-              styles.statusBadge,
-              challenge.status === 'active' ? styles.statusActive : styles.statusPending,
-            ]}
-          >
-            <Text style={styles.statusText}>
-              {challenge.status.toUpperCase()}
-            </Text>
+            <Text style={styles.pendingDuration}>⏱ {challenge.durationHours}h battle</Text>
           </View>
         </View>
-
-        {challenge.status === 'active' && (
-          <View style={styles.tugOfWar}>
-            <Text style={styles.tugLabel}>You: {yourProgress}/{total}</Text>
-            <View style={styles.tugBar}>
-              <LinearGradient
-                colors={Colors.gradientPrimary}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[
-                  styles.tugFill,
-                  { width: `${Math.min((yourProgress / total) * 50, 50)}%` },
-                ]}
-              />
-              <LinearGradient
-                colors={Colors.gradientDanger}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[
-                  styles.tugFillRight,
-                  { width: `${Math.min((partnerProgress / total) * 50, 50)}%` },
-                ]}
-              />
-            </View>
-            <Text style={styles.tugLabel}>Partner: {partnerProgress}/{total}</Text>
-          </View>
-        )}
-
-        {challenge.status === 'active' && yourProgress < total && (
-          <View style={styles.actionContainer}>
+        {!isProposer && (
+          <View style={styles.pendingActions}>
             <TouchableOpacity
-              style={styles.checkInBtn}
-              onPress={() => handleProgressConfirm(challenge)}
-            >
-              <LinearGradient
-                colors={['#4F46E5', '#7C3AED']}
-                style={styles.checkInGradient}
-              >
-                <Text style={styles.checkInText}>Daily Check-In</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {isPending && challenge.proposerId !== user?.id && (
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-            <TouchableOpacity
-              style={{ flex: 1, backgroundColor: Colors.accentPrimary, padding: 10, borderRadius: 8, alignItems: 'center' }}
+              style={styles.acceptBtn}
               onPress={() => handleRespond(challenge.id, true)}
             >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>Accept</Text>
+              <LinearGradient colors={Colors.gradientPrimary} style={styles.acceptGradient}>
+                <Text style={styles.acceptText}>Accept Challenge</Text>
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
-              style={{ flex: 1, backgroundColor: Colors.surfaceHover, padding: 10, borderRadius: 8, alignItems: 'center' }}
+              style={styles.declineBtn}
               onPress={() => handleRespond(challenge.id, false)}
             >
-              <Text style={{ color: 'white' }}>Decline</Text>
+              <Text style={styles.declineText}>Decline</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -226,446 +300,604 @@ export default function BattleScreen() {
     );
   };
 
-  const filteredChallenges = useMemo(() => {
-    return challenges.filter((c) => c.status === activeTab || (activeTab === 'pending' && c.status === 'proposed'));
-  }, [challenges, activeTab]);
+  // ══════════════════════════════════════════════════════════════════
+  // RENDER: Resolved Card
+  // ══════════════════════════════════════════════════════════════════
+  const renderResolvedCard = ({ item: challenge }: { item: Challenge }) => {
+    const isExpired = challenge.status === 'expired' || challenge.status === 'cancelled';
+    return (
+      <View style={[styles.resolvedCard, isExpired && styles.resolvedCardExpired]}>
+        <Text style={styles.resolvedIcon}>{isExpired ? '💀' : '🏆'}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.resolvedTitle}>{challenge.title}</Text>
+          <Text style={styles.resolvedStatus}>
+            {isExpired ? 'Battle Lost — No completion submitted' : `Victory — ${challenge.winner?.name || 'Draw'}`}
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.clearBtn} onPress={() => clearHistory(challenge.id)}>
+          <Text style={styles.clearBtnText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
+  // ══════════════════════════════════════════════════════════════════
+  // RENDER: Header
+  // ══════════════════════════════════════════════════════════════════
   const renderHeader = () => (
     <>
       <Text style={styles.pageTitle}>⚔️ Battle Arena</Text>
-      <Text style={styles.pageSubtitle}>Challenge your circle. Prove your discipline.</Text>
+      <Text style={styles.pageSubtitle}>Enter the arena. Prove your discipline.</Text>
 
       <View style={styles.tabsContainer}>
+        {(['active', 'pending', 'resolved'] as const).map(tab => (
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'active' && styles.tabActive]}
-            onPress={() => setActiveTab('active')}
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            onPress={() => setActiveTab(tab)}
           >
-            <Text style={[styles.tabText, activeTab === 'active' && styles.tabTextActive]}>Active</Text>
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab === 'active' ? '⚔️ Active' : tab === 'pending' ? '📩 Pending' : '📜 History'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'pending' && styles.tabActive]}
-            onPress={() => setActiveTab('pending')}
-          >
-            <Text style={[styles.tabText, activeTab === 'pending' && styles.tabTextActive]}>Pending</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'resolved' && styles.tabActive]}
-            onPress={() => setActiveTab('resolved')}
-          >
-            <Text style={[styles.tabText, activeTab === 'resolved' && styles.tabTextActive]}>Resolved</Text>
-          </TouchableOpacity>
+        ))}
       </View>
     </>
   );
 
   const renderEmpty = () => (
-    <Text style={{ color: Colors.textSecondary, marginBottom: 20 }}>No {activeTab} challenges.</Text>
+    <View style={styles.emptyState}>
+      <Text style={styles.emptyEmoji}>
+        {activeTab === 'active' ? '⚔️' : activeTab === 'pending' ? '📩' : '📜'}
+      </Text>
+      <Text style={styles.emptyText}>
+        {activeTab === 'active' ? 'No active battles.' : activeTab === 'pending' ? 'No pending challenges.' : 'No battle history yet.'}
+      </Text>
+    </View>
   );
 
+  // ══════════════════════════════════════════════════════════════════
+  // RENDER: Resolved Tab with sections
+  // ══════════════════════════════════════════════════════════════════
+  const renderResolvedList = () => (
+    <>
+      {victories.length > 0 && (
+        <>
+          <Text style={styles.sectionLabel}>🏆 Victories</Text>
+          {victories.map(c => <View key={c.id}>{renderResolvedCard({ item: c })}</View>)}
+        </>
+      )}
+      {expired.length > 0 && (
+        <>
+          <Text style={[styles.sectionLabel, { marginTop: Spacing.lg }]}>💀 Expired</Text>
+          {expired.map(c => <View key={c.id}>{renderResolvedCard({ item: c })}</View>)}
+        </>
+      )}
+      {victories.length === 0 && expired.length === 0 && renderEmpty()}
+    </>
+  );
+
+  // ══════════════════════════════════════════════════════════════════
+  // MAIN RETURN
+  // ══════════════════════════════════════════════════════════════════
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
-      <FlatList
-        data={filteredChallenges}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => renderChallenge(item)}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      />
 
-        {/* Create challenge CTA */}
-        {activeTab !== 'resolved' && (
-          <TouchableOpacity activeOpacity={0.8} onPress={handleOpenModal}>
-            <LinearGradient
-              colors={Colors.gradientPrimary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.createBtn}
-            >
-              <Text style={styles.createBtnText}>+ Create Challenge</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-        <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>New Challenge</Text>
+      {activeTab === 'resolved' ? (
+        <FlatList
+          data={[]}
+          keyExtractor={() => 'resolved-section'}
+          renderItem={() => null}
+          ListHeaderComponent={<>{renderHeader()}{renderResolvedList()}</>}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <FlatList
+          data={filteredChallenges}
+          keyExtractor={(item) => item.id}
+          renderItem={activeTab === 'active' ? renderActiveBattle : renderPendingCard}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmpty}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
-              <Text style={styles.inputLabel}>Select Partner</Text>
-              <View style={styles.partnerPicker}>
-                {useCircleStore.getState().activeCircle?.members?.filter((m: any) => m.id !== user?.id).map((p: any) => (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={[styles.partnerOption, selectedPartnerId === p.id && styles.partnerOptionSelected]}
-                    onPress={() => setSelectedPartnerId(p.id)}
-                  >
-                    <Text style={[styles.partnerOptionText, selectedPartnerId === p.id && styles.partnerOptionTextSelected]}>{p.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+      {/* Create Challenge FAB */}
+      <TouchableOpacity activeOpacity={0.8} onPress={handleOpenCreate} style={styles.fabContainer}>
+        <LinearGradient colors={Colors.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
+          <Text style={styles.fabText}>⚔️ Declare War</Text>
+        </LinearGradient>
+      </TouchableOpacity>
 
-              <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={styles.input} placeholderTextColor={Colors.textTertiary} />
-              <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={styles.input} placeholderTextColor={Colors.textTertiary} />
-              <TextInput placeholder="Deadline (days)" value={deadlineDays} onChangeText={setDeadlineDays} keyboardType="numeric" style={styles.input} placeholderTextColor={Colors.textTertiary} />
+      {/* ════════════════════════════════════════════════════════════ */}
+      {/* CREATE CHALLENGE MODAL                                      */}
+      {/* ════════════════════════════════════════════════════════════ */}
+      <Modal visible={createModalVisible} animationType="slide" transparent onRequestClose={() => setCreateModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.createModal}>
+            <Text style={styles.createModalTitle}>⚔️ New Battle</Text>
+            <Text style={styles.createModalSubtitle}>Choose your arena and challenge your circle.</Text>
 
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+            {/* Title */}
+            <Text style={styles.fieldLabel}>Challenge Title</Text>
+            <TextInput
+              placeholder="e.g. 100 Push-ups"
+              value={title}
+              onChangeText={setTitle}
+              style={styles.input}
+              placeholderTextColor={Colors.textTertiary}
+            />
+
+            {/* Description */}
+            <Text style={styles.fieldLabel}>Description</Text>
+            <TextInput
+              placeholder="What's the challenge about?"
+              value={description}
+              onChangeText={setDescription}
+              style={styles.input}
+              placeholderTextColor={Colors.textTertiary}
+            />
+
+            {/* Duration Selector */}
+            <Text style={styles.fieldLabel}>Battle Duration</Text>
+            <View style={styles.durationRow}>
+              {DURATION_OPTIONS.map(opt => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.durationChip, selectedDuration === opt.value && styles.durationChipActive]}
+                  onPress={() => setSelectedDuration(opt.value)}
+                >
+                  <Text style={[styles.durationChipText, selectedDuration === opt.value && styles.durationChipTextActive]}>
+                    {opt.label}
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.submitBtn, (!title || !selectedPartnerId) && { opacity: 0.5 }]} onPress={handleCreateChallenge} disabled={isCreating || !title || !selectedPartnerId}>
-                  <Text style={styles.submitBtnText}>{isCreating ? "Creating..." : "Create"}</Text>
-                </TouchableOpacity>
-              </View>
+              ))}
             </View>
-          </View>
-        </Modal>
 
-        {/* Hold-to-Confirm Modal */}
-        <Modal visible={confirmModalVisible} transparent animationType="fade">
-          <View style={styles.holdOverlay}>
-            <View style={styles.holdCard}>
-              <Text style={styles.holdTitle}>Hold to Confirm</Text>
-              <Text style={styles.holdSubtitle}>Verifying your progress for today</Text>
+            {/* Participant Selector */}
+            <Text style={styles.fieldLabel}>Opponent</Text>
+            <View style={styles.partnerRow}>
+              {useCircleStore.getState().activeCircle?.members?.filter((m: any) => m.id !== user?.id).map((p: any) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[styles.partnerChip, selectedPartnerId === p.id && styles.partnerChipActive]}
+                  onPress={() => setSelectedPartnerId(p.id)}
+                >
+                  <UserAvatar uri={p.avatarUrl} size={28} />
+                  <Text style={[styles.partnerChipText, selectedPartnerId === p.id && styles.partnerChipTextActive]}>
+                    {p.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
+            {/* Actions */}
+            <View style={styles.createActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setCreateModalVisible(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
               <TouchableOpacity
-                activeOpacity={1}
-                onPressIn={() => {
-                  const timer = startHold();
-                  holdTimerRef.current = timer;
-                }}
-                onPressOut={() => {
-                  if (holdTimerRef.current) clearInterval(holdTimerRef.current);
-                  setHoldProgress(0);
-                }}
-                style={styles.fingerprintArea}
+                style={[styles.submitBtn, (!title || !selectedPartnerId) && { opacity: 0.4 }]}
+                onPress={handleCreateChallenge}
+                disabled={isCreating || !title || !selectedPartnerId}
               >
-                <View style={styles.fingerprintCircle}>
-                  <Text style={{ fontSize: 40 }}>☝️</Text>
-                  <View style={[styles.progressRing, { height: `${holdProgress * 100}%` }]} />
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.closeHoldBtn} onPress={() => setConfirmModalVisible(false)}>
-                <Text style={styles.closeHoldText}>Cancel</Text>
+                <LinearGradient colors={Colors.gradientPrimary} style={styles.submitGradient}>
+                  <Text style={styles.submitBtnText}>{isCreating ? 'Creating...' : '⚔️ Declare War'}</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
+
+      {/* ════════════════════════════════════════════════════════════ */}
+      {/* CLAIM VICTORY MODAL                                         */}
+      {/* ════════════════════════════════════════════════════════════ */}
+      <Modal visible={victoryModalVisible} animationType="fade" transparent onRequestClose={() => setVictoryModalVisible(false)}>
+        <View style={styles.victoryOverlay}>
+          <View style={styles.victoryCard}>
+            {!victoryClaimed ? (
+              <>
+                <Text style={styles.victoryTitle}>🏆 Claim Victory</Text>
+                <Text style={styles.victorySubtitle}>What did you accomplish?</Text>
+
+                <TextInput
+                  placeholder="I completed 100 push-ups and 20 minutes of cardio..."
+                  value={proofText}
+                  onChangeText={setProofText}
+                  style={styles.proofInput}
+                  placeholderTextColor={Colors.textTertiary}
+                  multiline
+                  numberOfLines={4}
+                />
+
+                <Text style={styles.holdInstruction}>Hold To Verify Victory</Text>
+
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPressIn={startHold}
+                  onPressOut={stopHold}
+                  style={styles.holdButton}
+                >
+                  <View style={styles.holdCircleOuter}>
+                    <View style={styles.holdCircleInner}>
+                      <Text style={{ fontSize: 40 }}>🏆</Text>
+                      <View style={[styles.holdFill, { height: `${holdProgress * 100}%` }]} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.victoryCancel} onPress={() => setVictoryModalVisible(false)}>
+                  <Text style={styles.victoryCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.victorySuccess}>
+                <Text style={styles.victoryCheckmark}>✓</Text>
+                <Text style={styles.victoryClaimedText}>Victory Claimed!</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ════════════════════════════════════════════════════════════ */}
+      {/* BATTLE RESULTS MODAL                                        */}
+      {/* ════════════════════════════════════════════════════════════ */}
+      <Modal visible={resultModalVisible} animationType="fade" transparent onRequestClose={() => setResultModalVisible(false)}>
+        <View style={styles.resultOverlay}>
+          <View style={styles.resultCard}>
+            <View style={styles.resultIconBg}>
+              <Text style={styles.resultIcon}>🏆</Text>
+            </View>
+            <Text style={styles.resultTitle}>VICTORY</Text>
+            <Text style={styles.resultChallengeName}>{resultChallenge?.title}</Text>
+            <View style={styles.resultDetails}>
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>Completed In</Text>
+                <Text style={styles.resultValue}>{resultChallenge?.durationHours}h 00m</Text>
+              </View>
+              <View style={styles.resultDivider} />
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>Submitted By</Text>
+                <Text style={styles.resultValue}>You</Text>
+              </View>
+              <View style={styles.resultDivider} />
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>Status</Text>
+                <Text style={[styles.resultValue, { color: Colors.accentWarning }]}>Pending Review</Text>
+              </View>
+              <View style={styles.resultDivider} />
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>Reward</Text>
+                <Text style={[styles.resultValue, { color: Colors.accentWarning }]}>
+                  {resultChallenge?.participants.find(p => p.userId === user?.id)?.verificationStatus === 'verified'
+                    ? '+30 XP'
+                    : '+30 XP (Pending Approval)'}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.closeResultBtn} onPress={() => setResultModalVisible(false)}>
+              <Text style={styles.closeResultBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// ACTIVE BATTLE CARD (with live countdown + atmosphere)
+// ══════════════════════════════════════════════════════════════════════
+function ActiveBattleCard({ challenge, userId, onClaimVictory, onAcceptVictory, onRejectVictory }: {
+  challenge: Challenge;
+  userId: string;
+  onClaimVictory: (c: Challenge) => void;
+  onAcceptVictory: (challengeId: string, participantId: string) => void;
+  onRejectVictory: (challengeId: string, participantId: string, reason: string) => void;
+}) {
+  const remainingMs = useCountdown(challenge.deadline);
+  const phase = getAtmospherePhase(remainingMs, challenge.durationHours);
+  const colors = ATMOSPHERE_COLORS[phase];
+
+  const isSolo = challenge.participants.length === 1;
+  const yourParticipant = challenge.participants.find(p => p.userId === userId);
+  const opponent = challenge.participants.find(p => p.userId !== userId);
+
+  let leftAvatar: string | null = null;
+  let leftName = 'You';
+  let leftStatus: string | null = null;
+
+  let rightAvatar: string | null = null;
+  let rightName = 'Opponent';
+  let rightStatus: string | null = null;
+  let rightLabel = '';
+
+  if (isSolo) {
+    const participant = challenge.participants[0];
+    const isMeParticipant = participant.userId === userId;
+
+    leftAvatar = participant.user?.avatarUrl || null;
+    leftName = isMeParticipant ? 'You' : participant.user?.name || 'Defender';
+    leftStatus = participant.verificationStatus;
+
+    rightAvatar = challenge.proposer?.avatarUrl || null;
+    rightName = !isMeParticipant ? 'You' : challenge.proposer?.name || 'Challenger';
+    rightLabel = 'Challenger';
+  } else {
+    leftAvatar = yourParticipant?.user?.avatarUrl || null;
+    leftName = 'You';
+    leftStatus = yourParticipant?.verificationStatus || null;
+
+    rightAvatar = opponent?.user?.avatarUrl || null;
+    rightName = opponent?.user?.name || 'Opponent';
+    rightStatus = opponent?.verificationStatus || null;
+  }
+
+  const alreadyClaimed = yourParticipant?.verificationStatus === 'pending_review' || yourParticipant?.verificationStatus === 'verified';
+  const opponentNeedsReview = opponent?.verificationStatus === 'pending_review';
+
+  const progressRatio = 1 - (remainingMs / (challenge.durationHours * 60 * 60 * 1000));
+  const ringSize = 80;
+  const circumference = 2 * Math.PI * (ringSize / 2 - 6);
+
+  return (
+    <LinearGradient colors={colors.bg} style={styles.battleCard}>
+      {/* VS Header */}
+      <View style={styles.battleVsRow}>
+        <View style={styles.battleFighter}>
+          <UserAvatar uri={leftAvatar} size={48} />
+          <Text style={styles.battleFighterName}>{leftName}</Text>
+          {leftStatus === 'verified' && <Text style={styles.verifiedBadge}>✓ Verified</Text>}
+          {leftStatus === 'pending_review' && <Text style={[styles.verifiedBadge, { color: Colors.accentWarning }]}>⏳ Pending</Text>}
+          {leftStatus === 'rejected' && <Text style={[styles.verifiedBadge, { color: Colors.accentDanger }]}>✕ Rejected</Text>}
+        </View>
+        <Text style={styles.battleVs}>⚔️</Text>
+        <View style={styles.battleFighter}>
+          <UserAvatar uri={rightAvatar} size={48} />
+          <Text style={styles.battleFighterName}>{rightName}</Text>
+          {rightStatus === 'verified' && <Text style={styles.verifiedBadge}>✓ Verified</Text>}
+          {rightStatus === 'pending_review' && <Text style={[styles.verifiedBadge, { color: Colors.accentWarning }]}>⏳ Pending</Text>}
+          {rightStatus === 'rejected' && <Text style={[styles.verifiedBadge, { color: Colors.accentDanger }]}>✕ Rejected</Text>}
+          {!!rightLabel && <Text style={[styles.verifiedBadge, { color: Colors.textTertiary }]}>{rightLabel}</Text>}
+        </View>
+      </View>
+
+      {/* Challenge Title */}
+      <Text style={styles.battleTitle}>{challenge.title}</Text>
+
+      {/* Countdown Ring */}
+      <View style={styles.countdownContainer}>
+        <View style={{ width: ringSize, height: ringSize, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={[styles.countdownRingBg, { width: ringSize, height: ringSize, borderRadius: ringSize / 2, borderColor: `${colors.accent}30` }]} />
+          <View style={[styles.countdownRingProgress, {
+            width: ringSize, height: ringSize, borderRadius: ringSize / 2,
+            borderColor: colors.accent,
+            borderTopColor: 'transparent',
+            transform: [{ rotate: `${progressRatio * 360}deg` }],
+          }]} />
+          <View style={styles.countdownCenter}>
+            <Text style={[styles.countdownText, phase === 'final' && { color: Colors.accentDanger }]}>
+              {formatCountdown(remainingMs)}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.countdownLabel}>
+          {phase === 'final' ? '🔥 FINAL HOUR' : 'Remaining'}
+        </Text>
+      </View>
+
+      {/* Claim Victory Button */}
+      {!!yourParticipant && !alreadyClaimed && !opponentNeedsReview && remainingMs > 0 && (
+        <TouchableOpacity activeOpacity={0.8} onPress={() => onClaimVictory(challenge)}>
+          <LinearGradient
+            colors={phase === 'final' ? Colors.gradientDanger : Colors.gradientPrimary}
+            style={styles.claimBtn}
+          >
+            <Text style={styles.claimBtnText}>🏆 Claim Victory</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+
+      {opponentNeedsReview && (
+        <View style={styles.reviewContainer}>
+          <Text style={styles.reviewPrompt}>{opponent?.user?.name} claims victory!</Text>
+          <View style={styles.reviewActions}>
+            <TouchableOpacity style={styles.reviewAcceptBtn} onPress={() => onAcceptVictory(challenge.id, opponent.userId)}>
+              <Text style={styles.reviewAcceptText}>Accept</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.reviewRejectBtn} onPress={() => onRejectVictory(challenge.id, opponent.userId, 'Declined by opponent')}>
+              <Text style={styles.reviewRejectText}>Reject</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {alreadyClaimed && (
+        <View style={styles.claimedBanner}>
+          <Text style={styles.claimedText}>
+            {yourParticipant?.verificationStatus === 'verified' ? '✓ Victory Verified' : '⏳ Pending Review'}
+          </Text>
+        </View>
+      )}
+      {remainingMs <= 0 && !alreadyClaimed && (
+        <View style={styles.expiredBanner}>
+          <Text style={styles.expiredText}>💀 Battle Lost</Text>
+        </View>
+      )}
+    </LinearGradient>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// STYLES
+// ══════════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  scroll: {
-    paddingTop: 60,
-    paddingHorizontal: Spacing.md,
-    paddingBottom: 100,
-  },
-  pageTitle: {
-    fontFamily: Typography.fontFamily.bold,
-    fontSize: Typography.size.heading,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xxs,
-  },
-  pageSubtitle: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.body,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    marginBottom: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: BorderRadius.sm,
-  },
-  tabActive: {
-    backgroundColor: Colors.accentPrimary,
-  },
-  tabText: {
-    fontFamily: Typography.fontFamily.medium,
-    color: Colors.textSecondary,
-    fontSize: Typography.size.small,
-  },
-  tabTextActive: {
-    color: Colors.textPrimary,
-    fontFamily: Typography.fontFamily.bold,
-  },
-  challengeCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  challengeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  challengeEmoji: {
-    fontSize: 32,
-  },
-  challengeInfo: {
-    flex: 1,
-  },
-  challengeTitle: {
-    fontFamily: Typography.fontFamily.semiBold,
-    fontSize: Typography.size.body,
-    color: Colors.textPrimary,
-  },
-  challengeDeadline: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.caption,
-    color: Colors.textTertiary,
-  },
-  statusBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  statusActive: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-  },
-  statusPending: {
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
-  },
-  statusText: {
-    fontFamily: Typography.fontFamily.bold,
-    fontSize: 10,
-    color: Colors.textPrimary,
-    letterSpacing: 1,
-  },
-  tugOfWar: {
-    marginTop: Spacing.md,
-    gap: Spacing.xxs,
-  },
-  tugLabel: {
-    fontFamily: Typography.fontFamily.medium,
-    fontSize: Typography.size.caption,
-    color: Colors.textSecondary,
-  },
-  tugBar: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.surfaceHover,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  tugFill: {
-    height: '100%',
-    borderTopLeftRadius: 4,
-    borderBottomLeftRadius: 4,
-  },
-  tugFillRight: {
-    height: '100%',
-    position: 'absolute',
-    right: 0,
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
-  },
-  createBtn: {
-    height: 52,
-    borderRadius: BorderRadius.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: Spacing.md,
-  },
-  createBtnText: {
-    fontFamily: Typography.fontFamily.semiBold,
-    fontSize: Typography.size.body,
-    color: Colors.textPrimary,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    backgroundColor: Colors.surface,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-  },
-  modalTitle: {
-    fontFamily: Typography.fontFamily.semiBold,
-    fontSize: Typography.size.heading,
-    marginBottom: Spacing.sm,
-    color: Colors.textPrimary,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.xs,
-    marginBottom: Spacing.sm,
-    fontFamily: Typography.fontFamily.regular,
-    color: Colors.textPrimary,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  inputLabel: {
-    fontFamily: Typography.fontFamily.medium,
-    fontSize: Typography.size.small,
-    color: Colors.textSecondary,
-    marginBottom: 8,
-  },
-  partnerPicker: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: Spacing.md,
-  },
-  partnerOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    backgroundColor: 'transparent',
-  },
-  partnerOptionSelected: {
-    backgroundColor: Colors.accentPrimary,
-    borderColor: Colors.accentPrimary,
-  },
-  partnerOptionText: {
-    fontFamily: Typography.fontFamily.medium,
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  partnerOptionTextSelected: {
-    color: Colors.textPrimary,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceHover,
-  },
-  cancelBtnText: {
-    fontFamily: Typography.fontFamily.bold,
-    color: Colors.textSecondary,
-  },
-  submitBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.accentPrimary,
-  },
-  submitBtnText: {
-    fontFamily: Typography.fontFamily.bold,
-    color: Colors.textPrimary,
-  },
-  actionContainer: {
-    flexDirection: 'row',
-    marginTop: 15,
-    gap: 12,
-  },
-  checkInBtn: {
-    flex: 2,
-    borderRadius: BorderRadius.md,
-    overflow: 'hidden',
-  },
-  checkInGradient: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  checkInText: {
-    color: 'white',
-    fontFamily: Typography.fontFamily.bold,
-    fontSize: 14,
-  },
-  forfeitBtn: {
-    flex: 1,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: BorderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.2)',
-  },
-  forfeitText: {
-    color: '#EF4444',
-    fontFamily: Typography.fontFamily.medium,
-    fontSize: 12,
-  },
-  holdOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  holdCard: {
-    width: '80%',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    alignItems: 'center',
-  },
-  holdTitle: {
-    fontFamily: Typography.fontFamily.bold,
-    fontSize: Typography.size.heading,
-    color: Colors.textPrimary,
-  },
-  holdSubtitle: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.small,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xl,
-  },
-  fingerprintArea: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: Colors.surfaceHover,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: Colors.glassBorder,
-  },
-  fingerprintCircle: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressRing: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(124, 58, 237, 0.4)',
-  },
-  closeHoldBtn: {
-    marginTop: Spacing.xl,
-  },
-  closeHoldText: {
-    fontFamily: Typography.fontFamily.medium,
-    color: Colors.textTertiary,
-  },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  scroll: { paddingTop: 60, paddingHorizontal: Spacing.md, paddingBottom: 120 },
+
+  // ── Page Header ────────────────────────────────────────────────────
+  pageTitle: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.heading, color: Colors.textPrimary, marginBottom: Spacing.xxs },
+  pageSubtitle: { fontFamily: Typography.fontFamily.regular, fontSize: Typography.size.body, color: Colors.textSecondary, marginBottom: Spacing.lg },
+
+  // ── Tabs ───────────────────────────────────────────────────────────
+  tabsContainer: { flexDirection: 'row', marginBottom: Spacing.lg, backgroundColor: Colors.surface, borderRadius: BorderRadius.md, padding: 4, borderWidth: 1, borderColor: Colors.glassBorder },
+  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: BorderRadius.sm },
+  tabActive: { backgroundColor: Colors.accentPrimary },
+  tabText: { fontFamily: Typography.fontFamily.medium, color: Colors.textSecondary, fontSize: Typography.size.small },
+  tabTextActive: { color: Colors.textPrimary, fontFamily: Typography.fontFamily.bold },
+
+  // ── Empty State ────────────────────────────────────────────────────
+  emptyState: { alignItems: 'center', paddingVertical: Spacing.xxl },
+  emptyEmoji: { fontSize: 48, marginBottom: Spacing.sm },
+  emptyText: { color: Colors.textSecondary, fontSize: Typography.size.body },
+
+  // ── Section Label ──────────────────────────────────────────────────
+  sectionLabel: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.bodyLarge, color: Colors.textPrimary, marginBottom: Spacing.sm },
+
+  // ── Avatar ─────────────────────────────────────────────────────────
+  avatarRing: { padding: 3, borderRadius: 999, borderWidth: 2, borderColor: Colors.accentPrimary, alignItems: 'center', justifyContent: 'center' },
+  avatarPlaceholder: { backgroundColor: Colors.surfaceHover, alignItems: 'center', justifyContent: 'center' },
+
+  // ══════════════════════════════════════════════════════════════════
+  // ACTIVE BATTLE CARD
+  // ══════════════════════════════════════════════════════════════════
+  battleCard: { borderRadius: BorderRadius.xl, padding: Spacing.lg, marginBottom: Spacing.md, borderWidth: 1, borderColor: Colors.glassBorder },
+  battleVsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md },
+  battleFighter: { alignItems: 'center', gap: 4, flex: 1 },
+  battleFighterName: { fontFamily: Typography.fontFamily.semiBold, fontSize: Typography.size.small, color: Colors.textPrimary },
+  battleVs: { fontFamily: Typography.fontFamily.black, fontSize: Typography.size.title, color: Colors.accentDanger, letterSpacing: 2 },
+  verifiedBadge: { fontFamily: Typography.fontFamily.bold, fontSize: 10, color: Colors.accentSuccess },
+  battleTitle: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.subtitle, color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.md },
+
+  // ── Countdown ──────────────────────────────────────────────────────
+  countdownContainer: { alignItems: 'center', marginBottom: Spacing.lg },
+  countdownRingBg: { position: 'absolute', borderWidth: 4 },
+  countdownRingProgress: { position: 'absolute', borderWidth: 4 },
+  countdownCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  countdownText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.title, color: Colors.textPrimary, fontVariant: ['tabular-nums'] },
+  countdownLabel: { fontFamily: Typography.fontFamily.semiBold, fontSize: Typography.size.caption, color: Colors.textSecondary, marginTop: Spacing.xs },
+
+  // ── Claim Victory ──────────────────────────────────────────────────
+  claimBtn: { height: 52, borderRadius: BorderRadius.xl, justifyContent: 'center', alignItems: 'center' },
+  claimBtnText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.bodyLarge, color: Colors.textPrimary },
+  claimedBanner: { backgroundColor: 'rgba(52, 211, 153, 0.15)', borderRadius: BorderRadius.md, padding: Spacing.sm, alignItems: 'center' },
+  claimedText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.body, color: Colors.accentSuccess },
+  expiredBanner: { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderRadius: BorderRadius.md, padding: Spacing.sm, alignItems: 'center' },
+  expiredText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.body, color: Colors.accentDanger },
+
+  // ══════════════════════════════════════════════════════════════════
+  // PENDING CARD
+  // ══════════════════════════════════════════════════════════════════
+  pendingCard: { backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, borderWidth: 1, borderColor: Colors.glassBorder, padding: Spacing.md, marginBottom: Spacing.sm },
+  pendingHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  pendingEmoji: { fontSize: 32 },
+  pendingTitle: { fontFamily: Typography.fontFamily.semiBold, fontSize: Typography.size.body, color: Colors.textPrimary },
+  pendingMeta: { fontFamily: Typography.fontFamily.regular, fontSize: Typography.size.caption, color: Colors.textTertiary },
+  pendingDuration: { fontFamily: Typography.fontFamily.medium, fontSize: Typography.size.caption, color: Colors.accentPrimary, marginTop: 2 },
+  pendingActions: { flexDirection: 'row', gap: 10, marginTop: Spacing.sm },
+  acceptBtn: { flex: 2, borderRadius: BorderRadius.md, overflow: 'hidden' },
+  acceptGradient: { paddingVertical: 12, alignItems: 'center' },
+  acceptText: { color: 'white', fontFamily: Typography.fontFamily.bold, fontSize: 14 },
+  declineBtn: { flex: 1, backgroundColor: Colors.surfaceHover, borderRadius: BorderRadius.md, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 },
+  declineText: { color: Colors.textSecondary, fontFamily: Typography.fontFamily.medium, fontSize: 14 },
+
+  // ══════════════════════════════════════════════════════════════════
+  // RESOLVED CARD
+  // ══════════════════════════════════════════════════════════════════
+  resolvedCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: 'rgba(52, 211, 153, 0.08)', borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.sm, borderWidth: 1, borderColor: 'rgba(52, 211, 153, 0.15)' },
+  resolvedCardExpired: { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.15)' },
+  resolvedIcon: { fontSize: 28 },
+  resolvedTitle: { fontFamily: Typography.fontFamily.semiBold, fontSize: Typography.size.body, color: Colors.textPrimary },
+  resolvedStatus: { fontFamily: Typography.fontFamily.regular, fontSize: Typography.size.caption, color: Colors.textSecondary },
+
+  // ══════════════════════════════════════════════════════════════════
+  // FAB
+  // ══════════════════════════════════════════════════════════════════
+  fabContainer: { position: 'absolute', bottom: 24, left: Spacing.md, right: Spacing.md },
+  fab: { height: 56, borderRadius: BorderRadius.xl, justifyContent: 'center', alignItems: 'center' },
+  fabText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.bodyLarge, color: Colors.textPrimary },
+
+  // ══════════════════════════════════════════════════════════════════
+  // CREATE MODAL
+  // ══════════════════════════════════════════════════════════════════
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  createModal: { backgroundColor: Colors.backgroundElevated, borderTopLeftRadius: BorderRadius.xxl, borderTopRightRadius: BorderRadius.xxl, padding: Spacing.lg, paddingBottom: Spacing.xxl },
+  createModalTitle: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.heading, color: Colors.textPrimary, marginBottom: Spacing.xxs },
+  createModalSubtitle: { fontFamily: Typography.fontFamily.regular, fontSize: Typography.size.small, color: Colors.textSecondary, marginBottom: Spacing.lg },
+  fieldLabel: { fontFamily: Typography.fontFamily.semiBold, fontSize: Typography.size.small, color: Colors.textSecondary, marginBottom: Spacing.xs, textTransform: 'uppercase', letterSpacing: 1 },
+  input: { borderWidth: 1, borderColor: Colors.glassBorder, borderRadius: BorderRadius.md, padding: Spacing.sm, marginBottom: Spacing.md, fontFamily: Typography.fontFamily.regular, color: Colors.textPrimary, backgroundColor: Colors.surface },
+  durationRow: { flexDirection: 'row', gap: 8, marginBottom: Spacing.lg, flexWrap: 'wrap' },
+  durationChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: Colors.glassBorder, backgroundColor: 'transparent' },
+  durationChipActive: { backgroundColor: Colors.accentPrimary, borderColor: Colors.accentPrimary },
+  durationChipText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.body, color: Colors.textSecondary },
+  durationChipTextActive: { color: Colors.textPrimary },
+  partnerRow: { flexDirection: 'row', gap: 10, marginBottom: Spacing.lg, flexWrap: 'wrap' },
+  partnerChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: Colors.glassBorder },
+  partnerChipActive: { backgroundColor: Colors.accentPrimary, borderColor: Colors.accentPrimary },
+  partnerChipText: { fontFamily: Typography.fontFamily.medium, fontSize: 13, color: Colors.textSecondary },
+  partnerChipTextActive: { color: Colors.textPrimary },
+  createActions: { flexDirection: 'row', gap: Spacing.sm },
+  cancelBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: BorderRadius.md, backgroundColor: Colors.surfaceHover },
+  cancelBtnText: { fontFamily: Typography.fontFamily.bold, color: Colors.textSecondary },
+  submitBtn: { flex: 2, borderRadius: BorderRadius.md, overflow: 'hidden' },
+  submitGradient: { paddingVertical: 14, alignItems: 'center' },
+  submitBtnText: { fontFamily: Typography.fontFamily.bold, color: Colors.textPrimary, fontSize: Typography.size.body },
+
+  // ══════════════════════════════════════════════════════════════════
+  // VICTORY MODAL
+  // ══════════════════════════════════════════════════════════════════
+  victoryOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  victoryCard: { width: '88%', backgroundColor: Colors.backgroundElevated, borderRadius: BorderRadius.xxl, padding: Spacing.xl, alignItems: 'center' },
+  victoryTitle: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.heading, color: Colors.textPrimary, marginBottom: Spacing.xxs },
+  victorySubtitle: { fontFamily: Typography.fontFamily.regular, fontSize: Typography.size.body, color: Colors.textSecondary, marginBottom: Spacing.lg },
+  proofInput: { width: '100%', minHeight: 100, borderWidth: 1, borderColor: Colors.glassBorder, borderRadius: BorderRadius.md, padding: Spacing.sm, color: Colors.textPrimary, fontFamily: Typography.fontFamily.regular, backgroundColor: Colors.surface, textAlignVertical: 'top', marginBottom: Spacing.lg },
+  holdInstruction: { fontFamily: Typography.fontFamily.semiBold, fontSize: Typography.size.caption, color: Colors.textTertiary, textTransform: 'uppercase', letterSpacing: 2, marginBottom: Spacing.md },
+  holdButton: { marginBottom: Spacing.lg },
+  holdCircleOuter: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: Colors.accentPrimary, alignItems: 'center', justifyContent: 'center' },
+  holdCircleInner: { width: 108, height: 108, borderRadius: 54, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  holdFill: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(124, 92, 252, 0.4)' },
+  victoryCancel: { marginTop: Spacing.sm },
+  victoryCancelText: { fontFamily: Typography.fontFamily.medium, color: Colors.textTertiary },
+  victorySuccess: { alignItems: 'center', paddingVertical: Spacing.xxl },
+  victoryCheckmark: { fontSize: 64, color: Colors.accentSuccess, marginBottom: Spacing.sm },
+  victoryClaimedText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.title, color: Colors.accentSuccess },
+
+  // ══════════════════════════════════════════════════════════════════
+  // REVIEW CONTAINER
+  // ══════════════════════════════════════════════════════════════════
+  reviewContainer: { marginTop: Spacing.md, padding: Spacing.md, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: BorderRadius.lg },
+  reviewPrompt: { fontFamily: Typography.fontFamily.semiBold, fontSize: Typography.size.body, color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.sm },
+  reviewActions: { flexDirection: 'row', gap: Spacing.sm },
+  reviewAcceptBtn: { flex: 1, backgroundColor: Colors.accentSuccess, paddingVertical: 12, borderRadius: BorderRadius.md, alignItems: 'center' },
+  reviewAcceptText: { fontFamily: Typography.fontFamily.bold, color: Colors.background },
+  reviewRejectBtn: { flex: 1, backgroundColor: Colors.surfaceHover, paddingVertical: 12, borderRadius: BorderRadius.md, alignItems: 'center' },
+  reviewRejectText: { fontFamily: Typography.fontFamily.medium, color: Colors.textSecondary },
+
+  // ══════════════════════════════════════════════════════════════════
+  // RESOLVED CARD EXTRAS
+  // ══════════════════════════════════════════════════════════════════
+  clearBtn: { padding: Spacing.sm },
+  clearBtnText: { fontFamily: Typography.fontFamily.bold, color: Colors.textTertiary, fontSize: Typography.size.bodyLarge },
+
+  // ══════════════════════════════════════════════════════════════════
+  // RESULT MODAL
+  // ══════════════════════════════════════════════════════════════════
+  resultOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
+  resultCard: { width: '85%', backgroundColor: '#1A1A24', borderRadius: BorderRadius.xxl, padding: Spacing.xl, alignItems: 'center', borderWidth: 1, borderColor: Colors.glassBorder },
+  resultIconBg: { width: 80, height: 80, borderRadius: 24, backgroundColor: Colors.accentPrimary, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.md },
+  resultIcon: { fontSize: 40 },
+  resultTitle: { fontFamily: Typography.fontFamily.black, fontSize: Typography.size.title, color: Colors.accentDanger, letterSpacing: 2, marginBottom: Spacing.xs },
+  resultChallengeName: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.bodyLarge, color: Colors.textPrimary, marginBottom: Spacing.xl },
+  resultDetails: { width: '100%', backgroundColor: '#232336', borderRadius: BorderRadius.lg, overflow: 'hidden', borderWidth: 1, borderColor: Colors.glassBorder, marginBottom: Spacing.xl },
+  resultRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg },
+  resultDivider: { height: 1, backgroundColor: Colors.glassBorder },
+  resultLabel: { fontFamily: Typography.fontFamily.medium, fontSize: Typography.size.body, color: Colors.textSecondary },
+  resultValue: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.body, color: Colors.textPrimary },
+  closeResultBtn: { width: '100%', backgroundColor: '#232336', paddingVertical: 14, borderRadius: BorderRadius.full, alignItems: 'center' },
+  closeResultBtnText: { fontFamily: Typography.fontFamily.medium, color: Colors.textPrimary, fontSize: Typography.size.body },
 });

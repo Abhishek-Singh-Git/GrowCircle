@@ -19,7 +19,6 @@
   <div id="device-frame">
     <!-- GLOBAL ATMOSPHERE (The living background ecosystem) -->
     <div class="global-atmosphere" id="global-atmosphere">
-      <div class="particle-field" id="global-particles"></div>
       <div class="atmosphere-glow g1"></div>
       <div class="atmosphere-glow g2"></div>
     </div>
@@ -285,45 +284,121 @@
           </div>
 
           <!-- ========================================== -->
-          <!-- TAB: CHALLENGES (Tug of War)               -->
+          <!-- TAB: BATTLE ARENA 2.0                      -->
           <!-- ========================================== -->
           <div class="tab-view" id="tab-challenges">
             <div class="tab-scroll scroll-y">
+
+              <!-- Sub-nav: Active / Pending / History -->
               <div class="tab-sub-nav">
-                <button class="sub-tab active">Active Battles</button>
-                <button class="sub-tab">History</button>
+                <button class="sub-tab active" data-arena-tab="active">⚔️ Active</button>
+                <button class="sub-tab" data-arena-tab="pending">📩 Pending</button>
+                <button class="sub-tab" data-arena-tab="history">📜 History</button>
               </div>
-              <div class="challenges-list" id="challenges-list">
-                <!-- Tug of War Battle Card -->
-                <div class="challenge-card battle-card active">
-                  <div class="cc-header">
-                    <div>
-                      <h3 class="cc-title">7-Day Consistency War</h3>
-                      <p class="cc-desc">First to complete all daily goals for 7 days wins.</p>
+
+              <!-- ACTIVE BATTLE VIEW -->
+              <div class="arena-section" id="arena-active">
+                <div class="arena-battle-card arena-dawn" id="arena-card-demo">
+                  <!-- VS Header -->
+                  <div class="arena-vs-row">
+                    <div class="arena-fighter">
+                      <div class="avatar-gradient-ring sm"><span class="emoji">😎</span></div>
+                      <span class="arena-fighter-name">You</span>
                     </div>
-                    <div class="cc-time pulse">⏰ 2 days left</div>
+                    <span class="arena-vs-text">VS</span>
+                    <div class="arena-fighter">
+                      <div class="avatar-gradient-ring sm"><span class="emoji">👨‍🦱</span></div>
+                      <span class="arena-fighter-name">Aarav</span>
+                    </div>
                   </div>
 
-                  <div class="tug-of-war-arena">
-                    <div class="tug-competitor left">
-                      <div class="avatar-gradient-ring sm"><span class="emoji">😎</span></div>
-                      <span>You (5)</span>
-                    </div>
+                  <!-- Challenge Title -->
+                  <h3 class="arena-title">100 Push-ups Challenge</h3>
 
-                    <div class="tug-rope-container">
-                      <div class="tug-rope"></div>
-                      <div class="tug-node" style="left: 60%;"></div> <!-- Moving physically based on score -->
+                  <!-- Countdown -->
+                  <div class="arena-countdown-wrap">
+                    <div class="arena-countdown-ring">
+                      <svg viewBox="0 0 100 100">
+                        <circle class="arena-ring-bg" cx="50" cy="50" r="42"/>
+                        <circle class="arena-ring-fill" cx="50" cy="50" r="42" id="arena-ring-progress"/>
+                      </svg>
+                      <div class="arena-countdown-text" id="arena-timer">08:23:41</div>
                     </div>
+                    <span class="arena-countdown-label" id="arena-phase-label">Remaining</span>
+                  </div>
 
-                    <div class="tug-competitor right">
-                      <span>Aarav (4)</span>
-                      <div class="avatar-gradient-ring sm"><span class="emoji">👨‍🦱</span></div>
+                  <!-- Claim Victory CTA -->
+                  <button class="btn btn-primary btn-lg btn-full btn-shimmer" id="btn-claim-victory">🏆 Claim Victory</button>
+                </div>
+              </div>
+
+              <!-- PENDING VIEW -->
+              <div class="arena-section" id="arena-pending" style="display:none">
+                <div class="arena-pending-card">
+                  <div class="arena-pending-header">
+                    <span class="arena-pending-emoji">⚔️</span>
+                    <div>
+                      <h4 class="arena-pending-title">Morning Run Challenge</h4>
+                      <p class="arena-pending-meta">From Aarav · ⏱ 24h battle</p>
                     </div>
+                  </div>
+                  <div class="arena-pending-actions">
+                    <button class="btn btn-primary btn-lg" style="flex:2">Accept Challenge</button>
+                    <button class="btn btn-outline btn-lg" style="flex:1">Decline</button>
                   </div>
                 </div>
               </div>
-              <button class="btn btn-primary btn-lg btn-full" id="btn-create-challenge" style="margin-top:16px">⚔️
-                Declare War</button>
+
+              <!-- HISTORY VIEW -->
+              <div class="arena-section" id="arena-history" style="display:none">
+                <h4 class="arena-history-label">🏆 Victories</h4>
+                <div class="arena-resolved-card victory">
+                  <span class="arena-resolved-icon">🏆</span>
+                  <div>
+                    <h4>50 Sit-ups</h4>
+                    <p>Victory — Completed in 2h 15m</p>
+                  </div>
+                </div>
+                <h4 class="arena-history-label" style="margin-top:16px">💀 Expired</h4>
+                <div class="arena-resolved-card expired">
+                  <span class="arena-resolved-icon">💀</span>
+                  <div>
+                    <h4>Read 50 pages</h4>
+                    <p>Battle Lost — No completion submitted</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Declare War Button -->
+              <button class="btn btn-primary btn-lg btn-full btn-shimmer" id="btn-create-challenge" style="margin-top:16px">⚔️ Declare War</button>
+            </div>
+          </div>
+
+          <!-- Claim Victory Modal -->
+          <div class="modal-overlay glass-modal" id="modal-claim-victory" style="display:none">
+            <div class="modal-sheet modal-sm">
+              <h3 style="text-align:center; font-size:24px; margin-bottom:8px;">🏆 Claim Victory</h3>
+              <p style="text-align:center; color:var(--c-text-muted); margin-bottom:24px;">What did you accomplish?</p>
+              <textarea class="form-input" id="victory-proof-text" rows="3" placeholder="I completed 100 push-ups and 20 minutes of cardio..."></textarea>
+              <p class="oath-instruction" style="margin-top:16px;">Hold To Verify Victory</p>
+              <button class="btn-oath-hold" id="btn-hold-verify" style="margin-bottom:24px;"></button>
+              <button class="btn btn-ghost btn-full" id="btn-close-victory">Cancel</button>
+            </div>
+          </div>
+
+          <!-- Battle Result Modal -->
+          <div class="modal-overlay glass-modal" id="modal-battle-result" style="display:none">
+            <div class="modal-sheet modal-sm" style="text-align:center;">
+              <div style="font-size:56px; margin-bottom:12px;">🏆</div>
+              <h3 style="font-size:28px; color:var(--c-success); margin-bottom:24px;">Victory</h3>
+              <div style="text-align:left;">
+                <p style="font-size:11px; color:var(--c-text-muted); text-transform:uppercase; letter-spacing:1px;">Challenge</p>
+                <p style="font-weight:700; margin-bottom:12px;">100 Push-ups</p>
+                <p style="font-size:11px; color:var(--c-text-muted); text-transform:uppercase; letter-spacing:1px;">Status</p>
+                <p style="font-weight:700; color:var(--c-success); margin-bottom:12px;">Verified</p>
+                <p style="font-size:11px; color:var(--c-text-muted); text-transform:uppercase; letter-spacing:1px;">Reward</p>
+                <p style="font-weight:700; color:var(--c-accent-primary);">+1 Win</p>
+              </div>
             </div>
           </div>
 

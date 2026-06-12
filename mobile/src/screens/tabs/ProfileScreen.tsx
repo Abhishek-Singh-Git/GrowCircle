@@ -3,14 +3,17 @@
  * User's personal analytics, badges, streaks, and settings.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Switch, Alert, AppState } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Switch, Alert, AppState, Image } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 import { useAuthStore } from '../../stores/authStore';
 import { useCircleStore } from '../../stores/circleStore';
 import { useGoalsStore } from '../../stores/goalsStore';
 import { usePreferences } from '../../hooks/usePreferences';
+import { api } from '../../services/api';
+import Constants from 'expo-constants';
 import ScreenTimeModule from '../../native/ScreenTimeModule';
 
 const MOCK_BADGES = [
@@ -81,7 +84,22 @@ export default function ProfileScreen() {
     setPushEnabled(val);
 
     if (val) {
-      await Notifications.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status === 'granted') {
+        try {
+          const projectId = Constants.expoConfig?.extra?.eas?.projectId || 'f13f89a3-3e7a-47fa-a6f6-ad7da16ab4b2';
+          const pushToken = await Notifications.getExpoPushTokenAsync({ projectId });
+          await api.patch('/users/me', { fcmToken: pushToken.data });
+        } catch (e) {
+          console.warn('Failed to register push token', e);
+        }
+      }
+    } else {
+      try {
+        await api.patch('/users/me', { fcmToken: null });
+      } catch (e) {
+        // ignore
+      }
     }
   };
 
@@ -107,6 +125,48 @@ export default function ProfileScreen() {
     }
   };
 
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to change your avatar.');
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      
+      const formData = new FormData();
+      formData.append('file', {
+        uri,
+        name: 'avatar.jpg',
+        type: 'image/jpeg'
+      } as any);
+
+      try {
+        const uploadRes: any = await api.post('/uploads/image', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        const avatarUrl = uploadRes.thumbnailUrl || uploadRes.url;
+        await api.patch('/users/me', { avatarUrl });
+        
+        // Update user state locally
+        useAuthStore.setState({ user: { ...user!, avatarUrl } });
+      } catch (err) {
+        console.error('Failed to upload avatar', err);
+        Alert.alert('Upload Failed', 'There was an issue uploading your photo. Please try again.');
+      }
+    }
+  };
+
   // Compute real stats from store
   const completedToday = todayInstances.filter((i) => i.status === 'completed').length;
   const totalToday = todayInstances.length;
@@ -125,11 +185,18 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Avatar & Name */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarEmoji}>
-              {user?.name ? user.name[0].toUpperCase() : '?'}
-            </Text>
-          </View>
+          <TouchableOpacity style={styles.avatar} onPress={handlePickAvatar} activeOpacity={0.8}>
+            {user?.avatarUrl ? (
+              <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarEmoji}>
+                {user?.name ? user.name[0].toUpperCase() : '?'}
+              </Text>
+            )}
+            <View style={styles.editAvatarBadge}>
+              <Text style={styles.editAvatarEmoji}>✏️</Text>
+            </View>
+          </TouchableOpacity>
           <Text style={styles.name}>{user?.name || 'GrowCircle User'}</Text>
           <Text style={styles.email}>{user?.email || ''}</Text>
         </View>
@@ -296,6 +363,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.sm,
+    position: 'relative',
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  editAvatarBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.background,
+  },
+  editAvatarEmoji: {
+    fontSize: 10,
   },
   avatarEmoji: {
     fontFamily: Typography.fontFamily.bold,

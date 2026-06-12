@@ -4,9 +4,9 @@ import {
   IsNumber,
   IsUUID,
   IsIn,
-  IsDateString,
   IsBoolean,
   Min,
+  Max,
 } from 'class-validator';
 
 export class CreateChallengeDto {
@@ -45,8 +45,12 @@ export class CreateChallengeDto {
   @IsBoolean()
   proofRequired: boolean;
 
-  @IsDateString()
-  deadline: string;
+  // Battle Arena 2.0: Duration in hours (replaces deadline string).
+  // The backend computes deadline = now + durationHours.
+  @IsNumber()
+  @Min(1)
+  @Max(168) // Max 7 days
+  durationHours: number;
 
   @IsUUID("4", { each: true })
   participantIds: string[];
@@ -59,4 +63,10 @@ export class ResolveChallengeDto {
 
   @IsIn(['win', 'draw', 'forfeit'])
   outcomeType: string;
+}
+
+// Battle Arena 2.0: Victory claim submission
+export class SubmitVictoryDto {
+  @IsString()
+  proofText: string;
 }

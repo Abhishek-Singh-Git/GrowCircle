@@ -23,8 +23,9 @@ export class ScreenTimeService {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
     const userTz = user?.timezone || 'UTC';
     
-    // Convert the provided date string to the start of that day in the user's timezone
-    const date = DateTime.fromISO(dto.date).setZone(userTz).startOf('day').toJSDate();
+    // Convert the provided date string to the start of that day in the user's timezone, then store as absolute UTC
+    const localStart = DateTime.fromISO(dto.date).setZone(userTz).startOf('day');
+    const date = new Date(Date.UTC(localStart.year, localStart.month - 1, localStart.day));
 
     let syncedCount = 0;
 
@@ -103,7 +104,8 @@ export class ScreenTimeService {
     const user = await this.prisma.user.findUnique({ where: { id: targetUserId }, select: { timezone: true } });
     const userTz = user?.timezone || 'UTC';
 
-    const dateObj = DateTime.fromISO(date).setZone(userTz).startOf('day').toJSDate();
+    const localStartObj = DateTime.fromISO(date).setZone(userTz).startOf('day');
+    const dateObj = new Date(Date.UTC(localStartObj.year, localStartObj.month - 1, localStartObj.day));
 
     const snapshots = await this.prisma.screenTimeSnapshot.findMany({
       where: {
@@ -133,7 +135,8 @@ export class ScreenTimeService {
     );
 
     // Calculate weekly trend
-    const sevenDaysAgo = DateTime.fromJSDate(dateObj).setZone(userTz).minus({ days: 6 }).toJSDate();
+    const sevenDaysAgoLocal = localStartObj.minus({ days: 6 });
+    const sevenDaysAgo = new Date(Date.UTC(sevenDaysAgoLocal.year, sevenDaysAgoLocal.month - 1, sevenDaysAgoLocal.day));
 
     const weeklySnapshots = await this.prisma.screenTimeSnapshot.groupBy({
       by: ['date'],
@@ -153,12 +156,10 @@ export class ScreenTimeService {
     // Create an array of 7 values
     const weeklyTrend = Array(7).fill(0);
     for (let i = 6; i >= 0; i--) {
-      const d = DateTime.fromJSDate(dateObj).setZone(userTz).minus({ days: i }).startOf('day');
+      const targetLocal = localStartObj.minus({ days: i });
+      const targetUtc = new Date(Date.UTC(targetLocal.year, targetLocal.month - 1, targetLocal.day));
       
-      const match = weeklySnapshots.find(s => {
-         const sDate = DateTime.fromJSDate(s.date).setZone(userTz).startOf('day');
-         return sDate.toMillis() === d.toMillis();
-      });
+      const match = weeklySnapshots.find(s => s.date.getTime() === targetUtc.getTime());
       
       if (match) {
         weeklyTrend[6 - i] = Math.round((match._sum.durationSeconds || 0) / 60); // In minutes

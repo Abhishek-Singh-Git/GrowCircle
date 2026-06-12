@@ -49,6 +49,7 @@ export default function ChatScreen({ navigation }: any) {
   const [myStrokes, setMyStrokes] = useState<string[][]>([]);
   const [partnerStrokes, setPartnerStrokes] = useState<string[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<string[]>([]);
+  const currentStrokeRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (!activeCircleId) return;
@@ -171,20 +172,26 @@ export default function ChatScreen({ navigation }: any) {
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        setCurrentStroke([`${locationX},${locationY}`]);
+        const initialPoint = `${locationX},${locationY}`;
+        currentStrokeRef.current = [initialPoint];
+        setCurrentStroke([initialPoint]);
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        setCurrentStroke((prev) => [...prev, `${locationX},${locationY}`]);
+        const newPoint = `${locationX},${locationY}`;
+        currentStrokeRef.current.push(newPoint);
+        setCurrentStroke((prev) => [...prev, newPoint]);
       },
       onPanResponderRelease: () => {
+        const finalStroke = [...currentStrokeRef.current];
         setMyStrokes((prev) => {
-          const newStrokes = [...prev, currentStroke];
+          const newStrokes = [...prev, finalStroke];
           if (activeCircleId) {
-            wsService.sendDrawStroke(activeCircleId, currentStroke);
+            wsService.sendDrawStroke(activeCircleId, finalStroke);
           }
           return newStrokes;
         });
+        currentStrokeRef.current = [];
         setCurrentStroke([]);
       },
     })
@@ -198,10 +205,11 @@ export default function ChatScreen({ navigation }: any) {
     }
   };
 
-  const renderPath = (stroke: string[], color: string) => {
+  const renderPath = (stroke: string[], color: string, index: number) => {
     if (stroke.length === 0) return null;
     const d = `M ${stroke[0]} ` + stroke.slice(1).map((p) => `L ${p}`).join(' ');
-    return <Path key={stroke[0] + Math.random()} d={d} stroke={color} strokeWidth={4} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
+    // Use a stable key so React Native SVG doesn't unmount and clear paths
+    return <Path key={`${stroke[0]}-${index}`} d={d} stroke={color} strokeWidth={4} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
   };
 
   return (
@@ -266,9 +274,9 @@ export default function ChatScreen({ navigation }: any) {
           </View>
           <View style={styles.canvasBody} {...panResponder.panHandlers}>
             <Svg style={StyleSheet.absoluteFill}>
-              {partnerStrokes.map((s) => renderPath(s, Colors.accentFire))}
-              {myStrokes.map((s) => renderPath(s, Colors.accentPrimary))}
-              {currentStroke.length > 0 && renderPath(currentStroke, Colors.accentPrimary)}
+              {partnerStrokes.map((s, i) => renderPath(s, Colors.accentFire, i))}
+              {myStrokes.map((s, i) => renderPath(s, Colors.accentPrimary, i))}
+              {currentStroke.length > 0 && renderPath(currentStroke, Colors.accentPrimary, 0)}
             </Svg>
           </View>
         </SafeAreaView>

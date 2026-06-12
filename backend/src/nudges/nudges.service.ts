@@ -63,10 +63,6 @@ export class NudgesService {
       throw new ForbiddenException('User has blocked nudges from you');
     }
 
-    if (recipientPrefs && !recipientPrefs.notifyNudge) {
-       throw new ForbiddenException('User has disabled nudge notifications globally');
-    }
-
     const nudge = await this.prisma.nudgeLog.create({
       data: {
         senderId,
@@ -81,7 +77,10 @@ export class NudgesService {
       },
     });
 
-    this.eventEmitter.emit('nudge.sent', { nudge });
+    // Only emit the push notification event if the user hasn't globally disabled it
+    if (!recipientPrefs || recipientPrefs.notifyNudge !== false) {
+      this.eventEmitter.emit('nudge.sent', { nudge });
+    }
 
     return nudge;
   }

@@ -41,6 +41,12 @@ export class CirclesController {
     return this.circlesService.getCircleDetails(req.user.id, circleId);
   }
 
+  @Delete(':circleId')
+  @HttpCode(HttpStatus.OK)
+  async deleteCircle(@Request() req: { user: { id: string } }, @Param('circleId') circleId: string) {
+    return this.circlesService.deleteCircle(req.user.id, circleId);
+  }
+
   @Delete(':circleId/leave')
   @HttpCode(HttpStatus.OK)
   async leaveCircle(@Request() req: { user: { id: string } }, @Param('circleId') circleId: string) {

@@ -39,6 +39,7 @@ export declare class AppController {
         lastActiveAt: Date | null;
         deletedAt: Date | null;
         fcmToken: string | null;
+        lastCronProcessedDate: string | null;
     }>;
     getPreferences(req: any): Promise<{
         timeoutConsent: boolean;
