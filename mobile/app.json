@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "mobile",
-    "slug": "mobile",
+    "slug": "growcircle",
     "version": "1.0.0",
     "scheme": "growcircle",
     "orientation": "portrait",
@@ -51,9 +51,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "f13f89a3-3e7a-47fa-a6f6-ad7da16ab4b2"
+        "projectId": "f74ee2c6-ad05-4ade-bf90-e9070131e1bf"
       }
     },
-    "owner": "abhishekhelper5"
+    "owner": "grow_circle"
   }
 }
