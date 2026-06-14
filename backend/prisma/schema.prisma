@@ -110,6 +110,7 @@ model Circle {
   maxDailyTimeoutsPerMember Int       @default(5) @map("max_daily_timeouts_per_member")
   createdAt                 DateTime  @default(now()) @map("created_at")
   disbandedAt               DateTime? @map("disbanded_at")
+  canvasState               Json?     @map("canvas_state")
 
   owner                User                  @relation("CircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members              CircleMember[]
@@ -203,7 +204,6 @@ model Goal {
   milestones   GoalMilestone[]
   instances    GoalInstance[]
   activityLogs ActivityLog[]
-  nudgeLogs    NudgeLog[]
   challenges   Challenge[]     @relation("ChallengeGoal")
 
   @@map("goals")
@@ -348,8 +348,6 @@ model NudgeLog {
   recipient    User          @relation("NudgeRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   circle       Circle        @relation(fields: [circleId], references: [id], onDelete: Cascade)
   goalInstance GoalInstance? @relation(fields: [goalInstanceId], references: [id], onDelete: SetNull)
-  goal         Goal?         @relation(fields: [goalId], references: [id])
-  goalId       String?       @db.Uuid
 
   @@index([senderId, recipientId, sentAt])
   @@map("nudge_logs")

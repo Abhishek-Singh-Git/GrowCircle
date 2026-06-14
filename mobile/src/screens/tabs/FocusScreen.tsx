@@ -16,6 +16,7 @@ import {
   Linking,
   AppState,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme/tokens';
 import { useAuthStore } from '../../stores/authStore';
@@ -46,6 +47,7 @@ export default function FocusScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [totalSeconds, setTotalSeconds] = useState(0);
   const maxDuration = Math.max(...usageData.map((app) => app.totalTimeInForeground), 1);
+  const [isInterventionLoading, setIsInterventionLoading] = useState(false);
 
   const appState = useRef(AppState.currentState);
 
@@ -159,13 +161,14 @@ export default function FocusScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeCircleId, viewMode, user]);
+  }, [activeCircleId, viewMode, user, selectedPartnerId]);
 
   useEffect(() => {
     fetchUsageData();
   }, [viewMode, fetchUsageData]);
 
   const handleSendAlert = (app: AppUsageEntry) => {
+    if (isInterventionLoading) return;
     Alert.alert(
       'Send Focus Alert',
       `Send a gentle nudge about ${app.appName} to your partner?`,
@@ -179,6 +182,7 @@ export default function FocusScreen() {
               if (partners.length === 0) return;
               setSelectedPartnerId(partners[0].id);
             }
+            setIsInterventionLoading(true);
             try {
               await api.post('/interventions', {
                 targetId: selectedPartnerId,
@@ -187,8 +191,10 @@ export default function FocusScreen() {
                 appPackage: app.packageName,
               });
               Alert.alert('Sent!', 'Your partner has been notified.');
-            } catch (err) {
-              console.error('Alert failed:', err);
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to send focus alert.');
+            } finally {
+              setIsInterventionLoading(false);
             }
           },
         },
@@ -197,6 +203,7 @@ export default function FocusScreen() {
   };
 
   const handleSetTimeout = (app: AppUsageEntry) => {
+    if (isInterventionLoading) return;
     Alert.alert(
       'Set Timeout',
       `Lock ${app.appName} on your partner's device?`,
@@ -221,6 +228,7 @@ export default function FocusScreen() {
   const initiateTimeout = async (appPackage: string, durationSeconds: number) => {
     const targetId = selectedPartnerId || activeCircle?.members?.filter((m: any) => m.id !== user?.id)?.[0]?.id;
     if (!targetId) return;
+    setIsInterventionLoading(true);
     try {
       await api.post('/interventions', {
         targetId,
@@ -236,6 +244,8 @@ export default function FocusScreen() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to set timeout';
       Alert.alert('Error', message);
+    } finally {
+      setIsInterventionLoading(false);
     }
   };
 
@@ -364,7 +374,7 @@ export default function FocusScreen() {
                     })}
                  </View>
                  <View style={styles.trendLabels}>
-                    {['M','T','W','T','F','S','S'].map(d => <Text key={d} style={styles.trendLabelText}>{d}</Text>)}
+                    {['M','T','W','T','F','S','S'].map((d, i) => <Text key={`${d}-${i}`} style={styles.trendLabelText}>{d}</Text>)}
                  </View>
               </View>
             </View>
@@ -385,18 +395,19 @@ export default function FocusScreen() {
                 return (
                   <TouchableOpacity
                     key={app.packageName}
-                    style={styles.appCard}
+                    style={[styles.appCard, isInterventionLoading && { opacity: 0.6 }]}
                     activeOpacity={viewMode === 'partner' ? 0.7 : 1}
                     onPress={
-                      viewMode === 'partner'
+                      viewMode === 'partner' && !isInterventionLoading
                         ? () => handleSendAlert(app)
                         : undefined
                     }
                     onLongPress={
-                      viewMode === 'partner'
+                      viewMode === 'partner' && !isInterventionLoading
                         ? () => handleSetTimeout(app)
                         : undefined
                     }
+                    disabled={isInterventionLoading}
                   >
                     <View style={styles.appLeft}>
                       <View style={[styles.appIcon, app.iconBase64 && { backgroundColor: 'transparent' }]}>

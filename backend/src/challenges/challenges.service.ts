@@ -551,6 +551,9 @@ export class ChallengesService {
 
     const enrichedChallenges = [];
     for (const challenge of challenges) {
+      const requestingParticipant = challenge.participants.find(p => p.userId === userId);
+      if (requestingParticipant?.status === 'hidden') continue;
+
       const participantsWithProgress = [];
       for (const participant of challenge.participants) {
         let progress = 0;
@@ -696,18 +699,27 @@ export class ChallengesService {
   }
 
   async clearHistory(userId: string, challengeId: string) {
-    const participant = await this.prisma.challengeParticipant.findUnique({
-      where: { challengeId_userId: { challengeId, userId } },
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: challengeId },
+      include: { participants: true },
     });
 
-    if (!participant) {
-      throw new NotFoundException('Participant history not found');
+    if (!challenge) {
+      throw new NotFoundException('Challenge not found');
     }
 
-    // Delete history record
-    await this.prisma.challengeParticipant.delete({
-      where: { id: participant.id },
-    });
+    const participant = challenge.participants.find(p => p.userId === userId);
+    if (!participant && challenge.proposerId !== userId) {
+      throw new ForbiddenException('Not a participant of this challenge');
+    }
+
+    if (participant) {
+      // Soft hide for this user instead of hard deleting the entire battle
+      await this.prisma.challengeParticipant.update({
+        where: { id: participant.id },
+        data: { status: 'hidden' },
+      });
+    }
 
     return { success: true };
   }

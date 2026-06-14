@@ -14,7 +14,7 @@ export default function CircleManagerScreen() {
   const [inviteCode, setInviteCode] = useState('');
   const [createdCode, setCreatedCode] = useState<string | null>(null);
 
-  const { createCircle, joinCircle, leaveCircle, isLoading } = useCircles();
+  const { createCircle, joinCircle, leaveCircle, deleteCircle, isLoading } = useCircles();
   const navigation = useNavigation<any>();
   const activeCircle = useCircleStore((s) => s.activeCircle);
   const user = useAuthStore((s) => s.user);
@@ -105,6 +105,30 @@ export default function CircleManagerScreen() {
     );
   };
 
+  const handleDisbandCircle = () => {
+    if (!activeCircle) return;
+    Alert.alert(
+      'Disband Circle',
+      `Are you sure you want to disband (delete) "${activeCircle.name}"? This action is irreversible.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Disband',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteCircle(activeCircle.id);
+              Toast.show({ type: 'success', text1: 'Circle disbanded successfully' });
+              navigation.goBack();
+            } catch (err: any) {
+              Toast.show({ type: 'error', text1: err.message || 'Failed to disband circle' });
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Circle Manager</Text>
@@ -129,6 +153,15 @@ export default function CircleManagerScreen() {
           {activeCircle && activeCircle.role !== 'owner' && (
             <TouchableOpacity style={styles.leaveBtn} onPress={handleLeaveCircle}>
               <Text style={styles.leaveBtnText}>Leave Circle</Text>
+            </TouchableOpacity>
+          )}
+          {activeCircle && activeCircle.role === 'owner' && (
+            <TouchableOpacity style={styles.leaveBtn} onPress={handleDisbandCircle} disabled={isLoading}>
+              {isLoading ? (
+                <ActivityIndicator color="#ff4444" />
+              ) : (
+                <Text style={styles.leaveBtnText}>Disband Circle</Text>
+              )}
             </TouchableOpacity>
           )}
         </View>

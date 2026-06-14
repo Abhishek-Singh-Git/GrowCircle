@@ -54,20 +54,23 @@ export default function TodayScreen() {
     refetchFeed();
   }, [refetchGoals, refetchFeed]);
 
+  const [nudgeLoadingId, setNudgeLoadingId] = React.useState<string | null>(null);
+
   const handleCompleteGoal = async (instanceId: string) => {
-    try {
-      await completeGoal(instanceId);
-    } catch (err) {
-      console.log('Error completing goal:', err);
-    }
+    await completeGoal(instanceId);
   };
 
   const handleSendNudge = async (targetId: string, goalId?: string, goalName?: string) => {
+    const uniqueLoadingId = targetId + (goalId || '');
+    if (nudgeLoadingId) return;
+    setNudgeLoadingId(uniqueLoadingId);
     try {
       await sendNudge(targetId, goalId);
       Alert.alert('Nudge sent!', goalName ? `Reminded them about ${goalName}.` : 'General reminder sent.');
     } catch (err: any) {
       Alert.alert('Oops', err.message || 'Failed to send nudge. You might be rate-limited.');
+    } finally {
+      setNudgeLoadingId(null);
     }
   };
 
@@ -181,10 +184,15 @@ export default function TodayScreen() {
                 </Text>
               </View>
               <TouchableOpacity 
-                style={styles.nudgeBtn}
+                style={[styles.nudgeBtn, !!nudgeLoadingId && { opacity: 0.5 }]}
                 onPress={() => handleSendNudge(partner.user.id)}
+                disabled={!!nudgeLoadingId}
               >
-                <Text style={styles.nudgeEmoji}>🔔</Text>
+                {nudgeLoadingId === partner.user.id ? (
+                  <ActivityIndicator size="small" color={Colors.textSecondary} />
+                ) : (
+                  <Text style={styles.nudgeEmoji}>🔔</Text>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -198,10 +206,15 @@ export default function TodayScreen() {
                     <Text style={styles.partnerGoalEmoji}>{instance.goal.categoryEmoji || '🎯'}</Text>
                     <Text style={styles.partnerGoalName} numberOfLines={1}>{instance.goal.name}</Text>
                     <TouchableOpacity 
-                      style={styles.smallNudgeBtn}
+                      style={[styles.smallNudgeBtn, !!nudgeLoadingId && { opacity: 0.5 }]}
                       onPress={() => handleSendNudge(partner.user.id, instance.id, instance.goal.name)}
+                      disabled={!!nudgeLoadingId}
                     >
-                      <Text style={styles.smallNudgeText}>Nudge</Text>
+                      {nudgeLoadingId === partner.user.id + instance.id ? (
+                        <ActivityIndicator size="small" color={Colors.textPrimary} />
+                      ) : (
+                        <Text style={styles.smallNudgeText}>Nudge</Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 ))}

@@ -10,22 +10,47 @@ import {
   SetThresholdDto,
 } from './dto/screen-time.dto';
 import { DateTime } from 'luxon';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ScreenTimeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly circlesService: CirclesService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ── SYNC SCREEN TIME DATA (from device) ───────────────────────────────
   async syncScreenTime(userId: string, dto: SyncScreenTimeDto) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true, preferences: { select: { shareLateNightActivity: true } } },
+    });
     const userTz = user?.timezone || 'UTC';
     
     // Convert the provided date string to the start of that day in the user's timezone, then store as absolute UTC
     const localStart = DateTime.fromISO(dto.date).setZone(userTz).startOf('day');
     const date = new Date(Date.UTC(localStart.year, localStart.month - 1, localStart.day));
+
+    // Check for late night activity using actual current local time
+    const nowLocal = DateTime.now().setZone(userTz);
+    const hour = nowLocal.hour;
+    const minute = nowLocal.minute;
+    const isLate = (hour === 23 && minute >= 30) || (hour >= 0 && hour < 4);
+
+    if (isLate && user?.preferences?.shareLateNightActivity) {
+      // Find all active circles for this user
+      const circles = await this.prisma.circleMember.findMany({
+        where: { userId, status: 'active' },
+        select: { circleId: true },
+      });
+      for (const c of circles) {
+        this.eventEmitter.emit('late_night.detected', {
+          userId,
+          circleId: c.circleId,
+        });
+      }
+    }
 
     let syncedCount = 0;
 

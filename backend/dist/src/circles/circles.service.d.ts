@@ -19,6 +19,7 @@ export declare class CirclesService {
         privacyLevel: string;
         maxDailyTimeoutsPerMember: number;
         disbandedAt: Date | null;
+        canvasState: import("@prisma/client/runtime/client").JsonValue | null;
         ownerId: string;
     }>;
     joinCircle(userId: string, dto: JoinCircleDto): Promise<{
@@ -78,9 +79,13 @@ export declare class CirclesService {
         privacyLevel: string;
         maxDailyTimeoutsPerMember: number;
         disbandedAt: Date | null;
+        canvasState: import("@prisma/client/runtime/client").JsonValue | null;
         ownerId: string;
     }>;
     leaveCircle(userId: string, circleId: string): Promise<{
+        message: string;
+    }>;
+    deleteCircle(userId: string, circleId: string): Promise<{
         message: string;
     }>;
     validateMembership(userId: string, circleId: string): Promise<{

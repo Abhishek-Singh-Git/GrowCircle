@@ -16,8 +16,11 @@ import {
   Animated,
   Dimensions,
   Image,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle } from 'react-native-svg';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/tokens';
 import { useChallenges, Challenge } from '../../hooks/useChallenges';
 import { useAuthStore } from '../../stores/authStore';
@@ -77,14 +80,15 @@ const ATMOSPHERE_COLORS = {
 };
 
 // ── Avatar Component ─────────────────────────────────────────────────
-function UserAvatar({ uri, size = 56 }: { uri?: string | null; size?: number }) {
+function UserAvatar({ uri, size = 56, name }: { uri?: string | null; size?: number; name?: string }) {
+  const initials = name ? name.substring(0, 2).toUpperCase() : '👤';
   return (
     <View style={[styles.avatarRing, { width: size + 6, height: size + 6 }]}>
       {uri ? (
         <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />
       ) : (
         <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2 }]}>
-          <Text style={{ fontSize: size * 0.4 }}>👤</Text>
+          <Text style={{ fontSize: size * 0.4, color: Colors.textSecondary, fontFamily: Typography.fontFamily.bold }}>{initials}</Text>
         </View>
       )}
     </View>
@@ -118,6 +122,11 @@ export default function BattleScreen() {
   const [holdProgress, setHoldProgress] = useState(0);
   const holdTimerRef = useRef<any>(null);
   const [victoryClaimed, setVictoryClaimed] = useState(false);
+
+  // Responsiveness / Loading states
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [clearingId, setClearingId] = useState<string | null>(null);
 
   // Result display
   const [resultChallenge, setResultChallenge] = useState<Challenge | null>(null);
@@ -168,7 +177,7 @@ export default function BattleScreen() {
         stakeDescription: '',
         proofRequired: true,
         durationHours: selectedDuration,
-        participantIds: [selectedPartnerId].filter(Boolean),
+        participantIds: [user?.id, selectedPartnerId].filter(Boolean) as string[],
       });
       setCreateModalVisible(false);
       setTitle('');
@@ -185,12 +194,67 @@ export default function BattleScreen() {
 
   // ── Respond ────────────────────────────────────────────────────────
   const handleRespond = async (challengeId: string, accept: boolean) => {
+    if (respondingId) return;
+    setRespondingId(challengeId);
     try {
       await respondToChallenge(challengeId, accept);
       if (accept) setActiveTab('active');
-    } catch (err) {
-      console.warn('Failed to respond', err);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to respond to challenge.');
+    } finally {
+      setRespondingId(null);
     }
+  };
+
+  const handleAcceptVictory = async (challengeId: string, participantId: string) => {
+    if (reviewingId) return;
+    setReviewingId(challengeId);
+    try {
+      await acceptVictory(challengeId, participantId);
+      Alert.alert('Success', 'Victory claim approved.');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to accept victory.');
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  const handleRejectVictory = async (challengeId: string, participantId: string, reason: string) => {
+    if (reviewingId) return;
+    setReviewingId(challengeId);
+    try {
+      await rejectVictory(challengeId, participantId, reason);
+      Alert.alert('Success', 'Victory claim rejected.');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to reject victory.');
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  const handleClearHistory = async (challengeId: string) => {
+    if (clearingId) return;
+    Alert.alert(
+      'Delete Battle',
+      'Are you sure you want to delete this battle from your history?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setClearingId(challengeId);
+            try {
+              await clearHistory(challengeId);
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to delete battle from history.');
+            } finally {
+              setClearingId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // ── Claim Victory ──────────────────────────────────────────────────
@@ -215,7 +279,7 @@ export default function BattleScreen() {
     let current = 0;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const interval = setInterval(() => {
-      current += 0.025; // 2 seconds to fill
+      current += 0.05; // 1 second to fill
       if (current >= 1) {
         clearInterval(interval);
         handleSubmitVictory();
@@ -258,7 +322,16 @@ export default function BattleScreen() {
   // RENDER: Active Battle Card
   // ══════════════════════════════════════════════════════════════════
   const renderActiveBattle = ({ item: challenge }: { item: Challenge }) => {
-    return <ActiveBattleCard challenge={challenge} userId={user?.id || ''} onClaimVictory={openVictoryModal} onAcceptVictory={acceptVictory} onRejectVictory={rejectVictory} />;
+    return (
+      <ActiveBattleCard
+        challenge={challenge}
+        userId={user?.id || ''}
+        onClaimVictory={openVictoryModal}
+        onAcceptVictory={handleAcceptVictory}
+        onRejectVictory={handleRejectVictory}
+        isReviewing={reviewingId === challenge.id}
+      />
+    );
   };
 
   // ══════════════════════════════════════════════════════════════════
@@ -281,16 +354,22 @@ export default function BattleScreen() {
         {!isProposer && (
           <View style={styles.pendingActions}>
             <TouchableOpacity
-              style={styles.acceptBtn}
+              style={[styles.acceptBtn, respondingId === challenge.id && { opacity: 0.5 }]}
               onPress={() => handleRespond(challenge.id, true)}
+              disabled={respondingId === challenge.id}
             >
               <LinearGradient colors={Colors.gradientPrimary} style={styles.acceptGradient}>
-                <Text style={styles.acceptText}>Accept Challenge</Text>
+                {respondingId === challenge.id ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.acceptText}>Accept Challenge</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.declineBtn}
               onPress={() => handleRespond(challenge.id, false)}
+              disabled={respondingId === challenge.id}
             >
               <Text style={styles.declineText}>Decline</Text>
             </TouchableOpacity>
@@ -314,8 +393,16 @@ export default function BattleScreen() {
             {isExpired ? 'Battle Lost — No completion submitted' : `Victory — ${challenge.winner?.name || 'Draw'}`}
           </Text>
         </View>
-        <TouchableOpacity style={styles.clearBtn} onPress={() => clearHistory(challenge.id)}>
-          <Text style={styles.clearBtnText}>✕</Text>
+        <TouchableOpacity
+          style={[styles.clearBtn, clearingId === challenge.id && { opacity: 0.5 }]}
+          onPress={() => handleClearHistory(challenge.id)}
+          disabled={clearingId === challenge.id}
+        >
+          {clearingId === challenge.id ? (
+            <ActivityIndicator size="small" color={Colors.textSecondary} />
+          ) : (
+            <Text style={styles.clearBtnText}>✕</Text>
+          )}
         </TouchableOpacity>
       </View>
     );
@@ -377,6 +464,14 @@ export default function BattleScreen() {
     </>
   );
 
+  const renderDeclareWarButton = () => (
+    <TouchableOpacity activeOpacity={0.8} onPress={handleOpenCreate} style={styles.declareWarContainer}>
+      <LinearGradient colors={Colors.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
+        <Text style={styles.fabText}>⚔️ Declare War</Text>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+
   // ══════════════════════════════════════════════════════════════════
   // MAIN RETURN
   // ══════════════════════════════════════════════════════════════════
@@ -390,6 +485,7 @@ export default function BattleScreen() {
           keyExtractor={() => 'resolved-section'}
           renderItem={() => null}
           ListHeaderComponent={<>{renderHeader()}{renderResolvedList()}</>}
+          ListFooterComponent={renderDeclareWarButton}
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         />
@@ -400,17 +496,11 @@ export default function BattleScreen() {
           renderItem={activeTab === 'active' ? renderActiveBattle : renderPendingCard}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderDeclareWarButton}
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         />
       )}
-
-      {/* Create Challenge FAB */}
-      <TouchableOpacity activeOpacity={0.8} onPress={handleOpenCreate} style={styles.fabContainer}>
-        <LinearGradient colors={Colors.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
-          <Text style={styles.fabText}>⚔️ Declare War</Text>
-        </LinearGradient>
-      </TouchableOpacity>
 
       {/* ════════════════════════════════════════════════════════════ */}
       {/* CREATE CHALLENGE MODAL                                      */}
@@ -466,7 +556,7 @@ export default function BattleScreen() {
                   style={[styles.partnerChip, selectedPartnerId === p.id && styles.partnerChipActive]}
                   onPress={() => setSelectedPartnerId(p.id)}
                 >
-                  <UserAvatar uri={p.avatarUrl} size={28} />
+                  <UserAvatar uri={p.avatarUrl} size={28} name={p.name} />
                   <Text style={[styles.partnerChipText, selectedPartnerId === p.id && styles.partnerChipTextActive]}>
                     {p.name}
                   </Text>
@@ -593,12 +683,13 @@ export default function BattleScreen() {
 // ══════════════════════════════════════════════════════════════════════
 // ACTIVE BATTLE CARD (with live countdown + atmosphere)
 // ══════════════════════════════════════════════════════════════════════
-function ActiveBattleCard({ challenge, userId, onClaimVictory, onAcceptVictory, onRejectVictory }: {
+function ActiveBattleCard({ challenge, userId, onClaimVictory, onAcceptVictory, onRejectVictory, isReviewing }: {
   challenge: Challenge;
   userId: string;
   onClaimVictory: (c: Challenge) => void;
   onAcceptVictory: (challengeId: string, participantId: string) => void;
   onRejectVictory: (challengeId: string, participantId: string, reason: string) => void;
+  isReviewing: boolean;
 }) {
   const remainingMs = useCountdown(challenge.deadline);
   const phase = getAtmospherePhase(remainingMs, challenge.durationHours);
@@ -642,15 +733,17 @@ function ActiveBattleCard({ challenge, userId, onClaimVictory, onAcceptVictory, 
   const opponentNeedsReview = opponent?.verificationStatus === 'pending_review';
 
   const progressRatio = 1 - (remainingMs / (challenge.durationHours * 60 * 60 * 1000));
-  const ringSize = 80;
-  const circumference = 2 * Math.PI * (ringSize / 2 - 6);
+  const ringSize = 140;
+  const strokeWidth = 8;
+  const radius = (ringSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
 
   return (
     <LinearGradient colors={colors.bg} style={styles.battleCard}>
       {/* VS Header */}
       <View style={styles.battleVsRow}>
         <View style={styles.battleFighter}>
-          <UserAvatar uri={leftAvatar} size={48} />
+          <UserAvatar uri={leftAvatar} size={48} name={leftName} />
           <Text style={styles.battleFighterName}>{leftName}</Text>
           {leftStatus === 'verified' && <Text style={styles.verifiedBadge}>✓ Verified</Text>}
           {leftStatus === 'pending_review' && <Text style={[styles.verifiedBadge, { color: Colors.accentWarning }]}>⏳ Pending</Text>}
@@ -658,7 +751,7 @@ function ActiveBattleCard({ challenge, userId, onClaimVictory, onAcceptVictory, 
         </View>
         <Text style={styles.battleVs}>⚔️</Text>
         <View style={styles.battleFighter}>
-          <UserAvatar uri={rightAvatar} size={48} />
+          <UserAvatar uri={rightAvatar} size={48} name={rightName} />
           <Text style={styles.battleFighterName}>{rightName}</Text>
           {rightStatus === 'verified' && <Text style={styles.verifiedBadge}>✓ Verified</Text>}
           {rightStatus === 'pending_review' && <Text style={[styles.verifiedBadge, { color: Colors.accentWarning }]}>⏳ Pending</Text>}
@@ -673,13 +766,29 @@ function ActiveBattleCard({ challenge, userId, onClaimVictory, onAcceptVictory, 
       {/* Countdown Ring */}
       <View style={styles.countdownContainer}>
         <View style={{ width: ringSize, height: ringSize, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={[styles.countdownRingBg, { width: ringSize, height: ringSize, borderRadius: ringSize / 2, borderColor: `${colors.accent}30` }]} />
-          <View style={[styles.countdownRingProgress, {
-            width: ringSize, height: ringSize, borderRadius: ringSize / 2,
-            borderColor: colors.accent,
-            borderTopColor: 'transparent',
-            transform: [{ rotate: `${progressRatio * 360}deg` }],
-          }]} />
+          <Svg width={ringSize} height={ringSize} style={{ position: 'absolute' }}>
+            <Circle
+              cx={ringSize / 2}
+              cy={ringSize / 2}
+              r={radius}
+              stroke={`${colors.accent}30`}
+              strokeWidth={strokeWidth}
+              fill="transparent"
+            />
+            <Circle
+              cx={ringSize / 2}
+              cy={ringSize / 2}
+              r={radius}
+              stroke={colors.accent}
+              strokeWidth={strokeWidth}
+              fill="transparent"
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference * progressRatio}
+              strokeLinecap="round"
+              rotation="-90"
+              origin={`${ringSize / 2}, ${ringSize / 2}`}
+            />
+          </Svg>
           <View style={styles.countdownCenter}>
             <Text style={[styles.countdownText, phase === 'final' && { color: Colors.accentDanger }]}>
               {formatCountdown(remainingMs)}
@@ -707,11 +816,27 @@ function ActiveBattleCard({ challenge, userId, onClaimVictory, onAcceptVictory, 
         <View style={styles.reviewContainer}>
           <Text style={styles.reviewPrompt}>{opponent?.user?.name} claims victory!</Text>
           <View style={styles.reviewActions}>
-            <TouchableOpacity style={styles.reviewAcceptBtn} onPress={() => onAcceptVictory(challenge.id, opponent.userId)}>
-              <Text style={styles.reviewAcceptText}>Accept</Text>
+            <TouchableOpacity
+              style={[styles.reviewAcceptBtn, isReviewing && { opacity: 0.5 }]}
+              onPress={() => onAcceptVictory(challenge.id, opponent.userId)}
+              disabled={isReviewing}
+            >
+              {isReviewing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.reviewAcceptText}>Accept</Text>
+              )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.reviewRejectBtn} onPress={() => onRejectVictory(challenge.id, opponent.userId, 'Declined by opponent')}>
-              <Text style={styles.reviewRejectText}>Reject</Text>
+            <TouchableOpacity
+              style={[styles.reviewRejectBtn, isReviewing && { opacity: 0.5 }]}
+              onPress={() => onRejectVictory(challenge.id, opponent.userId, 'Declined by opponent')}
+              disabled={isReviewing}
+            >
+              {isReviewing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.reviewRejectText}>Reject</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -818,7 +943,7 @@ const styles = StyleSheet.create({
   // ══════════════════════════════════════════════════════════════════
   // FAB
   // ══════════════════════════════════════════════════════════════════
-  fabContainer: { position: 'absolute', bottom: 24, left: Spacing.md, right: Spacing.md },
+  declareWarContainer: { marginTop: Spacing.xl },
   fab: { height: 56, borderRadius: BorderRadius.xl, justifyContent: 'center', alignItems: 'center' },
   fabText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.bodyLarge, color: Colors.textPrimary },
 

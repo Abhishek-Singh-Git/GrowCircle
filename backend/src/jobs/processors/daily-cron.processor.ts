@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { GoalsService } from '../../goals/goals.service';
 import { ChallengesService } from '../../challenges/challenges.service';
 import { DateTime } from 'luxon';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Processor('daily_cron')
 export class DailyCronProcessor extends WorkerHost {
@@ -14,6 +15,7 @@ export class DailyCronProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     private readonly goalsService: GoalsService,
     private readonly challengesService: ChallengesService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super();
   }
@@ -23,7 +25,60 @@ export class DailyCronProcessor extends WorkerHost {
 
     if (job.name === 'generate-instances-and-streaks') {
       await this.handleHourlyCron();
+    } else if (job.name === 'late-night-check') {
+      await this.handleLateNightCheck();
     }
+  }
+
+  private async handleLateNightCheck() {
+    this.logger.log('Starting Late Night Check...');
+
+    const activeUsers = await this.prisma.user.findMany({
+      where: { accountStatus: 'active' },
+      select: { 
+        id: true, 
+        timezone: true, 
+        preferences: { select: { shareLateNightActivity: true } }, 
+        circleMemberships: { select: { circleId: true, status: true } } 
+      },
+    });
+
+    let detectedCount = 0;
+    for (const user of activeUsers) {
+      if (!user.preferences?.shareLateNightActivity) continue;
+
+      const userTz = user.timezone || 'UTC';
+      const nowLocal = DateTime.now().setZone(userTz);
+      const hour = nowLocal.hour;
+      const minute = nowLocal.minute;
+
+      const isLate = (hour === 23 && minute >= 30) || (hour >= 0 && hour < 4);
+      if (!isLate) continue;
+
+      // Check if they had recent screen time activity in the last 15 minutes
+      const fifteenMinsAgo = DateTime.now().minus({ minutes: 15 }).toJSDate();
+      
+      const recentActivity = await this.prisma.screenTimeSnapshot.findFirst({
+        where: {
+          userId: user.id,
+          syncedAt: { gte: fifteenMinsAgo }
+        }
+      });
+
+      if (recentActivity) {
+        detectedCount++;
+        // Broadcast for all active circles
+        for (const membership of user.circleMemberships) {
+          if (membership.status !== 'active') continue;
+          
+          this.eventEmitter.emit('late_night.detected', {
+            userId: user.id,
+            circleId: membership.circleId,
+          });
+        }
+      }
+    }
+    this.logger.log(`Late Night Check complete. Found ${detectedCount} active users.`);
   }
 
   private async handleHourlyCron() {

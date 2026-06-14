@@ -70,5 +70,18 @@ export function useCircles() {
     }
   };
 
-  return { isLoading, fetchCircles, createCircle, joinCircle, leaveCircle };
+  const deleteCircle = async (circleId: string) => {
+    setIsLoading(true);
+    try {
+      await api.delete<any>(`/circles/${circleId}`);
+      wsService.leaveCircle(circleId);
+      await fetchCircles();
+    } catch (error: any) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { isLoading, fetchCircles, createCircle, joinCircle, leaveCircle, deleteCircle };
 }

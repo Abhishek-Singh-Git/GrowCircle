@@ -21,7 +21,7 @@ export declare class ChallengesController {
             proofText: string | null;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
-            manualProgress: number;
+            manualProgress: import("@prisma/client-runtime-utils").Decimal;
             lastProgressAt: Date | null;
             verificationStatus: string;
             submittedAt: Date | null;
@@ -72,7 +72,7 @@ export declare class ChallengesController {
             proofText: string | null;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
-            manualProgress: number;
+            manualProgress: import("@prisma/client-runtime-utils").Decimal;
             lastProgressAt: Date | null;
             verificationStatus: string;
             submittedAt: Date | null;
@@ -121,7 +121,7 @@ export declare class ChallengesController {
         proofText: string | null;
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
-        manualProgress: number;
+        manualProgress: import("@prisma/client-runtime-utils").Decimal;
         lastProgressAt: Date | null;
         verificationStatus: string;
         submittedAt: Date | null;
@@ -138,7 +138,7 @@ export declare class ChallengesController {
         proofText: string | null;
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
-        manualProgress: number;
+        manualProgress: import("@prisma/client-runtime-utils").Decimal;
         lastProgressAt: Date | null;
         verificationStatus: string;
         submittedAt: Date | null;
@@ -155,7 +155,7 @@ export declare class ChallengesController {
         proofText: string | null;
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
-        manualProgress: number;
+        manualProgress: import("@prisma/client-runtime-utils").Decimal;
         lastProgressAt: Date | null;
         verificationStatus: string;
         submittedAt: Date | null;
@@ -193,7 +193,7 @@ export declare class ChallengesController {
             proofText: string | null;
             acceptedAt: Date | null;
             withdrawnAt: Date | null;
-            manualProgress: number;
+            manualProgress: import("@prisma/client-runtime-utils").Decimal;
             lastProgressAt: Date | null;
             verificationStatus: string;
             submittedAt: Date | null;
@@ -232,7 +232,7 @@ export declare class ChallengesController {
         proofText: string | null;
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
-        manualProgress: number;
+        manualProgress: import("@prisma/client-runtime-utils").Decimal;
         lastProgressAt: Date | null;
         verificationStatus: string;
         submittedAt: Date | null;
@@ -249,7 +249,7 @@ export declare class ChallengesController {
         proofText: string | null;
         acceptedAt: Date | null;
         withdrawnAt: Date | null;
-        manualProgress: number;
+        manualProgress: import("@prisma/client-runtime-utils").Decimal;
         lastProgressAt: Date | null;
         verificationStatus: string;
         submittedAt: Date | null;

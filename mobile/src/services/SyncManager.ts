@@ -9,7 +9,7 @@ import { api, OfflineError } from './api';
 
 export interface QueuedRequest {
   id: string;
-  method: 'POST' | 'PUT' | 'DELETE';
+  method: 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   path: string;
   body?: Record<string, unknown>;
   timestamp: number;
@@ -64,6 +64,8 @@ class SyncManager {
             await api.put(req.path, req.body);
           } else if (req.method === 'DELETE') {
             await api.delete(req.path);
+          } else if (req.method === 'PATCH') {
+            await api.patch(req.path, req.body);
           }
           // Success: don't add to remainingQueue
           console.log(`[SyncManager] Successfully synced ${req.id}`);

@@ -18,7 +18,6 @@ export declare class NudgesController {
         result: string | null;
         message: string | null;
         circleId: string;
-        goalId: string | null;
         goalInstanceId: string | null;
         sentAt: Date;
         senderId: string;
@@ -45,7 +44,6 @@ export declare class NudgesController {
             result: string | null;
             message: string | null;
             circleId: string;
-            goalId: string | null;
             goalInstanceId: string | null;
             sentAt: Date;
             senderId: string;

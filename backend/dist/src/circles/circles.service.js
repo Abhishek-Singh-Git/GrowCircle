@@ -241,6 +241,21 @@ let CirclesService = class CirclesService {
         });
         return { message: 'You have left the circle.' };
     }
+    async deleteCircle(userId, circleId) {
+        const membership = await this.validateMembership(userId, circleId);
+        if (membership.role !== 'owner') {
+            throw new common_1.ForbiddenException('Only the circle owner can delete the circle.');
+        }
+        await this.prisma.circle.update({
+            where: { id: circleId },
+            data: { disbandedAt: new Date() },
+        });
+        await this.prisma.circleMember.updateMany({
+            where: { circleId },
+            data: { status: 'inactive', leftAt: new Date() },
+        });
+        return { message: 'Circle has been deleted.' };
+    }
     async validateMembership(userId, circleId) {
         const membership = await this.prisma.circleMember.findUnique({
             where: {

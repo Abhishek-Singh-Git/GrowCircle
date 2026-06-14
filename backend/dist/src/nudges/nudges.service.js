@@ -56,9 +56,6 @@ let NudgesService = class NudgesService {
         if (recipientPrefs?.nudgeBlockedUsers?.includes(senderId)) {
             throw new common_1.ForbiddenException('User has blocked nudges from you');
         }
-        if (recipientPrefs && !recipientPrefs.notifyNudge) {
-            throw new common_1.ForbiddenException('User has disabled nudge notifications globally');
-        }
         const nudge = await this.prisma.nudgeLog.create({
             data: {
                 senderId,
@@ -72,7 +69,9 @@ let NudgesService = class NudgesService {
                 sender: { select: { id: true, name: true, avatarUrl: true } },
             },
         });
-        this.eventEmitter.emit('nudge.sent', { nudge });
+        if (!recipientPrefs || recipientPrefs.notifyNudge !== false) {
+            this.eventEmitter.emit('nudge.sent', { nudge });
+        }
         return nudge;
     }
     async getNudges(userId, circleId, sentBy, page = 1, limit = 20) {

@@ -165,11 +165,11 @@ let ChallengesService = class ChallengesService {
         this.eventEmitter.emit('challenge.progress_updated', {
             challengeId: participant.challenge.id,
             userId,
-            progress: updated.manualProgress,
-            total: participant.challenge.conditionTarget || 7
+            progress: Number(updated.manualProgress),
+            total: participant.challenge.conditionTarget ? Number(participant.challenge.conditionTarget) : 7
         });
         const target = participant.challenge.conditionTarget ? Number(participant.challenge.conditionTarget) : 7;
-        if (updated.manualProgress >= target) {
+        if (Number(updated.manualProgress) >= target) {
             await this.resolveChallenge(userId, participant.challenge.id, {
                 outcomeType: 'win',
                 winnerId: userId
@@ -504,7 +504,7 @@ let ChallengesService = class ChallengesService {
                         progress = Math.round((snapshots._sum.durationSeconds || 0) / 60);
                     }
                     else if (challenge.conditionType === 'custom') {
-                        progress = participant.manualProgress || 0;
+                        progress = Number(participant.manualProgress) || 0;
                     }
                     else {
                         progress = await this.prisma.activityLog.count({
@@ -580,14 +580,14 @@ let ChallengesService = class ChallengesService {
         }
     }
     async clearHistory(userId, challengeId) {
-        const participant = await this.prisma.challengeParticipant.findUnique({
-            where: { challengeId_userId: { challengeId, userId } },
+        const challenge = await this.prisma.challenge.findUnique({
+            where: { id: challengeId },
         });
-        if (!participant) {
-            throw new common_1.NotFoundException('Participant history not found');
+        if (!challenge) {
+            throw new common_1.NotFoundException('Challenge not found');
         }
-        await this.prisma.challengeParticipant.delete({
-            where: { id: participant.id },
+        await this.prisma.challenge.delete({
+            where: { id: challengeId },
         });
         return { success: true };
     }

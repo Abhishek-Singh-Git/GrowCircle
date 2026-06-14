@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, TouchableWithoutFeedback, Alert } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -19,7 +19,7 @@ interface GoalCardProps {
   targetValue: number | null;
   unit: string | null;
   status: string;
-  onComplete: (id: string) => void;
+  onComplete: (id: string) => Promise<any> | any;
 }
 
 export default function GoalCard({
@@ -41,8 +41,16 @@ export default function GoalCard({
   const fillProgress = useSharedValue(effectivelyCompleted ? 1 : 0);
   const scale = useSharedValue(1);
 
-  const handleComplete = () => {
-    onComplete(id);
+  const triggerComplete = async () => {
+    setIsLocalCompleted(true);
+    try {
+      await onComplete(id);
+    } catch (err: any) {
+      setIsLocalCompleted(false);
+      fillProgress.value = withTiming(0, { duration: 300 });
+      scale.value = withSpring(1);
+      Alert.alert('Error', err.message || 'Failed to complete goal. Please check your network connection.');
+    }
   };
 
   const handlePressIn = () => {
@@ -53,8 +61,7 @@ export default function GoalCard({
       easing: Easing.inOut(Easing.ease) 
     }, (finished) => {
       if (finished) {
-        runOnJS(setIsLocalCompleted)(true);
-        runOnJS(handleComplete)();
+        runOnJS(triggerComplete)();
       }
     });
   };

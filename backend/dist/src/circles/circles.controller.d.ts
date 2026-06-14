@@ -23,6 +23,7 @@ export declare class CirclesController {
         privacyLevel: string;
         maxDailyTimeoutsPerMember: number;
         disbandedAt: Date | null;
+        canvasState: import("@prisma/client/runtime/client").JsonValue | null;
         ownerId: string;
     }>;
     join(req: {
@@ -94,7 +95,15 @@ export declare class CirclesController {
         privacyLevel: string;
         maxDailyTimeoutsPerMember: number;
         disbandedAt: Date | null;
+        canvasState: import("@prisma/client/runtime/client").JsonValue | null;
         ownerId: string;
+    }>;
+    deleteCircle(req: {
+        user: {
+            id: string;
+        };
+    }, circleId: string): Promise<{
+        message: string;
     }>;
     leaveCircle(req: {
         user: {

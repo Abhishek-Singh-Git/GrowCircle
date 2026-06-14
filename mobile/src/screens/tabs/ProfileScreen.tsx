@@ -150,11 +150,7 @@ export default function ProfileScreen() {
       } as any);
 
       try {
-        const uploadRes: any = await api.post('/uploads/image', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+        const uploadRes: any = await api.postForm('/uploads/image', formData);
         const avatarUrl = uploadRes.thumbnailUrl || uploadRes.url;
         await api.patch('/users/me', { avatarUrl });
         
@@ -221,7 +217,10 @@ export default function ProfileScreen() {
 
         {/* Score dimensions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Scores</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: Spacing.sm }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Your Scores</Text>
+            <Text style={{ fontSize: 12, color: Colors.textTertiary, paddingBottom: 2 }}>(Coming Soon)</Text>
+          </View>
           <View style={styles.scoresGrid}>
             {[
               { name: 'Performance', score: 82, color: Colors.accentPrimary },
@@ -250,7 +249,10 @@ export default function ProfileScreen() {
 
         {/* Badges */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Badges</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: Spacing.sm }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Badges</Text>
+            <Text style={{ fontSize: 12, color: Colors.textTertiary, paddingBottom: 2 }}>(Coming Soon)</Text>
+          </View>
           <View style={styles.badgeGrid}>
             {MOCK_BADGES.map((badge) => (
               <View

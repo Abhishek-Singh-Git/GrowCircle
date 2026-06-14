@@ -218,6 +218,38 @@ class ApiClient {
       throw error;
     }
   }
+
+  async postForm<T>(path: string, formData: FormData): Promise<T> {
+    const url = `${BASE_URL}${path}`;
+    const token = useAuthStore.getState().accessToken;
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // Note: Do not set Content-Type manually for FormData; fetch will set it with the correct boundary
+    };
+
+    let res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (res.status === 401) {
+      const refreshed = await this.refreshToken();
+      if (!refreshed) {
+        useAuthStore.getState().logout();
+        throw new Error('Session expired. Please log in again.');
+      }
+      const newToken = useAuthStore.getState().accessToken;
+      headers['Authorization'] = `Bearer ${newToken}`;
+      res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+    }
+
+    return this.handleResponse<T>(res);
+  }
 }
 
 export const api = new ApiClient();

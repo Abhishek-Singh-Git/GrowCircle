@@ -29,6 +29,18 @@ export class JobsService implements OnModuleInit {
       },
     );
 
-    this.logger.log('Hourly cron job registered (runs every hour)');
+    // Add Late Night Check (runs every 15 minutes)
+    await this.dailyCronQueue.add(
+      'late-night-check',
+      {},
+      {
+        repeat: {
+          pattern: '*/15 * * * *',
+        },
+        jobId: 'late-night-check',
+      },
+    );
+
+    this.logger.log('Jobs registered (Hourly cron, Late Night Check)');
   }
 }

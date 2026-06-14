@@ -27,7 +27,6 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
     eventEmitter;
     server;
     logger = new common_1.Logger(FeedGateway_1.name);
-    drawingState = new Map();
     constructor(jwtService, prisma, eventEmitter) {
         this.jwtService = jwtService;
         this.prisma = prisma;
@@ -55,7 +54,7 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
             this.logger.log(`Client disconnected: ${client.userId}`);
         }
     }
-    handleJoinCircle(client, data) {
+    async handleJoinCircle(client, data) {
         const room = `circle:${data.circleId}`;
         client.join(room);
         this.logger.log(`${client.userId} joined ${room}`);
@@ -63,7 +62,11 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
             userId: client.userId,
             timestamp: new Date().toISOString(),
         });
-        const currentStrokes = this.drawingState.get(data.circleId) || [];
+        const circle = await this.prisma.circle.findUnique({
+            where: { id: data.circleId },
+            select: { canvasState: true },
+        });
+        const currentStrokes = circle?.canvasState || [];
         currentStrokes.forEach((stroke) => {
             client.emit('draw:stroke', {
                 circleId: data.circleId,
@@ -180,9 +183,16 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
             throw new websockets_1.WsException('Unauthorized to draw in this circle');
         }
         const room = `circle:${data.circleId}`;
-        const currentStrokes = this.drawingState.get(data.circleId) || [];
+        const circle = await this.prisma.circle.findUnique({
+            where: { id: data.circleId },
+            select: { canvasState: true },
+        });
+        const currentStrokes = circle?.canvasState || [];
         currentStrokes.push(data.stroke);
-        this.drawingState.set(data.circleId, currentStrokes);
+        await this.prisma.circle.update({
+            where: { id: data.circleId },
+            data: { canvasState: currentStrokes },
+        });
         client.to(room).emit('draw:stroke', {
             circleId: data.circleId,
             stroke: data.stroke,
@@ -199,7 +209,10 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
             throw new websockets_1.WsException('Unauthorized to clear in this circle');
         }
         const room = `circle:${data.circleId}`;
-        this.drawingState.set(data.circleId, []);
+        await this.prisma.circle.update({
+            where: { id: data.circleId },
+            data: { canvasState: [] },
+        });
         client.to(room).emit('draw:clear', {
             circleId: data.circleId,
             userId: client.userId,
@@ -217,7 +230,7 @@ __decorate([
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], FeedGateway.prototype, "handleJoinCircle", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)('leave_circle'),

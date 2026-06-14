@@ -84,6 +84,10 @@ class WebSocketService {
         'chat_message',
         'draw:stroke',
         'draw:clear',
+        'intervention_initiated',
+        'intervention_overridden',
+        'intervention_cancelled',
+        'partner_up_late',
       ];
 
       events.forEach((event) => {

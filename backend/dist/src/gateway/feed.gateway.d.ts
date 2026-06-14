@@ -12,16 +12,15 @@ export declare class FeedGateway implements OnGatewayConnection, OnGatewayDiscon
     private readonly eventEmitter;
     server: Server;
     private readonly logger;
-    private drawingState;
     constructor(jwtService: JwtService, prisma: PrismaService, eventEmitter: EventEmitter2);
     handleConnection(client: AuthenticatedSocket): Promise<void>;
     handleDisconnect(client: AuthenticatedSocket): void;
     handleJoinCircle(client: AuthenticatedSocket, data: {
         circleId: string;
-    }): {
+    }): Promise<{
         status: string;
         room: string;
-    };
+    }>;
     handleLeaveCircle(client: AuthenticatedSocket, data: {
         circleId: string;
     }): {

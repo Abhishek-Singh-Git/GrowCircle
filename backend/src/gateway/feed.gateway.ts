@@ -32,7 +32,6 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(FeedGateway.name);
-  private drawingState = new Map<string, any[]>(); // Ephemeral state for late joiners
 
   constructor(
     private readonly jwtService: JwtService,
@@ -70,7 +69,7 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // ── JOIN CIRCLE CHANNEL ───────────────────────────────────────────────
   @SubscribeMessage('join_circle')
-  handleJoinCircle(
+  async handleJoinCircle(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { circleId: string },
   ) {
@@ -84,8 +83,12 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
       timestamp: new Date().toISOString(),
     });
 
-    // Send ephemeral strokes to the late joiner
-    const currentStrokes = this.drawingState.get(data.circleId) || [];
+    // Send saved strokes to the late joiner
+    const circle = await this.prisma.circle.findUnique({
+      where: { id: data.circleId },
+      select: { canvasState: true },
+    });
+    const currentStrokes = (circle?.canvasState as any[]) || [];
     currentStrokes.forEach((stroke) => {
       client.emit('draw:stroke', {
         circleId: data.circleId,
@@ -282,10 +285,17 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const room = `circle:${data.circleId}`;
     
-    // Save to ephemeral state
-    const currentStrokes = this.drawingState.get(data.circleId) || [];
+    // Save to database
+    const circle = await this.prisma.circle.findUnique({
+      where: { id: data.circleId },
+      select: { canvasState: true },
+    });
+    const currentStrokes = (circle?.canvasState as any[]) || [];
     currentStrokes.push(data.stroke);
-    this.drawingState.set(data.circleId, currentStrokes);
+    await this.prisma.circle.update({
+      where: { id: data.circleId },
+      data: { canvasState: currentStrokes },
+    });
 
     client.to(room).emit('draw:stroke', {
       circleId: data.circleId,
@@ -309,7 +319,10 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const room = `circle:${data.circleId}`;
-    this.drawingState.set(data.circleId, []); // Clear ephemeral state
+    await this.prisma.circle.update({
+      where: { id: data.circleId },
+      data: { canvasState: [] },
+    });
     
     client.to(room).emit('draw:clear', {
       circleId: data.circleId,

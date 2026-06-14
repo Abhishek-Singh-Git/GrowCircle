@@ -34,6 +34,9 @@ let CirclesController = class CirclesController {
     async getCircle(req, circleId) {
         return this.circlesService.getCircleDetails(req.user.id, circleId);
     }
+    async deleteCircle(req, circleId) {
+        return this.circlesService.deleteCircle(req.user.id, circleId);
+    }
     async leaveCircle(req, circleId) {
         return this.circlesService.leaveCircle(req.user.id, circleId);
     }
@@ -72,6 +75,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], CirclesController.prototype, "getCircle", null);
+__decorate([
+    (0, common_1.Delete)(':circleId'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('circleId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], CirclesController.prototype, "deleteCircle", null);
 __decorate([
     (0, common_1.Delete)(':circleId/leave'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

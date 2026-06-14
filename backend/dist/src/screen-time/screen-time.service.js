@@ -14,17 +14,40 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const circles_service_1 = require("../circles/circles.service");
 const luxon_1 = require("luxon");
+const event_emitter_1 = require("@nestjs/event-emitter");
 let ScreenTimeService = class ScreenTimeService {
     prisma;
     circlesService;
-    constructor(prisma, circlesService) {
+    eventEmitter;
+    constructor(prisma, circlesService, eventEmitter) {
         this.prisma = prisma;
         this.circlesService = circlesService;
+        this.eventEmitter = eventEmitter;
     }
     async syncScreenTime(userId, dto) {
-        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { timezone: true, preferences: { select: { shareLateNightActivity: true } } },
+        });
         const userTz = user?.timezone || 'UTC';
-        const date = luxon_1.DateTime.fromISO(dto.date).setZone(userTz).startOf('day').toJSDate();
+        const localStart = luxon_1.DateTime.fromISO(dto.date).setZone(userTz).startOf('day');
+        const date = new Date(Date.UTC(localStart.year, localStart.month - 1, localStart.day));
+        const nowLocal = luxon_1.DateTime.now().setZone(userTz);
+        const hour = nowLocal.hour;
+        const minute = nowLocal.minute;
+        const isLate = (hour === 23 && minute >= 30) || (hour >= 0 && hour < 4);
+        if (isLate && user?.preferences?.shareLateNightActivity) {
+            const circles = await this.prisma.circleMember.findMany({
+                where: { userId, status: 'active' },
+                select: { circleId: true },
+            });
+            for (const c of circles) {
+                this.eventEmitter.emit('late_night.detected', {
+                    userId,
+                    circleId: c.circleId,
+                });
+            }
+        }
         let syncedCount = 0;
         for (const snapshot of dto.snapshots) {
             await this.prisma.screenTimeSnapshot.upsert({
@@ -85,7 +108,8 @@ let ScreenTimeService = class ScreenTimeService {
         }
         const user = await this.prisma.user.findUnique({ where: { id: targetUserId }, select: { timezone: true } });
         const userTz = user?.timezone || 'UTC';
-        const dateObj = luxon_1.DateTime.fromISO(date).setZone(userTz).startOf('day').toJSDate();
+        const localStartObj = luxon_1.DateTime.fromISO(date).setZone(userTz).startOf('day');
+        const dateObj = new Date(Date.UTC(localStartObj.year, localStartObj.month - 1, localStartObj.day));
         const snapshots = await this.prisma.screenTimeSnapshot.findMany({
             where: {
                 userId: targetUserId,
@@ -103,7 +127,8 @@ let ScreenTimeService = class ScreenTimeService {
         });
         const totalSeconds = snapshots.reduce((sum, s) => sum + s.durationSeconds, 0);
         const totalUnlocks = snapshots.reduce((sum, s) => sum + (s.openCount || 0), 0);
-        const sevenDaysAgo = luxon_1.DateTime.fromJSDate(dateObj).setZone(userTz).minus({ days: 6 }).toJSDate();
+        const sevenDaysAgoLocal = localStartObj.minus({ days: 6 });
+        const sevenDaysAgo = new Date(Date.UTC(sevenDaysAgoLocal.year, sevenDaysAgoLocal.month - 1, sevenDaysAgoLocal.day));
         const weeklySnapshots = await this.prisma.screenTimeSnapshot.groupBy({
             by: ['date'],
             where: {
@@ -120,11 +145,9 @@ let ScreenTimeService = class ScreenTimeService {
         });
         const weeklyTrend = Array(7).fill(0);
         for (let i = 6; i >= 0; i--) {
-            const d = luxon_1.DateTime.fromJSDate(dateObj).setZone(userTz).minus({ days: i }).startOf('day');
-            const match = weeklySnapshots.find(s => {
-                const sDate = luxon_1.DateTime.fromJSDate(s.date).setZone(userTz).startOf('day');
-                return sDate.toMillis() === d.toMillis();
-            });
+            const targetLocal = localStartObj.minus({ days: i });
+            const targetUtc = new Date(Date.UTC(targetLocal.year, targetLocal.month - 1, targetLocal.day));
+            const match = weeklySnapshots.find(s => s.date.getTime() === targetUtc.getTime());
             if (match) {
                 weeklyTrend[6 - i] = Math.round((match._sum.durationSeconds || 0) / 60);
             }
@@ -209,6 +232,7 @@ exports.ScreenTimeService = ScreenTimeService;
 exports.ScreenTimeService = ScreenTimeService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        circles_service_1.CirclesService])
+        circles_service_1.CirclesService,
+        event_emitter_1.EventEmitter2])
 ], ScreenTimeService);
 //# sourceMappingURL=screen-time.service.js.map
