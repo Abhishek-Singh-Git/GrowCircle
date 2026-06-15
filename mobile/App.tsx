@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { navigationRef } from './src/navigation/navigationRef';
@@ -27,7 +28,9 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 const defaultErrorHandler = ErrorUtils.getGlobalHandler();
 ErrorUtils.setGlobalHandler((error, isFatal) => {
   console.error('Fatal Global Error:', error);
-  // Optionally call default handler to crash if needed, or swallow it to keep app alive
+  if (defaultErrorHandler) {
+    defaultErrorHandler(error, isFatal);
+  }
 });
 
 Notifications.setNotificationHandler({
@@ -111,7 +114,7 @@ function AppInner() {
   useEffect(() => {
     const initPush = async () => {
       if (isAuthenticated) {
-        const storedToken = await AsyncStorage.getItem('accessToken');
+        const storedToken = await SecureStore.getItemAsync('accessToken');
         if (storedToken) {
           const registerPushToken = async (retries = 5, delay = 2000) => {
             for (let i = 0; i < retries; i++) {

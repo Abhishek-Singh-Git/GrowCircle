@@ -5,6 +5,7 @@ import { DailyCronProcessor } from './processors/daily-cron.processor';
 import { CleanupProcessor } from './processors/cleanup.processor';
 import { GoalsModule } from '../goals/goals.module';
 import { ChallengesModule } from '../challenges/challenges.module';
+import { InterventionsModule } from '../interventions/interventions.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ChallengesModule } from '../challenges/challenges.module';
     }),
     GoalsModule,
     ChallengesModule,
+    InterventionsModule,
   ],
   providers: [JobsService, DailyCronProcessor, CleanupProcessor],
 })

@@ -165,6 +165,7 @@ export class InterventionsService {
     interventionId: string,
     reason?: string,
   ) {
+    await this.transitionInterventions();
     const intervention = await this.prisma.interventionLog.findUnique({
       where: { id: interventionId },
     });
@@ -243,6 +244,7 @@ export class InterventionsService {
     page = 1,
     limit = 20,
   ) {
+    await this.transitionInterventions();
     await this.circlesService.validateMembership(userId, circleId);
 
     const where: Record<string, unknown> = { circleId };
@@ -282,6 +284,7 @@ export class InterventionsService {
   // ── HANDLE CONSENT REVOCATION ─────────────────────────────────────────
   // Called when a user revokes timeout consent
   async handleConsentRevocation(userId: string, circleId: string) {
+    await this.transitionInterventions();
     // Cancel all active timeouts targeting this user in this circle
     const activeTimeouts = await this.prisma.interventionLog.findMany({
       where: {
@@ -311,5 +314,35 @@ export class InterventionsService {
     }
 
     return { cancelledCount: activeTimeouts.length };
+  }
+
+  // ── TRANSITION STATE FOR TIMEOUTS ────────────────────────────────────
+  async transitionInterventions() {
+    const now = new Date();
+
+    // 1. Transition pending_grace -> active after 10 seconds grace period
+    const tenSecondsAgo = new Date(now.getTime() - 10000);
+    await this.prisma.interventionLog.updateMany({
+      where: {
+        interventionType: 'timeout',
+        status: 'pending_grace',
+        initiatedAt: { lte: tenSecondsAgo },
+      },
+      data: {
+        status: 'active',
+      },
+    });
+
+    // 2. Transition active/pending_grace -> expired after expiresAt
+    await this.prisma.interventionLog.updateMany({
+      where: {
+        interventionType: 'timeout',
+        status: { in: ['pending_grace', 'active'] },
+        expiresAt: { lte: now },
+      },
+      data: {
+        status: 'expired',
+      },
+    });
   }
 }

@@ -8,6 +8,7 @@ export declare class GoalsController {
             id: string;
         };
     }, dto: CreateGoalDto): Promise<{
+        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -20,7 +21,6 @@ export declare class GoalsController {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -47,6 +47,7 @@ export declare class GoalsController {
             label: string;
         }[];
     } & {
+        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -59,7 +60,6 @@ export declare class GoalsController {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -87,38 +87,39 @@ export declare class GoalsController {
         }[];
         instances: ({
             activityLogs: {
+                circleId: string;
+                goalInstanceId: string;
                 id: string;
                 targetValue: import("@prisma/client-runtime-utils").Decimal | null;
                 userId: string;
-                circleId: string;
                 status: string;
                 date: Date;
                 goalId: string;
                 clientUuid: string;
-                goalInstanceId: string;
                 actualValue: import("@prisma/client-runtime-utils").Decimal | null;
                 completionFraction: import("@prisma/client-runtime-utils").Decimal;
+                notes: string | null;
                 proofUrl: string | null;
                 proofType: string | null;
-                notes: string | null;
                 loggedAt: Date;
                 editedAt: Date | null;
                 isLateEdit: boolean;
                 xpAwarded: number;
             }[];
         } & {
+            circleId: string;
             id: string;
             createdAt: Date;
             updatedAt: Date | null;
             targetValue: import("@prisma/client-runtime-utils").Decimal | null;
             userId: string;
-            circleId: string;
             status: string;
             expiresAt: Date | null;
             date: Date;
             goalId: string;
         })[];
     } & {
+        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -131,7 +132,6 @@ export declare class GoalsController {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -149,6 +149,7 @@ export declare class GoalsController {
             id: string;
         };
     }, goalId: string, dto: UpdateGoalDto): Promise<{
+        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -161,7 +162,6 @@ export declare class GoalsController {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -179,6 +179,7 @@ export declare class GoalsController {
             id: string;
         };
     }, goalId: string): Promise<{
+        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -191,7 +192,6 @@ export declare class GoalsController {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -209,6 +209,7 @@ export declare class GoalsController {
             id: string;
         };
     }, goalId: string): Promise<{
+        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -221,7 +222,6 @@ export declare class GoalsController {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -239,6 +239,7 @@ export declare class GoalsController {
             id: string;
         };
     }, goalId: string): Promise<{
+        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -251,7 +252,6 @@ export declare class GoalsController {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
-        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -270,6 +270,7 @@ export declare class GoalsController {
         };
     }, circleId: string): Promise<({
         goal: {
+            circleId: string;
             id: string;
             name: string;
             category: string;
@@ -282,7 +283,6 @@ export declare class GoalsController {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
-            circleId: string;
             status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
@@ -300,36 +300,36 @@ export declare class GoalsController {
                 id: string;
                 createdAt: Date;
                 userId: string;
-                logId: string;
                 emoji: string;
+                logId: string;
             }[];
         } & {
+            circleId: string;
+            goalInstanceId: string;
             id: string;
             targetValue: import("@prisma/client-runtime-utils").Decimal | null;
             userId: string;
-            circleId: string;
             status: string;
             date: Date;
             goalId: string;
             clientUuid: string;
-            goalInstanceId: string;
             actualValue: import("@prisma/client-runtime-utils").Decimal | null;
             completionFraction: import("@prisma/client-runtime-utils").Decimal;
+            notes: string | null;
             proofUrl: string | null;
             proofType: string | null;
-            notes: string | null;
             loggedAt: Date;
             editedAt: Date | null;
             isLateEdit: boolean;
             xpAwarded: number;
         })[];
     } & {
+        circleId: string;
         id: string;
         createdAt: Date;
         updatedAt: Date | null;
         targetValue: import("@prisma/client-runtime-utils").Decimal | null;
         userId: string;
-        circleId: string;
         status: string;
         expiresAt: Date | null;
         date: Date;

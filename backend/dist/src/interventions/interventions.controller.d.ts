@@ -18,13 +18,13 @@ export declare class InterventionsController {
             name: string;
         };
     } & {
-        id: string;
         circleId: string;
+        id: string;
         status: string;
         expiresAt: Date | null;
         durationSeconds: number | null;
-        appPackage: string | null;
         targetId: string;
+        appPackage: string | null;
         interventionType: string;
         overrideAt: Date | null;
         overrideReason: string | null;
@@ -55,13 +55,13 @@ export declare class InterventionsController {
                 avatarUrl: string | null;
             };
         } & {
-            id: string;
             circleId: string;
+            id: string;
             status: string;
             expiresAt: Date | null;
             durationSeconds: number | null;
-            appPackage: string | null;
             targetId: string;
+            appPackage: string | null;
             interventionType: string;
             overrideAt: Date | null;
             overrideReason: string | null;

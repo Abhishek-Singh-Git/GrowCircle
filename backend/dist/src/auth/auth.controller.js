@@ -16,6 +16,7 @@ exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
 const auth_dto_1 = require("./dto/auth.dto");
+const auth_rate_limiter_guard_1 = require("./auth-rate-limiter.guard");
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -86,6 +87,7 @@ __decorate([
 ], AuthController.prototype, "forgotPassword", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('v1/auth'),
+    (0, common_1.UseGuards)(auth_rate_limiter_guard_1.AuthRateLimiterGuard),
     __metadata("design:paramtypes", [auth_service_1.AuthService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

@@ -10,6 +10,7 @@ export declare class LoggingController {
     }, dto: CreateLogDto): Promise<{
         xpAwarded: number;
         goal: {
+            circleId: string;
             id: string;
             name: string;
             category: string;
@@ -22,7 +23,6 @@ export declare class LoggingController {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
-            circleId: string;
             status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
@@ -39,23 +39,23 @@ export declare class LoggingController {
             id: string;
             createdAt: Date;
             userId: string;
-            logId: string;
             emoji: string;
+            logId: string;
         }[];
+        circleId: string;
+        goalInstanceId: string;
         id: string;
         targetValue: import("@prisma/client-runtime-utils").Decimal | null;
         userId: string;
-        circleId: string;
         status: string;
         date: Date;
         goalId: string;
         clientUuid: string;
-        goalInstanceId: string;
         actualValue: import("@prisma/client-runtime-utils").Decimal | null;
         completionFraction: import("@prisma/client-runtime-utils").Decimal;
+        notes: string | null;
         proofUrl: string | null;
         proofType: string | null;
-        notes: string | null;
         loggedAt: Date;
         editedAt: Date | null;
         isLateEdit: boolean;
@@ -66,6 +66,7 @@ export declare class LoggingController {
         };
     }, logId: string): Promise<{
         goal: {
+            circleId: string;
             id: string;
             name: string;
             category: string;
@@ -78,7 +79,6 @@ export declare class LoggingController {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
-            circleId: string;
             status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
@@ -94,13 +94,13 @@ export declare class LoggingController {
         mediaObjects: {
             id: string;
             createdAt: Date;
+            durationSeconds: number | null;
             ownerUserId: string;
             associatedLogId: string | null;
             storageKey: string;
             cdnUrl: string;
             fileType: string;
             fileSizeBytes: bigint;
-            durationSeconds: number | null;
             uploadStatus: string;
             uploadedAt: Date | null;
         }[];
@@ -113,24 +113,24 @@ export declare class LoggingController {
             id: string;
             createdAt: Date;
             userId: string;
-            logId: string;
             emoji: string;
+            logId: string;
         })[];
     } & {
+        circleId: string;
+        goalInstanceId: string;
         id: string;
         targetValue: import("@prisma/client-runtime-utils").Decimal | null;
         userId: string;
-        circleId: string;
         status: string;
         date: Date;
         goalId: string;
         clientUuid: string;
-        goalInstanceId: string;
         actualValue: import("@prisma/client-runtime-utils").Decimal | null;
         completionFraction: import("@prisma/client-runtime-utils").Decimal;
+        notes: string | null;
         proofUrl: string | null;
         proofType: string | null;
-        notes: string | null;
         loggedAt: Date;
         editedAt: Date | null;
         isLateEdit: boolean;
@@ -144,8 +144,8 @@ export declare class LoggingController {
         id: string;
         createdAt: Date;
         userId: string;
-        logId: string;
         emoji: string;
+        logId: string;
     }>;
     removeReaction(req: {
         user: {
@@ -192,36 +192,36 @@ export declare class LoggingController {
                     id: string;
                     createdAt: Date;
                     userId: string;
-                    logId: string;
                     emoji: string;
+                    logId: string;
                 })[];
             } & {
+                circleId: string;
+                goalInstanceId: string;
                 id: string;
                 targetValue: import("@prisma/client-runtime-utils").Decimal | null;
                 userId: string;
-                circleId: string;
                 status: string;
                 date: Date;
                 goalId: string;
                 clientUuid: string;
-                goalInstanceId: string;
                 actualValue: import("@prisma/client-runtime-utils").Decimal | null;
                 completionFraction: import("@prisma/client-runtime-utils").Decimal;
+                notes: string | null;
                 proofUrl: string | null;
                 proofType: string | null;
-                notes: string | null;
                 loggedAt: Date;
                 editedAt: Date | null;
                 isLateEdit: boolean;
                 xpAwarded: number;
             })[];
         } & {
+            circleId: string;
             id: string;
             createdAt: Date;
             updatedAt: Date | null;
             targetValue: import("@prisma/client-runtime-utils").Decimal | null;
             userId: string;
-            circleId: string;
             status: string;
             expiresAt: Date | null;
             date: Date;

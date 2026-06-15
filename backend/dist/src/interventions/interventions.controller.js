@@ -29,7 +29,11 @@ let InterventionsController = class InterventionsController {
         return this.interventionsService.overrideIntervention(req.user.id, interventionId, dto.reason);
     }
     async getInterventions(req, circleId, dateFrom, dateTo, page, limit) {
-        return this.interventionsService.getInterventions(req.user.id, circleId, dateFrom, dateTo, page ? parseInt(page) : 1, limit ? parseInt(limit) : 20);
+        const parsedPage = page ? parseInt(page, 10) : 1;
+        const parsedLimit = limit ? parseInt(limit, 10) : 20;
+        const safePage = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+        const safeLimit = isNaN(parsedLimit) || parsedLimit < 1 ? 20 : parsedLimit;
+        return this.interventionsService.getInterventions(req.user.id, circleId, dateFrom, dateTo, safePage, safeLimit);
     }
 };
 exports.InterventionsController = InterventionsController;

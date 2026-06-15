@@ -14,6 +14,10 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ScreenTimeService {
+  // Cooldown: only emit late-night alert once per 30 min per user+circle.
+  private readonly lateNightCooldown = new Map<string, number>();
+  private readonly LATE_NIGHT_COOLDOWN_MS = 30 * 60 * 1000;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly circlesService: CirclesService,
@@ -45,10 +49,15 @@ export class ScreenTimeService {
         select: { circleId: true },
       });
       for (const c of circles) {
-        this.eventEmitter.emit('late_night.detected', {
-          userId,
-          circleId: c.circleId,
-        });
+        const cooldownKey = `${userId}:${c.circleId}`;
+        const lastFired = this.lateNightCooldown.get(cooldownKey) ?? 0;
+        if (Date.now() - lastFired > this.LATE_NIGHT_COOLDOWN_MS) {
+          this.lateNightCooldown.set(cooldownKey, Date.now());
+          this.eventEmitter.emitAsync('late_night.detected', {
+            userId,
+            circleId: c.circleId,
+          }).catch(() => { /* non-fatal */ });
+        }
       }
     }
 

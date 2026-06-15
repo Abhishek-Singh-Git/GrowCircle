@@ -115,12 +115,19 @@ export const linking: LinkingOptions<any> = {
   prefixes: [Linking.createURL('/'), 'https://growcircle.app'],
   config: {
     screens: {
+      Onboarding: 'onboarding',
+      Auth: 'auth',
       Main: {
         screens: {
           Today: 'home',
+          Battle: 'battle',
+          Focus: 'focus',
+          Profile: 'profile',
         },
       },
-      CircleManager: 'join/:code', // Route /join/:code to CircleManager for invite code pre-fill
+      Chat: 'chat',
+      CircleManager: 'join/:code',
+      AddGoal: 'add-goal',
     },
   },
 };

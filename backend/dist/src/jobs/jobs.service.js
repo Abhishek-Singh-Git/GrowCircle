@@ -35,7 +35,19 @@ let JobsService = JobsService_1 = class JobsService {
             },
             jobId: 'hourly-cron',
         });
-        this.logger.log('Hourly cron job registered (runs every hour)');
+        await this.dailyCronQueue.add('late-night-check', {}, {
+            repeat: {
+                pattern: '*/15 * * * *',
+            },
+            jobId: 'late-night-check',
+        });
+        await this.dailyCronQueue.add('transition-interventions', {}, {
+            repeat: {
+                pattern: '* * * * *',
+            },
+            jobId: 'transition-interventions',
+        });
+        this.logger.log('Jobs registered (Hourly cron, Late Night Check, Transition Interventions)');
     }
 };
 exports.JobsService = JobsService;

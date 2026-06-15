@@ -1,4 +1,24 @@
-import { IsEmail, IsOptional, IsString, MinLength, MaxLength, Matches, IsNotEmpty } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MinLength, MaxLength, Matches, IsNotEmpty, registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
+
+export function AtLeastOne(fields: string[], validationOptions?: ValidationOptions) {
+  return function (target: Function) {
+    registerDecorator({
+      name: 'atLeastOne',
+      target: target,
+      propertyName: '',
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          const obj = args.object as any;
+          return fields.some((field) => obj[field] !== undefined && obj[field] !== null && obj[field] !== '');
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `At least one of the following fields must be provided: ${fields.join(', ')}`;
+        },
+      },
+    });
+  };
+}
 
 export class RegisterDto {
   @IsString()
@@ -20,8 +40,13 @@ export class RegisterDto {
     message: 'Password must contain at least 1 number and 1 special character',
   })
   password: string;
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
 }
 
+@AtLeastOne(['credential', 'idToken'])
 export class LoginDto {
   @IsString()
   @IsOptional()
@@ -41,6 +66,7 @@ export class RefreshTokenDto {
   refreshToken: string;
 }
 
+@AtLeastOne(['email', 'phone'])
 export class ForgotPasswordDto {
   @IsOptional()
   @IsEmail()

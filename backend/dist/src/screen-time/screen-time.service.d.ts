@@ -27,19 +27,19 @@ export declare class ScreenTimeService {
         hiddenApps: string[];
     }>;
     setThreshold(userId: string, dto: SetThresholdDto): Promise<{
+        circleId: string;
         id: string;
         createdAt: Date;
         userId: string;
-        circleId: string;
         appPackage: string;
         thresholdSeconds: number;
         alertEnabled: boolean;
     }>;
     getThresholds(userId: string, circleId: string): Promise<{
+        circleId: string;
         id: string;
         createdAt: Date;
         userId: string;
-        circleId: string;
         appPackage: string;
         thresholdSeconds: number;
         alertEnabled: boolean;

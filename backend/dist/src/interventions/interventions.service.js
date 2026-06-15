@@ -124,6 +124,7 @@ let InterventionsService = class InterventionsService {
         return intervention;
     }
     async overrideIntervention(userId, interventionId, reason) {
+        await this.transitionInterventions();
         const intervention = await this.prisma.interventionLog.findUnique({
             where: { id: interventionId },
         });
@@ -172,6 +173,7 @@ let InterventionsService = class InterventionsService {
         return { overriddenAt: updated.overrideAt };
     }
     async getInterventions(userId, circleId, dateFrom, dateTo, page = 1, limit = 20) {
+        await this.transitionInterventions();
         await this.circlesService.validateMembership(userId, circleId);
         const where = { circleId };
         if (dateFrom || dateTo) {
@@ -206,6 +208,7 @@ let InterventionsService = class InterventionsService {
         };
     }
     async handleConsentRevocation(userId, circleId) {
+        await this.transitionInterventions();
         const activeTimeouts = await this.prisma.interventionLog.findMany({
             where: {
                 targetId: userId,
@@ -230,6 +233,30 @@ let InterventionsService = class InterventionsService {
             });
         }
         return { cancelledCount: activeTimeouts.length };
+    }
+    async transitionInterventions() {
+        const now = new Date();
+        const tenSecondsAgo = new Date(now.getTime() - 10000);
+        await this.prisma.interventionLog.updateMany({
+            where: {
+                interventionType: 'timeout',
+                status: 'pending_grace',
+                initiatedAt: { lte: tenSecondsAgo },
+            },
+            data: {
+                status: 'active',
+            },
+        });
+        await this.prisma.interventionLog.updateMany({
+            where: {
+                interventionType: 'timeout',
+                status: { in: ['pending_grace', 'active'] },
+                expiresAt: { lte: now },
+            },
+            data: {
+                status: 'expired',
+            },
+        });
     }
 };
 exports.InterventionsService = InterventionsService;

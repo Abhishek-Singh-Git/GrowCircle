@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '../services/api';
 
 interface User {
@@ -35,8 +36,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true, // True until we check stored tokens on app boot
 
   setAuth: (user, accessToken, refreshToken) => {
-    AsyncStorage.setItem('accessToken', accessToken);
-    AsyncStorage.setItem('refreshToken', refreshToken);
+    SecureStore.setItemAsync('accessToken', accessToken);
+    SecureStore.setItemAsync('refreshToken', refreshToken);
     AsyncStorage.setItem('user', JSON.stringify(user));
     set({
       user,
@@ -55,8 +56,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
 
   logout: () => {
-    AsyncStorage.removeItem('accessToken');
-    AsyncStorage.removeItem('refreshToken');
+    SecureStore.deleteItemAsync('accessToken');
+    SecureStore.deleteItemAsync('refreshToken');
     AsyncStorage.removeItem('user');
     set({
       user: null,
@@ -69,8 +70,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   rehydrate: async () => {
     try {
-      const accessToken = await AsyncStorage.getItem('accessToken');
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      const accessToken = await SecureStore.getItemAsync('accessToken');
+      const refreshToken = await SecureStore.getItemAsync('refreshToken');
       const userStr = await AsyncStorage.getItem('user');
 
       if (!accessToken) {
@@ -108,8 +109,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
           if (refreshRes.ok) {
             const data = await refreshRes.json();
-            AsyncStorage.setItem('accessToken', data.accessToken);
-            AsyncStorage.setItem('refreshToken', data.refreshToken);
+            SecureStore.setItemAsync('accessToken', data.accessToken);
+            SecureStore.setItemAsync('refreshToken', data.refreshToken);
 
             // Retry user fetch with new token
             const retryRes = await fetch(`${BASE_URL}/users/me`, {

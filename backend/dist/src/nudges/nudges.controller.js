@@ -26,7 +26,11 @@ let NudgesController = class NudgesController {
         return this.nudgesService.sendNudge(req.user.id, dto);
     }
     async getNudges(req, circleId, sentBy, page, limit) {
-        return this.nudgesService.getNudges(req.user.id, circleId, sentBy, page ? parseInt(page) : 1, limit ? parseInt(limit) : 20);
+        const parsedPage = page ? parseInt(page, 10) : 1;
+        const parsedLimit = limit ? parseInt(limit, 10) : 20;
+        const safePage = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+        const safeLimit = isNaN(parsedLimit) || parsedLimit < 1 ? 20 : parsedLimit;
+        return this.nudgesService.getNudges(req.user.id, circleId, sentBy, safePage, safeLimit);
     }
 };
 exports.NudgesController = NudgesController;

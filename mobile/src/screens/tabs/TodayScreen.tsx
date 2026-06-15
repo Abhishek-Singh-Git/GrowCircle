@@ -47,7 +47,7 @@ export default function TodayScreen() {
   const totalCount = todayInstances.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  const partners = feed.filter((m) => m.user.id !== user?.id);
+  const partners = (feed || []).filter((m) => m?.user?.id && m.user.id !== user?.id);
 
   const handleRefresh = useCallback(() => {
     refetchGoals();
@@ -167,61 +167,66 @@ export default function TodayScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          partners.map((partner) => (
-          <View key={partner.user.id} style={styles.partnerContainer}>
-            <View style={styles.partnerStrip}>
-              <View style={styles.partnerAvatar}>
-                <Text style={styles.partnerEmoji}>👤</Text>
-                <View style={styles.presenceDot} />
-              </View>
-              <View style={styles.partnerInfo}>
-                <Text style={styles.partnerName}>
-                  {partner.user.name}
-                  {upLatePartners.includes(partner.user.id) && ' 🦉'}
-                </Text>
-                <Text style={styles.partnerStatus}>
-                  {partner.todaySummary.completed}/{partner.todaySummary.totalGoals} goals done today
-                </Text>
-              </View>
-              <TouchableOpacity 
-                style={[styles.nudgeBtn, !!nudgeLoadingId && { opacity: 0.5 }]}
-                onPress={() => handleSendNudge(partner.user.id)}
-                disabled={!!nudgeLoadingId}
-              >
-                {nudgeLoadingId === partner.user.id ? (
-                  <ActivityIndicator size="small" color={Colors.textSecondary} />
-                ) : (
-                  <Text style={styles.nudgeEmoji}>🔔</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Partner's incomplete goals */}
-            {partner.goalInstances.filter(i => i.status !== 'completed').length > 0 && (
-              <View style={styles.partnerGoalsList}>
-                {partner.goalInstances
-                  .filter(i => i.status !== 'completed')
-                  .map(instance => (
-                  <View key={instance.id} style={styles.partnerGoalRow}>
-                    <Text style={styles.partnerGoalEmoji}>{instance.goal.categoryEmoji || '🎯'}</Text>
-                    <Text style={styles.partnerGoalName} numberOfLines={1}>{instance.goal.name}</Text>
-                    <TouchableOpacity 
-                      style={[styles.smallNudgeBtn, !!nudgeLoadingId && { opacity: 0.5 }]}
-                      onPress={() => handleSendNudge(partner.user.id, instance.id, instance.goal.name)}
-                      disabled={!!nudgeLoadingId}
-                    >
-                      {nudgeLoadingId === partner.user.id + instance.id ? (
-                        <ActivityIndicator size="small" color={Colors.textPrimary} />
-                      ) : (
-                        <Text style={styles.smallNudgeText}>Nudge</Text>
-                      )}
-                    </TouchableOpacity>
+          partners.map((partner) => {
+            if (!partner || !partner.user) return null;
+            const incompleteGoals = (partner.goalInstances || []).filter(i => i && i.status !== 'completed');
+            return (
+              <View key={partner.user.id} style={styles.partnerContainer}>
+                <View style={styles.partnerStrip}>
+                  <View style={styles.partnerAvatar}>
+                    <Text style={styles.partnerEmoji}>👤</Text>
+                    <View style={styles.presenceDot} />
                   </View>
-                ))}
+                  <View style={styles.partnerInfo}>
+                    <Text style={styles.partnerName}>
+                      {partner.user.name}
+                      {Array.isArray(upLatePartners) && upLatePartners.includes(partner.user.id) && ' 🦉'}
+                    </Text>
+                    <Text style={styles.partnerStatus}>
+                      {partner.todaySummary?.completed || 0}/{partner.todaySummary?.totalGoals || 0} goals done today
+                    </Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={[styles.nudgeBtn, !!nudgeLoadingId && { opacity: 0.5 }]}
+                    onPress={() => handleSendNudge(partner.user.id)}
+                    disabled={!!nudgeLoadingId}
+                  >
+                    {nudgeLoadingId === partner.user.id ? (
+                      <ActivityIndicator size="small" color={Colors.textSecondary} />
+                    ) : (
+                      <Text style={styles.nudgeEmoji}>🔔</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* Partner's incomplete goals */}
+                {incompleteGoals.length > 0 && (
+                  <View style={styles.partnerGoalsList}>
+                    {incompleteGoals.map(instance => {
+                      if (!instance) return null;
+                      return (
+                        <View key={instance.id} style={styles.partnerGoalRow}>
+                          <Text style={styles.partnerGoalEmoji}>{instance.goal?.categoryEmoji || '🎯'}</Text>
+                          <Text style={styles.partnerGoalName} numberOfLines={1}>{instance.goal?.name || 'Goal'}</Text>
+                          <TouchableOpacity 
+                            style={[styles.smallNudgeBtn, !!nudgeLoadingId && { opacity: 0.5 }]}
+                            onPress={() => handleSendNudge(partner.user.id, instance.id, instance.goal?.name)}
+                            disabled={!!nudgeLoadingId}
+                          >
+                            {nudgeLoadingId === partner.user.id + instance.id ? (
+                              <ActivityIndicator size="small" color={Colors.textPrimary} />
+                            ) : (
+                              <Text style={styles.smallNudgeText}>Nudge</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
-            )}
-          </View>
-        )))}
+            );
+          }))}
 
         {/* Goal cards */}
         <View style={styles.section}>

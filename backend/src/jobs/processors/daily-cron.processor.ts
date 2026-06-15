@@ -6,6 +6,7 @@ import { GoalsService } from '../../goals/goals.service';
 import { ChallengesService } from '../../challenges/challenges.service';
 import { DateTime } from 'luxon';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InterventionsService } from '../../interventions/interventions.service';
 
 @Processor('daily_cron')
 export class DailyCronProcessor extends WorkerHost {
@@ -16,6 +17,7 @@ export class DailyCronProcessor extends WorkerHost {
     private readonly goalsService: GoalsService,
     private readonly challengesService: ChallengesService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly interventionsService: InterventionsService,
   ) {
     super();
   }
@@ -27,7 +29,15 @@ export class DailyCronProcessor extends WorkerHost {
       await this.handleHourlyCron();
     } else if (job.name === 'late-night-check') {
       await this.handleLateNightCheck();
+    } else if (job.name === 'transition-interventions') {
+      await this.handleTransitionInterventions();
     }
+  }
+
+  private async handleTransitionInterventions() {
+    this.logger.log('Starting background Intervention state transitions...');
+    await this.interventionsService.transitionInterventions();
+    this.logger.log('Intervention state transitions completed.');
   }
 
   private async handleLateNightCheck() {
@@ -71,10 +81,10 @@ export class DailyCronProcessor extends WorkerHost {
         for (const membership of user.circleMemberships) {
           if (membership.status !== 'active') continue;
           
-          this.eventEmitter.emit('late_night.detected', {
+          this.eventEmitter.emitAsync('late_night.detected', {
             userId: user.id,
             circleId: membership.circleId,
-          });
+          }).catch(() => { /* non-fatal */ });
         }
       }
     }

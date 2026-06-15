@@ -66,9 +66,18 @@ let AppController = class AppController {
         if (!req.user?.id) {
             throw new common_1.UnauthorizedException('User not authenticated');
         }
+        const data = {};
+        if (body.fcmToken !== undefined)
+            data.fcmToken = body.fcmToken;
+        if (body.avatarUrl !== undefined)
+            data.avatarUrl = body.avatarUrl;
+        if (body.name !== undefined)
+            data.name = body.name;
+        if (body.timezone !== undefined)
+            data.timezone = body.timezone;
         return this.prisma.user.update({
             where: { id: req.user.id },
-            data: { fcmToken: body.fcmToken },
+            data,
         });
     }
     async getPreferences(req) {

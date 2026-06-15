@@ -22,7 +22,11 @@ let NotificationsController = class NotificationsController {
         this.notificationsService = notificationsService;
     }
     async getNotifications(req, page, limit) {
-        return this.notificationsService.getNotifications(req.user.id, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
+        const parsedPage = page ? parseInt(page, 10) : 1;
+        const parsedLimit = limit ? parseInt(limit, 10) : 50;
+        const safePage = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+        const safeLimit = isNaN(parsedLimit) || parsedLimit < 1 ? 50 : parsedLimit;
+        return this.notificationsService.getNotifications(req.user.id, safePage, safeLimit);
     }
     async markAsRead(req, notificationId) {
         return this.notificationsService.markAsRead(req.user.id, notificationId);

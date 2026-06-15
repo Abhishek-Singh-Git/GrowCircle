@@ -17,22 +17,82 @@ const prisma_service_1 = require("../../prisma/prisma.service");
 const goals_service_1 = require("../../goals/goals.service");
 const challenges_service_1 = require("../../challenges/challenges.service");
 const luxon_1 = require("luxon");
+const event_emitter_1 = require("@nestjs/event-emitter");
+const interventions_service_1 = require("../../interventions/interventions.service");
 let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends bullmq_1.WorkerHost {
     prisma;
     goalsService;
     challengesService;
+    eventEmitter;
+    interventionsService;
     logger = new common_1.Logger(DailyCronProcessor_1.name);
-    constructor(prisma, goalsService, challengesService) {
+    constructor(prisma, goalsService, challengesService, eventEmitter, interventionsService) {
         super();
         this.prisma = prisma;
         this.goalsService = goalsService;
         this.challengesService = challengesService;
+        this.eventEmitter = eventEmitter;
+        this.interventionsService = interventionsService;
     }
     async process(job) {
         this.logger.log(`Processing job ${job.name} (ID: ${job.id})`);
         if (job.name === 'generate-instances-and-streaks') {
             await this.handleHourlyCron();
         }
+        else if (job.name === 'late-night-check') {
+            await this.handleLateNightCheck();
+        }
+        else if (job.name === 'transition-interventions') {
+            await this.handleTransitionInterventions();
+        }
+    }
+    async handleTransitionInterventions() {
+        this.logger.log('Starting background Intervention state transitions...');
+        await this.interventionsService.transitionInterventions();
+        this.logger.log('Intervention state transitions completed.');
+    }
+    async handleLateNightCheck() {
+        this.logger.log('Starting Late Night Check...');
+        const activeUsers = await this.prisma.user.findMany({
+            where: { accountStatus: 'active' },
+            select: {
+                id: true,
+                timezone: true,
+                preferences: { select: { shareLateNightActivity: true } },
+                circleMemberships: { select: { circleId: true, status: true } }
+            },
+        });
+        let detectedCount = 0;
+        for (const user of activeUsers) {
+            if (!user.preferences?.shareLateNightActivity)
+                continue;
+            const userTz = user.timezone || 'UTC';
+            const nowLocal = luxon_1.DateTime.now().setZone(userTz);
+            const hour = nowLocal.hour;
+            const minute = nowLocal.minute;
+            const isLate = (hour === 23 && minute >= 30) || (hour >= 0 && hour < 4);
+            if (!isLate)
+                continue;
+            const fifteenMinsAgo = luxon_1.DateTime.now().minus({ minutes: 15 }).toJSDate();
+            const recentActivity = await this.prisma.screenTimeSnapshot.findFirst({
+                where: {
+                    userId: user.id,
+                    syncedAt: { gte: fifteenMinsAgo }
+                }
+            });
+            if (recentActivity) {
+                detectedCount++;
+                for (const membership of user.circleMemberships) {
+                    if (membership.status !== 'active')
+                        continue;
+                    this.eventEmitter.emit('late_night.detected', {
+                        userId: user.id,
+                        circleId: membership.circleId,
+                    });
+                }
+            }
+        }
+        this.logger.log(`Late Night Check complete. Found ${detectedCount} active users.`);
     }
     async handleHourlyCron() {
         this.logger.log('Starting Hourly Cron...');
@@ -179,6 +239,8 @@ exports.DailyCronProcessor = DailyCronProcessor = DailyCronProcessor_1 = __decor
     (0, bullmq_1.Processor)('daily_cron'),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         goals_service_1.GoalsService,
-        challenges_service_1.ChallengesService])
+        challenges_service_1.ChallengesService,
+        event_emitter_1.EventEmitter2,
+        interventions_service_1.InterventionsService])
 ], DailyCronProcessor);
 //# sourceMappingURL=daily-cron.processor.js.map

@@ -1,8 +1,11 @@
+import { ValidationOptions } from 'class-validator';
+export declare function AtLeastOne(fields: string[], validationOptions?: ValidationOptions): (target: Function) => void;
 export declare class RegisterDto {
     name: string;
     email?: string;
     phone?: string;
     password: string;
+    timezone?: string;
 }
 export declare class LoginDto {
     credential?: string;

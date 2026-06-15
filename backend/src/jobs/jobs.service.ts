@@ -41,6 +41,18 @@ export class JobsService implements OnModuleInit {
       },
     );
 
-    this.logger.log('Jobs registered (Hourly cron, Late Night Check)');
+    // Add Intervention State Transition Check (runs every minute)
+    await this.dailyCronQueue.add(
+      'transition-interventions',
+      {},
+      {
+        repeat: {
+          pattern: '* * * * *', // Every minute
+        },
+        jobId: 'transition-interventions',
+      },
+    );
+
+    this.logger.log('Jobs registered (Hourly cron, Late Night Check, Transition Interventions)');
   }
 }

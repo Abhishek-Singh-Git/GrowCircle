@@ -77,9 +77,12 @@ export class NudgesService {
       },
     });
 
-    // Only emit the push notification event if the user hasn't globally disabled it
+    // Only emit the push notification event if the user hasn't globally disabled it.
+    // Fire-and-forget: do NOT await — listener errors must never surface as a 500.
     if (!recipientPrefs || recipientPrefs.notifyNudge !== false) {
-      this.eventEmitter.emit('nudge.sent', { nudge });
+      this.eventEmitter.emitAsync('nudge.sent', { nudge }).catch(() => {
+        // Notification failure is non-fatal; nudge was already saved to DB.
+      });
     }
 
     return nudge;

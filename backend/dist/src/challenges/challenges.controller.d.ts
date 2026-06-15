@@ -33,9 +33,9 @@ export declare class ChallengesController {
             avatarUrl: string | null;
         };
     } & {
+        circleId: string;
         id: string;
         createdAt: Date;
-        circleId: string;
         status: string;
         title: string;
         conditionDescription: string;
@@ -90,9 +90,9 @@ export declare class ChallengesController {
             name: string;
             avatarUrl: string | null;
         } | null;
+        circleId: string;
         id: string;
         createdAt: Date;
-        circleId: string;
         status: string;
         title: string;
         conditionDescription: string;
@@ -200,9 +200,9 @@ export declare class ChallengesController {
             challengeId: string;
         })[];
     } & {
+        circleId: string;
         id: string;
         createdAt: Date;
-        circleId: string;
         status: string;
         title: string;
         conditionDescription: string;

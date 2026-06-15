@@ -53,6 +53,7 @@ export class AuthService {
         email: dto.email || null,
         phone: dto.phone || null,
         passwordHash,
+        timezone: dto.timezone || 'UTC',
       },
     });
 

@@ -130,6 +130,7 @@ model Circle {
   leaderboardSnapshots LeaderboardSnapshot[]
   gracePeriods         GracePeriodsUser[]
 
+  @@index([ownerId])
   @@map("circles")
 }
 
@@ -206,6 +207,8 @@ model Goal {
   activityLogs ActivityLog[]
   challenges   Challenge[]     @relation("ChallengeGoal")
 
+  @@index([userId])
+  @@index([circleId])
   @@map("goals")
 }
 
@@ -531,6 +534,8 @@ model Challenge {
   participants  ChallengeParticipant[]
   disputes      DisputeTicket[]
 
+  @@index([circleId])
+  @@index([proposerId])
   @@map("challenges")
 }
 
@@ -570,6 +575,7 @@ model DisputeTicket {
   raiser    User      @relation("DisputeRaiser", fields: [raisedBy], references: [id], onDelete: Cascade)
   resolver  User?     @relation("DisputeResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
 
+  @@index([challengeId])
   @@map("dispute_tickets")
 }
 
@@ -646,7 +652,7 @@ model UserBadge {
   earnedAt DateTime @default(now()) @map("earned_at")
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Restrict)
 
   @@unique([userId, badgeId])
   @@map("user_badges")
@@ -677,7 +683,7 @@ model UserAchievement {
   updatedAt     DateTime? @updatedAt @map("updated_at")
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Restrict)
 
   @@unique([userId, achievementId])
   @@map("user_achievements")
@@ -711,6 +717,8 @@ model GracePeriodsUser {
   circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
   gifter User?  @relation("GracePeriodGifter", fields: [giftedBy], references: [id], onDelete: SetNull)
 
+  @@index([userId])
+  @@index([circleId])
   @@map("grace_periods")
 }
 

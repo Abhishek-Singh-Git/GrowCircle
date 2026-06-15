@@ -177,15 +177,21 @@ export default function FocusScreen() {
         {
           text: 'Send Alert',
           onPress: async () => {
-            if (!selectedPartnerId) {
+            let targetId = selectedPartnerId;
+            if (!targetId) {
               const partners = activeCircle?.members?.filter((m: any) => m.id !== user?.id) || [];
               if (partners.length === 0) return;
-              setSelectedPartnerId(partners[0].id);
+              targetId = partners[0]?.id || null;
+              if (targetId) {
+                setSelectedPartnerId(targetId);
+              }
             }
+            if (!targetId) return;
+
             setIsInterventionLoading(true);
             try {
               await api.post('/interventions', {
-                targetId: selectedPartnerId,
+                targetId,
                 circleId: activeCircleId,
                 type: 'alert',
                 appPackage: app.packageName,
@@ -273,7 +279,7 @@ export default function FocusScreen() {
             >
               <Text style={[styles.toggleText, viewMode === 'own' && styles.toggleTextActive]}>Me</Text>
             </TouchableOpacity>
-            {activeCircle?.members?.filter((m: any) => m.id !== user?.id).map((m: any) => (
+            {(activeCircle?.members?.filter((m: any) => m?.id !== user?.id) || []).map((m: any) => (
               <TouchableOpacity
                 key={m.id}
                 style={[

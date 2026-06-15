@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../services/api';
 
@@ -45,7 +45,7 @@ export function usePreferences() {
   useEffect(() => {
     const init = async () => {
       if (isAuthenticated) {
-        const token = await AsyncStorage.getItem('accessToken');
+        const token = await SecureStore.getItemAsync('accessToken');
         if (token) {
           fetchPreferences();
         }

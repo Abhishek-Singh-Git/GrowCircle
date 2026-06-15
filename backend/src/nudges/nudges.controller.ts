@@ -35,12 +35,16 @@ export class NudgesController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const safePage = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+    const safeLimit = isNaN(parsedLimit) || parsedLimit < 1 ? 20 : parsedLimit;
     return this.nudgesService.getNudges(
       req.user.id,
       circleId,
       sentBy,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      safePage,
+      safeLimit,
     );
   }
 }

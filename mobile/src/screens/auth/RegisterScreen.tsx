@@ -49,11 +49,12 @@ export default function RegisterScreen({
 
     setIsLoading(true);
     try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
       const data = await api.post<{
         user: { id: string; name: string; email: string; timezone: string; plan: string };
         accessToken: string;
         refreshToken: string;
-      }>('/auth/register', { name: name.trim(), email: email.trim(), password });
+      }>('/auth/register', { name: name.trim(), email: email.trim(), password, timezone });
 
       setAuth(data.user, data.accessToken, data.refreshToken);
       onRegisterSuccess();

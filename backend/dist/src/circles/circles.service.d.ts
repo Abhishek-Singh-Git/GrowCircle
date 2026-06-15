@@ -54,9 +54,9 @@ export declare class CirclesService {
                 lastActiveAt: Date | null;
             };
         } & {
+            circleId: string;
             id: string;
             userId: string;
-            circleId: string;
             role: string;
             status: string;
             joinedAt: Date;
@@ -89,9 +89,9 @@ export declare class CirclesService {
         message: string;
     }>;
     validateMembership(userId: string, circleId: string): Promise<{
+        circleId: string;
         id: string;
         userId: string;
-        circleId: string;
         role: string;
         status: string;
         joinedAt: Date;

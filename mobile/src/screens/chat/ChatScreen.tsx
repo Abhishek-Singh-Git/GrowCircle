@@ -58,7 +58,7 @@ export default function ChatScreen({ navigation }: any) {
     const initChat = async () => {
       try {
         const threads: any = await api.get(`/chat/threads?circle_id=${activeCircleId}`);
-        let currentThreadId = threads[0]?.id;
+        let currentThreadId = (Array.isArray(threads) && threads.length > 0) ? threads[0]?.id : null;
 
         if (!currentThreadId) {
           const newThread: any = await api.post('/chat/threads', {
@@ -82,7 +82,7 @@ export default function ChatScreen({ navigation }: any) {
 
     // Listen to real-time chat messages
     const unsubscribe = wsService.on('chat_message', (payload: any) => {
-      if (payload.threadId === threadId || !threadId) {
+      if (payload && payload.message && (payload.threadId === threadId || !threadId)) {
         setMessages((prev) => {
           // Prevent duplicates
           if (prev.some((m) => m.id === payload.message.id || (m.content === payload.message.content && m.senderId === payload.message.senderId && Date.now() - new Date(m.sentAt).getTime() < 5000))) {
@@ -95,7 +95,9 @@ export default function ChatScreen({ navigation }: any) {
     });
 
     const unsubDraw = wsService.on('draw:stroke', (payload: any) => {
-      setPartnerStrokes((prev) => [...prev, payload.stroke]);
+      if (payload && payload.stroke) {
+        setPartnerStrokes((prev) => [...prev, payload.stroke]);
+      }
     });
 
     const unsubClear = wsService.on('draw:clear', () => {
@@ -120,7 +122,7 @@ export default function ChatScreen({ navigation }: any) {
       // Optimistic update
       const optimisticMsg: ChatMessage = {
         id: Math.random().toString(),
-        senderId: user!.id,
+        senderId: user?.id || '',
         content,
         sentAt: new Date().toISOString(),
       };

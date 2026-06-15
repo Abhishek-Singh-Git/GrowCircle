@@ -21,10 +21,14 @@ export class NotificationsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 50;
+    const safePage = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+    const safeLimit = isNaN(parsedLimit) || parsedLimit < 1 ? 50 : parsedLimit;
     return this.notificationsService.getNotifications(
       req.user.id,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 50,
+      safePage,
+      safeLimit,
     );
   }
 

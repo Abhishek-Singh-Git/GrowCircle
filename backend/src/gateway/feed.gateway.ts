@@ -20,9 +20,17 @@ interface AuthenticatedSocket extends Socket {
 
 import { PrismaService } from '../prisma/prisma.service';
 
+const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
+  'https://growcircle-production.up.railway.app',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://localhost:5173',
+  'http://localhost:19006',
+];
+
 @WebSocketGateway({
   cors: {
-    origin: process.env.CORS_ORIGINS?.split(',') || ['https://growcircle-production.up.railway.app'],
+    origin: allowedOrigins,
     credentials: true,
   },
   namespace: '/feed',
@@ -32,6 +40,11 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(FeedGateway.name);
+
+  // Cooldown: tracks last time a late-night alert was emitted per user.
+  // Prevents spamming partners on every heartbeat during the late-night window.
+  private readonly lateNightCooldown = new Map<string, number>();
+  private readonly LATE_NIGHT_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
   constructor(
     private readonly jwtService: JwtService,
@@ -150,10 +163,17 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
           userId: client.userId,
           timestamp: new Date().toISOString(),
         });
-        this.eventEmitter.emit('late_night.detected', {
-          userId: client.userId,
-          circleId: data.circleId,
-        });
+
+        // Only fire the push notification once per cooldown window to prevent spam.
+        const cooldownKey = `${client.userId}:${data.circleId}`;
+        const lastFired = this.lateNightCooldown.get(cooldownKey) ?? 0;
+        if (Date.now() - lastFired > this.LATE_NIGHT_COOLDOWN_MS) {
+          this.lateNightCooldown.set(cooldownKey, Date.now());
+          this.eventEmitter.emitAsync('late_night.detected', {
+            userId: client.userId,
+            circleId: data.circleId,
+          }).catch(() => { /* non-fatal */ });
+        }
       }
     }
 
@@ -292,6 +312,12 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     const currentStrokes = (circle?.canvasState as any[]) || [];
     currentStrokes.push(data.stroke);
+
+    const MAX_STROKES = 500;
+    if (currentStrokes.length > MAX_STROKES) {
+      currentStrokes.splice(0, currentStrokes.length - MAX_STROKES);
+    }
+
     await this.prisma.circle.update({
       where: { id: data.circleId },
       data: { canvasState: currentStrokes },

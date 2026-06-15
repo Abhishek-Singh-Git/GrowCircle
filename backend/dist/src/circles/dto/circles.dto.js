@@ -52,10 +52,11 @@ __decorate([
     (0, class_validator_1.IsIn)(['points_only', 'iou', 'forfeit']),
     __metadata("design:type", String)
 ], CreateCircleDto.prototype, "maxStakeType", void 0);
-class JoinCircleDto {
+const auth_dto_1 = require("../../auth/dto/auth.dto");
+let JoinCircleDto = class JoinCircleDto {
     code;
     token;
-}
+};
 exports.JoinCircleDto = JoinCircleDto;
 __decorate([
     (0, class_validator_1.IsOptional)(),
@@ -67,4 +68,7 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], JoinCircleDto.prototype, "token", void 0);
+exports.JoinCircleDto = JoinCircleDto = __decorate([
+    (0, auth_dto_1.AtLeastOne)(['code', 'token'])
+], JoinCircleDto);
 //# sourceMappingURL=circles.dto.js.map

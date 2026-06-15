@@ -10,8 +10,10 @@ import {
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, RefreshTokenDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { AuthRateLimiterGuard } from './auth-rate-limiter.guard';
 
 @Controller('v1/auth')
+@UseGuards(AuthRateLimiterGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

@@ -452,6 +452,9 @@ let ChallengesService = class ChallengesService {
         });
         const enrichedChallenges = [];
         for (const challenge of challenges) {
+            const requestingParticipant = challenge.participants.find(p => p.userId === userId);
+            if (requestingParticipant?.status === 'hidden')
+                continue;
             const participantsWithProgress = [];
             for (const participant of challenge.participants) {
                 let progress = 0;
@@ -582,13 +585,21 @@ let ChallengesService = class ChallengesService {
     async clearHistory(userId, challengeId) {
         const challenge = await this.prisma.challenge.findUnique({
             where: { id: challengeId },
+            include: { participants: true },
         });
         if (!challenge) {
             throw new common_1.NotFoundException('Challenge not found');
         }
-        await this.prisma.challenge.delete({
-            where: { id: challengeId },
-        });
+        const participant = challenge.participants.find(p => p.userId === userId);
+        if (!participant && challenge.proposerId !== userId) {
+            throw new common_1.ForbiddenException('Not a participant of this challenge');
+        }
+        if (participant) {
+            await this.prisma.challengeParticipant.update({
+                where: { id: participant.id },
+                data: { status: 'hidden' },
+            });
+        }
         return { success: true };
     }
 };

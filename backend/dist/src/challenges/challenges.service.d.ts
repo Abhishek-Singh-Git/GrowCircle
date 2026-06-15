@@ -33,9 +33,9 @@ export declare class ChallengesService {
             avatarUrl: string | null;
         };
     } & {
+        circleId: string;
         id: string;
         createdAt: Date;
-        circleId: string;
         status: string;
         title: string;
         conditionDescription: string;
@@ -155,9 +155,9 @@ export declare class ChallengesService {
             challengeId: string;
         })[];
     } & {
+        circleId: string;
         id: string;
         createdAt: Date;
-        circleId: string;
         status: string;
         title: string;
         conditionDescription: string;
@@ -210,9 +210,9 @@ export declare class ChallengesService {
             name: string;
             avatarUrl: string | null;
         } | null;
+        circleId: string;
         id: string;
         createdAt: Date;
-        circleId: string;
         status: string;
         title: string;
         conditionDescription: string;

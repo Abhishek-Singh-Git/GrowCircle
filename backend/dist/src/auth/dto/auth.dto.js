@@ -10,12 +10,33 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ResetPasswordDto = exports.VerifyOtpDto = exports.ForgotPasswordDto = exports.RefreshTokenDto = exports.LoginDto = exports.RegisterDto = void 0;
+exports.AtLeastOne = AtLeastOne;
 const class_validator_1 = require("class-validator");
+function AtLeastOne(fields, validationOptions) {
+    return function (target) {
+        (0, class_validator_1.registerDecorator)({
+            name: 'atLeastOne',
+            target: target,
+            propertyName: '',
+            options: validationOptions,
+            validator: {
+                validate(value, args) {
+                    const obj = args.object;
+                    return fields.some((field) => obj[field] !== undefined && obj[field] !== null && obj[field] !== '');
+                },
+                defaultMessage(args) {
+                    return `At least one of the following fields must be provided: ${fields.join(', ')}`;
+                },
+            },
+        });
+    };
+}
 class RegisterDto {
     name;
     email;
     phone;
     password;
+    timezone;
 }
 exports.RegisterDto = RegisterDto;
 __decorate([
@@ -42,11 +63,16 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "password", void 0);
-class LoginDto {
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "timezone", void 0);
+let LoginDto = class LoginDto {
     credential;
     password;
     idToken;
-}
+};
 exports.LoginDto = LoginDto;
 __decorate([
     (0, class_validator_1.IsString)(),
@@ -63,6 +89,9 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], LoginDto.prototype, "idToken", void 0);
+exports.LoginDto = LoginDto = __decorate([
+    AtLeastOne(['credential', 'idToken'])
+], LoginDto);
 class RefreshTokenDto {
     refreshToken;
 }
@@ -71,10 +100,10 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], RefreshTokenDto.prototype, "refreshToken", void 0);
-class ForgotPasswordDto {
+let ForgotPasswordDto = class ForgotPasswordDto {
     email;
     phone;
-}
+};
 exports.ForgotPasswordDto = ForgotPasswordDto;
 __decorate([
     (0, class_validator_1.IsOptional)(),
@@ -86,6 +115,9 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], ForgotPasswordDto.prototype, "phone", void 0);
+exports.ForgotPasswordDto = ForgotPasswordDto = __decorate([
+    AtLeastOne(['email', 'phone'])
+], ForgotPasswordDto);
 class VerifyOtpDto {
     credential;
     otpCode;

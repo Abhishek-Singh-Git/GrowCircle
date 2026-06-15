@@ -70,9 +70,9 @@ export declare class CirclesController {
                 lastActiveAt: Date | null;
             };
         } & {
+            circleId: string;
             id: string;
             userId: string;
-            circleId: string;
             role: string;
             status: string;
             joinedAt: Date;

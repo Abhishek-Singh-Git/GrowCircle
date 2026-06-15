@@ -18,13 +18,13 @@ export declare class InterventionsService {
             name: string;
         };
     } & {
-        id: string;
         circleId: string;
+        id: string;
         status: string;
         expiresAt: Date | null;
         durationSeconds: number | null;
-        appPackage: string | null;
         targetId: string;
+        appPackage: string | null;
         interventionType: string;
         overrideAt: Date | null;
         overrideReason: string | null;
@@ -47,13 +47,13 @@ export declare class InterventionsService {
                 avatarUrl: string | null;
             };
         } & {
-            id: string;
             circleId: string;
+            id: string;
             status: string;
             expiresAt: Date | null;
             durationSeconds: number | null;
-            appPackage: string | null;
             targetId: string;
+            appPackage: string | null;
             interventionType: string;
             overrideAt: Date | null;
             overrideReason: string | null;
@@ -67,4 +67,5 @@ export declare class InterventionsService {
     handleConsentRevocation(userId: string, circleId: string): Promise<{
         cancelledCount: number;
     }>;
+    transitionInterventions(): Promise<void>;
 }

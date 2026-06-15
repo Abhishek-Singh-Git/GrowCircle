@@ -32,7 +32,11 @@ let ChatController = class ChatController {
         return this.chatService.sendMessage(req.user.id, threadId, dto);
     }
     async getMessages(req, threadId, page, limit) {
-        return this.chatService.getMessages(req.user.id, threadId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
+        const parsedPage = page ? parseInt(page, 10) : 1;
+        const parsedLimit = limit ? parseInt(limit, 10) : 50;
+        const safePage = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+        const safeLimit = isNaN(parsedLimit) || parsedLimit < 1 ? 50 : parsedLimit;
+        return this.chatService.getMessages(req.user.id, threadId, safePage, safeLimit);
     }
     async clearChat(req, threadId) {
         return this.chatService.clearChat(req.user.id, threadId);

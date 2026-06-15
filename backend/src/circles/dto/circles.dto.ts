@@ -28,6 +28,9 @@ export class CreateCircleDto {
   maxStakeType?: string;
 }
 
+import { AtLeastOne } from '../../auth/dto/auth.dto';
+
+@AtLeastOne(['code', 'token'])
 export class JoinCircleDto {
   @IsOptional()
   @IsString()

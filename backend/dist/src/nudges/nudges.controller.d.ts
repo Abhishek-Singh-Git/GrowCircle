@@ -14,14 +14,14 @@ export declare class NudgesController {
             avatarUrl: string | null;
         };
     } & {
-        id: string;
-        result: string | null;
-        message: string | null;
+        recipientId: string;
         circleId: string;
         goalInstanceId: string | null;
+        message: string | null;
+        id: string;
+        result: string | null;
         sentAt: Date;
         senderId: string;
-        recipientId: string;
     }>;
     getNudges(req: {
         user: {
@@ -40,14 +40,14 @@ export declare class NudgesController {
                 avatarUrl: string | null;
             };
         } & {
-            id: string;
-            result: string | null;
-            message: string | null;
+            recipientId: string;
             circleId: string;
             goalInstanceId: string | null;
+            message: string | null;
+            id: string;
+            result: string | null;
             sentAt: Date;
             senderId: string;
-            recipientId: string;
         })[];
         total: number;
         page: number;

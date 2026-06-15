@@ -21,6 +21,13 @@ const jwt_1 = require("@nestjs/jwt");
 const common_1 = require("@nestjs/common");
 const luxon_1 = require("luxon");
 const prisma_service_1 = require("../prisma/prisma.service");
+const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
+    'https://growcircle-production.up.railway.app',
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'http://localhost:5173',
+    'http://localhost:19006',
+];
 let FeedGateway = FeedGateway_1 = class FeedGateway {
     jwtService;
     prisma;
@@ -189,6 +196,10 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
         });
         const currentStrokes = circle?.canvasState || [];
         currentStrokes.push(data.stroke);
+        const MAX_STROKES = 500;
+        if (currentStrokes.length > MAX_STROKES) {
+            currentStrokes.splice(0, currentStrokes.length - MAX_STROKES);
+        }
         await this.prisma.circle.update({
             where: { id: data.circleId },
             data: { canvasState: currentStrokes },
@@ -303,7 +314,7 @@ __decorate([
 exports.FeedGateway = FeedGateway = FeedGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: {
-            origin: process.env.CORS_ORIGINS?.split(',') || ['https://growcircle-production.up.railway.app'],
+            origin: allowedOrigins,
             credentials: true,
         },
         namespace: '/feed',

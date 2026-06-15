@@ -14,6 +14,7 @@ const daily_cron_processor_1 = require("./processors/daily-cron.processor");
 const cleanup_processor_1 = require("./processors/cleanup.processor");
 const goals_module_1 = require("../goals/goals.module");
 const challenges_module_1 = require("../challenges/challenges.module");
+const interventions_module_1 = require("../interventions/interventions.module");
 let JobsModule = class JobsModule {
 };
 exports.JobsModule = JobsModule;
@@ -25,6 +26,7 @@ exports.JobsModule = JobsModule = __decorate([
             }),
             goals_module_1.GoalsModule,
             challenges_module_1.ChallengesModule,
+            interventions_module_1.InterventionsModule,
         ],
         providers: [jobs_service_1.JobsService, daily_cron_processor_1.DailyCronProcessor, cleanup_processor_1.CleanupProcessor],
     })
