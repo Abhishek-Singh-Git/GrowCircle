@@ -21,7 +21,8 @@
       "package": "com.growcircle.app",
       "permissions": [
         "android.permission.PACKAGE_USAGE_STATS",
-        "android.permission.QUERY_ALL_PACKAGES"
+        "android.permission.QUERY_ALL_PACKAGES",
+        "android.permission.ACCESS_NETWORK_STATE"
       ],
       "intentFilters": [
         {
