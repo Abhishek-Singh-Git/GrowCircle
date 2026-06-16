@@ -628,8 +628,12 @@ export class ChallengesService {
 
       // Battle Arena 2.0: compute remaining time for active challenges
       let remainingMs = 0;
+      let computedStatus = challenge.status;
       if (challenge.status === 'active') {
         remainingMs = Math.max(0, new Date(challenge.deadline).getTime() - Date.now());
+        if (remainingMs <= 0) {
+          computedStatus = 'expired';
+        }
       }
 
       enrichedChallenges.push({
@@ -637,6 +641,7 @@ export class ChallengesService {
         participants: participantsWithProgress,
         durationHours: challenge.durationHours,
         remainingMs,
+        computedStatus,
       });
     }
 

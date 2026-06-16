@@ -529,14 +529,19 @@ let ChallengesService = class ChallengesService {
                 });
             }
             let remainingMs = 0;
+            let computedStatus = challenge.status;
             if (challenge.status === 'active') {
                 remainingMs = Math.max(0, new Date(challenge.deadline).getTime() - Date.now());
+                if (remainingMs <= 0) {
+                    computedStatus = 'expired';
+                }
             }
             enrichedChallenges.push({
                 ...challenge,
                 participants: participantsWithProgress,
                 durationHours: challenge.durationHours,
                 remainingMs,
+                computedStatus,
             });
         }
         return enrichedChallenges;

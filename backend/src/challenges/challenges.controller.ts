@@ -58,6 +58,7 @@ export class ChallengesController {
 
   // Battle Arena 2.0: Claim Victory
   @Post(':challengeId/submit-victory')
+  @HttpCode(HttpStatus.OK)
   async submitVictory(
     @Request() req: { user: { id: string } },
     @Param('challengeId') challengeId: string,
@@ -95,6 +96,7 @@ export class ChallengesController {
   }
 
   @Delete(':challengeId/history')
+  @HttpCode(HttpStatus.OK)
   async clearHistory(
     @Request() req: { user: { id: string } },
     @Param('challengeId') challengeId: string,

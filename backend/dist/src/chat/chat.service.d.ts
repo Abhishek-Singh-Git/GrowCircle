@@ -8,9 +8,9 @@ export declare class ChatService {
     private readonly eventEmitter;
     constructor(prisma: PrismaService, circlesService: CirclesService, eventEmitter: EventEmitter2);
     createThread(userId: string, dto: CreateThreadDto): Promise<{
-        circleId: string;
         id: string;
         createdAt: Date;
+        circleId: string;
         threadType: string;
     }>;
     getThreads(userId: string, circleId: string): Promise<({
@@ -39,9 +39,9 @@ export declare class ChatService {
             senderId: string;
         }[];
     } & {
-        circleId: string;
         id: string;
         createdAt: Date;
+        circleId: string;
         threadType: string;
     })[]>;
     sendMessage(userId: string, threadId: string, dto: SendMessageDto): Promise<{

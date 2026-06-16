@@ -14,14 +14,14 @@ export declare class NudgesService {
             avatarUrl: string | null;
         };
     } & {
-        recipientId: string;
-        circleId: string;
-        goalInstanceId: string | null;
-        message: string | null;
         id: string;
         result: string | null;
+        message: string | null;
+        circleId: string;
+        goalInstanceId: string | null;
         sentAt: Date;
         senderId: string;
+        recipientId: string;
     }>;
     getNudges(userId: string, circleId: string, sentBy: 'me' | 'others', page?: number, limit?: number): Promise<{
         items: ({
@@ -36,14 +36,14 @@ export declare class NudgesService {
                 avatarUrl: string | null;
             };
         } & {
-            recipientId: string;
-            circleId: string;
-            goalInstanceId: string | null;
-            message: string | null;
             id: string;
             result: string | null;
+            message: string | null;
+            circleId: string;
+            goalInstanceId: string | null;
             sentAt: Date;
             senderId: string;
+            recipientId: string;
         })[];
         total: number;
         page: number;

@@ -11,7 +11,6 @@ export declare class LoggingService {
     createLog(userId: string, dto: CreateLogDto): Promise<{
         xpAwarded: number;
         goal: {
-            circleId: string;
             id: string;
             name: string;
             category: string;
@@ -24,6 +23,7 @@ export declare class LoggingService {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
+            circleId: string;
             status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
@@ -40,30 +40,29 @@ export declare class LoggingService {
             id: string;
             createdAt: Date;
             userId: string;
-            emoji: string;
             logId: string;
+            emoji: string;
         }[];
-        circleId: string;
-        goalInstanceId: string;
         id: string;
         targetValue: Prisma.Decimal | null;
         userId: string;
+        circleId: string;
         status: string;
         date: Date;
         goalId: string;
         clientUuid: string;
+        goalInstanceId: string;
         actualValue: Prisma.Decimal | null;
         completionFraction: Prisma.Decimal;
-        notes: string | null;
         proofUrl: string | null;
         proofType: string | null;
+        notes: string | null;
         loggedAt: Date;
         editedAt: Date | null;
         isLateEdit: boolean;
     } | null>;
     getLog(userId: string, logId: string): Promise<{
         goal: {
-            circleId: string;
             id: string;
             name: string;
             category: string;
@@ -76,6 +75,7 @@ export declare class LoggingService {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
+            circleId: string;
             status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
@@ -91,13 +91,13 @@ export declare class LoggingService {
         mediaObjects: {
             id: string;
             createdAt: Date;
-            durationSeconds: number | null;
             ownerUserId: string;
             associatedLogId: string | null;
             storageKey: string;
             cdnUrl: string;
             fileType: string;
             fileSizeBytes: bigint;
+            durationSeconds: number | null;
             uploadStatus: string;
             uploadedAt: Date | null;
         }[];
@@ -110,24 +110,24 @@ export declare class LoggingService {
             id: string;
             createdAt: Date;
             userId: string;
-            emoji: string;
             logId: string;
+            emoji: string;
         })[];
     } & {
-        circleId: string;
-        goalInstanceId: string;
         id: string;
         targetValue: Prisma.Decimal | null;
         userId: string;
+        circleId: string;
         status: string;
         date: Date;
         goalId: string;
         clientUuid: string;
+        goalInstanceId: string;
         actualValue: Prisma.Decimal | null;
         completionFraction: Prisma.Decimal;
-        notes: string | null;
         proofUrl: string | null;
         proofType: string | null;
+        notes: string | null;
         loggedAt: Date;
         editedAt: Date | null;
         isLateEdit: boolean;
@@ -137,8 +137,8 @@ export declare class LoggingService {
         id: string;
         createdAt: Date;
         userId: string;
-        emoji: string;
         logId: string;
+        emoji: string;
     }>;
     removeReaction(userId: string, reactionId: string): Promise<{
         success: boolean;
@@ -177,36 +177,36 @@ export declare class LoggingService {
                     id: string;
                     createdAt: Date;
                     userId: string;
-                    emoji: string;
                     logId: string;
+                    emoji: string;
                 })[];
             } & {
-                circleId: string;
-                goalInstanceId: string;
                 id: string;
                 targetValue: Prisma.Decimal | null;
                 userId: string;
+                circleId: string;
                 status: string;
                 date: Date;
                 goalId: string;
                 clientUuid: string;
+                goalInstanceId: string;
                 actualValue: Prisma.Decimal | null;
                 completionFraction: Prisma.Decimal;
-                notes: string | null;
                 proofUrl: string | null;
                 proofType: string | null;
+                notes: string | null;
                 loggedAt: Date;
                 editedAt: Date | null;
                 isLateEdit: boolean;
                 xpAwarded: number;
             })[];
         } & {
-            circleId: string;
             id: string;
             createdAt: Date;
             updatedAt: Date | null;
             targetValue: Prisma.Decimal | null;
             userId: string;
+            circleId: string;
             status: string;
             expiresAt: Date | null;
             date: Date;

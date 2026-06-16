@@ -53,7 +53,7 @@ let NudgesService = class NudgesService {
         const recipientPrefs = await this.prisma.userPreference.findUnique({
             where: { userId: dto.recipientId },
         });
-        if (recipientPrefs?.nudgeBlockedUsers?.includes(senderId)) {
+        if (recipientPrefs?.nudgeBlockedUsers && Array.isArray(recipientPrefs.nudgeBlockedUsers) && recipientPrefs.nudgeBlockedUsers.includes(senderId)) {
             throw new common_1.ForbiddenException('User has blocked nudges from you');
         }
         const nudge = await this.prisma.nudgeLog.create({
@@ -69,8 +69,14 @@ let NudgesService = class NudgesService {
                 sender: { select: { id: true, name: true, avatarUrl: true } },
             },
         });
-        if (!recipientPrefs || recipientPrefs.notifyNudge !== false) {
-            this.eventEmitter.emit('nudge.sent', { nudge });
+        try {
+            if (!recipientPrefs || recipientPrefs.notifyNudge !== false) {
+                this.eventEmitter.emitAsync('nudge.sent', { nudge }).catch(() => {
+                });
+            }
+        }
+        catch (err) {
+            console.error('Failed to emit nudge.sent event:', err);
         }
         return nudge;
     }

@@ -8,9 +8,9 @@ export declare class ChatController {
             id: string;
         };
     }, dto: CreateThreadDto): Promise<{
-        circleId: string;
         id: string;
         createdAt: Date;
+        circleId: string;
         threadType: string;
     }>;
     getThreads(req: {
@@ -43,9 +43,9 @@ export declare class ChatController {
             senderId: string;
         }[];
     } & {
-        circleId: string;
         id: string;
         createdAt: Date;
+        circleId: string;
         threadType: string;
     })[]>;
     sendMessage(req: {

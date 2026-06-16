@@ -107,7 +107,12 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
                         to: user.fcmToken,
                         title: notification.title,
                         body: notification.body,
-                        data: { type: notification.type, ...notification.metadata }
+                        data: {
+                            type: notification.type,
+                            ...(notification.metadata
+                                ? Object.fromEntries(Object.entries(notification.metadata).map(([k, v]) => [k, String(v ?? '')]))
+                                : {}),
+                        },
                     })
                 });
                 return;
@@ -124,7 +129,9 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
                 },
                 data: {
                     type: notification.type,
-                    ...notification.metadata,
+                    ...(notification.metadata
+                        ? Object.fromEntries(Object.entries(notification.metadata).map(([k, v]) => [k, String(v ?? '')]))
+                        : {}),
                 },
             };
             await admin.messaging().send(payload);

@@ -137,15 +137,16 @@ export default function BattleScreen() {
   // ── Filtered Lists ─────────────────────────────────────────────────
   const filteredChallenges = useMemo(() => {
     return challenges.filter((c) => {
-      if (activeTab === 'active') return c.status === 'active';
-      if (activeTab === 'pending') return c.status === 'pending';
-      if (activeTab === 'resolved') return c.status === 'resolved' || c.status === 'expired';
+      const effectiveStatus = c.computedStatus || c.status;
+      if (activeTab === 'active') return effectiveStatus === 'active';
+      if (activeTab === 'pending') return effectiveStatus === 'pending';
+      if (activeTab === 'resolved') return effectiveStatus === 'resolved' || effectiveStatus === 'expired' || effectiveStatus === 'cancelled';
       return false;
     });
   }, [challenges, activeTab]);
 
-  const victories = useMemo(() => filteredChallenges.filter(c => c.status === 'resolved'), [filteredChallenges]);
-  const expired = useMemo(() => filteredChallenges.filter(c => c.status === 'expired'), [filteredChallenges]);
+  const victories = useMemo(() => filteredChallenges.filter(c => (c.computedStatus || c.status) === 'resolved'), [filteredChallenges]);
+  const expired = useMemo(() => filteredChallenges.filter(c => { const s = c.computedStatus || c.status; return s === 'expired' || s === 'cancelled'; }), [filteredChallenges]);
 
   // ── Create Challenge ───────────────────────────────────────────────
   const handleOpenCreate = () => {
@@ -438,8 +439,17 @@ export default function BattleScreen() {
         {activeTab === 'active' ? '⚔️' : activeTab === 'pending' ? '📩' : '📜'}
       </Text>
       <Text style={styles.emptyText}>
-        {activeTab === 'active' ? 'No active battles.' : activeTab === 'pending' ? 'No pending challenges.' : 'No battle history yet.'}
+        {activeTab === 'active'
+          ? 'No Active Battles\n\nChallenge a friend and prove your discipline.'
+          : activeTab === 'pending' ? 'No pending challenges.' : 'No battle history yet.'}
       </Text>
+      {activeTab === 'active' && (
+        <TouchableOpacity activeOpacity={0.8} onPress={handleOpenCreate} style={{ marginTop: Spacing.md }}>
+          <LinearGradient colors={Colors.gradientPrimary} style={styles.fab}>
+            <Text style={styles.fabText}>Create Battle</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
     </View>
   );
 

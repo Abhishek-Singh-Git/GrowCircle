@@ -6,6 +6,8 @@ export declare class ScreenTimeService {
     private readonly prisma;
     private readonly circlesService;
     private readonly eventEmitter;
+    private readonly lateNightCooldown;
+    private readonly LATE_NIGHT_COOLDOWN_MS;
     constructor(prisma: PrismaService, circlesService: CirclesService, eventEmitter: EventEmitter2);
     syncScreenTime(userId: string, dto: SyncScreenTimeDto): Promise<{
         syncedCount: number;
@@ -27,19 +29,19 @@ export declare class ScreenTimeService {
         hiddenApps: string[];
     }>;
     setThreshold(userId: string, dto: SetThresholdDto): Promise<{
-        circleId: string;
         id: string;
         createdAt: Date;
         userId: string;
+        circleId: string;
         appPackage: string;
         thresholdSeconds: number;
         alertEnabled: boolean;
     }>;
     getThresholds(userId: string, circleId: string): Promise<{
-        circleId: string;
         id: string;
         createdAt: Date;
         userId: string;
+        circleId: string;
         appPackage: string;
         thresholdSeconds: number;
         alertEnabled: boolean;

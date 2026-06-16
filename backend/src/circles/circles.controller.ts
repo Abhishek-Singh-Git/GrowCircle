@@ -41,6 +41,11 @@ export class CirclesController {
     return this.circlesService.getCircleDetails(req.user.id, circleId);
   }
 
+  @Get(':circleId/canvas')
+  async getCanvas(@Request() req: { user: { id: string } }, @Param('circleId') circleId: string) {
+    return this.circlesService.getCanvasState(req.user.id, circleId);
+  }
+
   @Delete(':circleId')
   @HttpCode(HttpStatus.OK)
   async deleteCircle(@Request() req: { user: { id: string } }, @Param('circleId') circleId: string) {

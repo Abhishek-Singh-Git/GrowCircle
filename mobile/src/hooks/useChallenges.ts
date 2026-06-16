@@ -20,6 +20,7 @@ export interface Challenge {
   id: string;
   title: string;
   status: string;
+  computedStatus?: string;
   deadline: string;
   durationHours: number;
   remainingMs: number;

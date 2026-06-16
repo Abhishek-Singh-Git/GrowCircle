@@ -51,6 +51,23 @@ export default function ChatScreen({ navigation }: any) {
   const [currentStroke, setCurrentStroke] = useState<string[]>([]);
   const currentStrokeRef = useRef<string[]>([]);
 
+  // Load persisted canvas strokes when opening the canvas
+  const handleOpenCanvas = async () => {
+    setShowCanvas(true);
+    if (activeCircleId) {
+      try {
+        const data: any = await api.get(`/circles/${activeCircleId}/canvas`);
+        if (data?.strokes?.length > 0) {
+          // Load all persisted strokes as partner strokes (they include both users' drawings)
+          setPartnerStrokes(data.strokes);
+          setMyStrokes([]);
+        }
+      } catch (err) {
+        console.error('Failed to load canvas strokes', err);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!activeCircleId) return;
 
@@ -222,7 +239,7 @@ export default function ChatScreen({ navigation }: any) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Circle Chat</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => setShowCanvas(true)} style={styles.drawBtn}>
+          <TouchableOpacity onPress={handleOpenCanvas} style={styles.drawBtn}>
             <Text style={styles.drawEmoji}>🎨</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={clearChat} style={styles.optionsBtn}>

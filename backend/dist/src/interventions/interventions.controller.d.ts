@@ -18,8 +18,8 @@ export declare class InterventionsController {
             name: string;
         };
     } & {
-        circleId: string;
         id: string;
+        circleId: string;
         status: string;
         expiresAt: Date | null;
         durationSeconds: number | null;
@@ -55,8 +55,8 @@ export declare class InterventionsController {
                 avatarUrl: string | null;
             };
         } & {
-            circleId: string;
             id: string;
+            circleId: string;
             status: string;
             expiresAt: Date | null;
             durationSeconds: number | null;

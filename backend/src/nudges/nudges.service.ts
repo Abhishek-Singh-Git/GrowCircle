@@ -59,7 +59,7 @@ export class NudgesService {
       where: { userId: dto.recipientId },
     });
 
-    if (recipientPrefs?.nudgeBlockedUsers?.includes(senderId)) {
+    if (recipientPrefs?.nudgeBlockedUsers && Array.isArray(recipientPrefs.nudgeBlockedUsers) && recipientPrefs.nudgeBlockedUsers.includes(senderId)) {
       throw new ForbiddenException('User has blocked nudges from you');
     }
 
@@ -79,10 +79,15 @@ export class NudgesService {
 
     // Only emit the push notification event if the user hasn't globally disabled it.
     // Fire-and-forget: do NOT await — listener errors must never surface as a 500.
-    if (!recipientPrefs || recipientPrefs.notifyNudge !== false) {
-      this.eventEmitter.emitAsync('nudge.sent', { nudge }).catch(() => {
-        // Notification failure is non-fatal; nudge was already saved to DB.
-      });
+    try {
+      if (!recipientPrefs || recipientPrefs.notifyNudge !== false) {
+        this.eventEmitter.emitAsync('nudge.sent', { nudge }).catch(() => {
+          // Notification failure is non-fatal; nudge was already saved to DB.
+        });
+      }
+    } catch (err) {
+      // Non-fatal: nudge was already saved to DB
+      console.error('Failed to emit nudge.sent event:', err);
     }
 
     return nudge;

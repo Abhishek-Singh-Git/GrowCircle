@@ -7,7 +7,6 @@ export declare class GoalsService {
     private readonly circlesService;
     constructor(prisma: PrismaService, circlesService: CirclesService);
     createGoal(userId: string, dto: CreateGoalDto): Promise<{
-        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -20,6 +19,7 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
+        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -42,7 +42,6 @@ export declare class GoalsService {
             label: string;
         }[];
     } & {
-        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -55,6 +54,7 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
+        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -78,39 +78,38 @@ export declare class GoalsService {
         }[];
         instances: ({
             activityLogs: {
-                circleId: string;
-                goalInstanceId: string;
                 id: string;
                 targetValue: Prisma.Decimal | null;
                 userId: string;
+                circleId: string;
                 status: string;
                 date: Date;
                 goalId: string;
                 clientUuid: string;
+                goalInstanceId: string;
                 actualValue: Prisma.Decimal | null;
                 completionFraction: Prisma.Decimal;
-                notes: string | null;
                 proofUrl: string | null;
                 proofType: string | null;
+                notes: string | null;
                 loggedAt: Date;
                 editedAt: Date | null;
                 isLateEdit: boolean;
                 xpAwarded: number;
             }[];
         } & {
-            circleId: string;
             id: string;
             createdAt: Date;
             updatedAt: Date | null;
             targetValue: Prisma.Decimal | null;
             userId: string;
+            circleId: string;
             status: string;
             expiresAt: Date | null;
             date: Date;
             goalId: string;
         })[];
     } & {
-        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -123,6 +122,7 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
+        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -136,7 +136,6 @@ export declare class GoalsService {
         templateSourceId: string | null;
     }>;
     updateGoal(userId: string, goalId: string, dto: UpdateGoalDto): Promise<{
-        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -149,6 +148,7 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
+        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -162,7 +162,6 @@ export declare class GoalsService {
         templateSourceId: string | null;
     }>;
     deleteGoal(userId: string, goalId: string): Promise<{
-        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -175,6 +174,7 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
+        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -188,7 +188,6 @@ export declare class GoalsService {
         templateSourceId: string | null;
     }>;
     pauseGoal(userId: string, goalId: string): Promise<{
-        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -201,6 +200,7 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
+        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -214,7 +214,6 @@ export declare class GoalsService {
         templateSourceId: string | null;
     }>;
     archiveGoal(userId: string, goalId: string): Promise<{
-        circleId: string;
         id: string;
         name: string;
         category: string;
@@ -227,6 +226,7 @@ export declare class GoalsService {
         targetUnit: string | null;
         deletedAt: Date | null;
         userId: string;
+        circleId: string;
         status: string;
         scheduleDays: number[];
         scheduleWeeklyFreq: number | null;
@@ -241,7 +241,6 @@ export declare class GoalsService {
     }>;
     getTodayInstances(userId: string, circleId: string): Promise<({
         goal: {
-            circleId: string;
             id: string;
             name: string;
             category: string;
@@ -254,6 +253,7 @@ export declare class GoalsService {
             targetUnit: string | null;
             deletedAt: Date | null;
             userId: string;
+            circleId: string;
             status: string;
             scheduleDays: number[];
             scheduleWeeklyFreq: number | null;
@@ -271,60 +271,60 @@ export declare class GoalsService {
                 id: string;
                 createdAt: Date;
                 userId: string;
-                emoji: string;
                 logId: string;
+                emoji: string;
             }[];
         } & {
-            circleId: string;
-            goalInstanceId: string;
             id: string;
             targetValue: Prisma.Decimal | null;
             userId: string;
+            circleId: string;
             status: string;
             date: Date;
             goalId: string;
             clientUuid: string;
+            goalInstanceId: string;
             actualValue: Prisma.Decimal | null;
             completionFraction: Prisma.Decimal;
-            notes: string | null;
             proofUrl: string | null;
             proofType: string | null;
+            notes: string | null;
             loggedAt: Date;
             editedAt: Date | null;
             isLateEdit: boolean;
             xpAwarded: number;
         })[];
     } & {
-        circleId: string;
         id: string;
         createdAt: Date;
         updatedAt: Date | null;
         targetValue: Prisma.Decimal | null;
         userId: string;
+        circleId: string;
         status: string;
         expiresAt: Date | null;
         date: Date;
         goalId: string;
     })[]>;
     generateInstanceForDate(goalId: string, userId: string, circleId: string, date: Date): Promise<{
-        circleId: string;
         id: string;
         createdAt: Date;
         updatedAt: Date | null;
         targetValue: Prisma.Decimal | null;
         userId: string;
+        circleId: string;
         status: string;
         expiresAt: Date | null;
         date: Date;
         goalId: string;
     } | null>;
     generateAllInstancesForDate(userId: string, circleId: string, date: Date): Promise<{
-        circleId: string;
         id: string;
         createdAt: Date;
         updatedAt: Date | null;
         targetValue: Prisma.Decimal | null;
         userId: string;
+        circleId: string;
         status: string;
         expiresAt: Date | null;
         date: Date;

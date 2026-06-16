@@ -34,6 +34,8 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
     eventEmitter;
     server;
     logger = new common_1.Logger(FeedGateway_1.name);
+    lateNightCooldown = new Map();
+    LATE_NIGHT_COOLDOWN_MS = 30 * 60 * 1000;
     constructor(jwtService, prisma, eventEmitter) {
         this.jwtService = jwtService;
         this.prisma = prisma;
@@ -114,10 +116,15 @@ let FeedGateway = FeedGateway_1 = class FeedGateway {
                     userId: client.userId,
                     timestamp: new Date().toISOString(),
                 });
-                this.eventEmitter.emit('late_night.detected', {
-                    userId: client.userId,
-                    circleId: data.circleId,
-                });
+                const cooldownKey = `${client.userId}:${data.circleId}`;
+                const lastFired = this.lateNightCooldown.get(cooldownKey) ?? 0;
+                if (Date.now() - lastFired > this.LATE_NIGHT_COOLDOWN_MS) {
+                    this.lateNightCooldown.set(cooldownKey, Date.now());
+                    this.eventEmitter.emitAsync('late_night.detected', {
+                        userId: client.userId,
+                        circleId: data.circleId,
+                    }).catch(() => { });
+                }
             }
         }
         return { status: 'alive', timestamp: new Date().toISOString() };

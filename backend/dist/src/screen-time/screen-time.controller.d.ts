@@ -39,10 +39,10 @@ export declare class ScreenTimeController {
             id: string;
         };
     }, dto: SetThresholdDto): Promise<{
-        circleId: string;
         id: string;
         createdAt: Date;
         userId: string;
+        circleId: string;
         appPackage: string;
         thresholdSeconds: number;
         alertEnabled: boolean;
@@ -52,10 +52,10 @@ export declare class ScreenTimeController {
             id: string;
         };
     }, circleId: string): Promise<{
-        circleId: string;
         id: string;
         createdAt: Date;
         userId: string;
+        circleId: string;
         appPackage: string;
         thresholdSeconds: number;
         alertEnabled: boolean;

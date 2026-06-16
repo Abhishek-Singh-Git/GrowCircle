@@ -85,10 +85,10 @@ let DailyCronProcessor = DailyCronProcessor_1 = class DailyCronProcessor extends
                 for (const membership of user.circleMemberships) {
                     if (membership.status !== 'active')
                         continue;
-                    this.eventEmitter.emit('late_night.detected', {
+                    this.eventEmitter.emitAsync('late_night.detected', {
                         userId: user.id,
                         circleId: membership.circleId,
-                    });
+                    }).catch(() => { });
                 }
             }
         }

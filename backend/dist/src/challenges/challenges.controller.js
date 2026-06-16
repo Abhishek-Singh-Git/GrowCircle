@@ -88,6 +88,7 @@ __decorate([
 ], ChallengesController.prototype, "incrementProgress", null);
 __decorate([
     (0, common_1.Post)(':challengeId/submit-victory'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('challengeId')),
     __param(2, (0, common_1.Body)()),
@@ -125,6 +126,7 @@ __decorate([
 ], ChallengesController.prototype, "rejectVictory", null);
 __decorate([
     (0, common_1.Delete)(':challengeId/history'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('challengeId')),
     __metadata("design:type", Function),

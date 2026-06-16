@@ -267,6 +267,14 @@ let CirclesService = class CirclesService {
         }
         return membership;
     }
+    async getCanvasState(userId, circleId) {
+        await this.validateMembership(userId, circleId);
+        const circle = await this.prisma.circle.findUnique({
+            where: { id: circleId },
+            select: { canvasState: true },
+        });
+        return { strokes: circle?.canvasState || [] };
+    }
     generateInviteCode() {
         return crypto.randomBytes(4).toString('hex').toUpperCase();
     }

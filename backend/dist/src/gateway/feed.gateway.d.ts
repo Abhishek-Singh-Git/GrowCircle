@@ -12,6 +12,8 @@ export declare class FeedGateway implements OnGatewayConnection, OnGatewayDiscon
     private readonly eventEmitter;
     server: Server;
     private readonly logger;
+    private readonly lateNightCooldown;
+    private readonly LATE_NIGHT_COOLDOWN_MS;
     constructor(jwtService: JwtService, prisma: PrismaService, eventEmitter: EventEmitter2);
     handleConnection(client: AuthenticatedSocket): Promise<void>;
     handleDisconnect(client: AuthenticatedSocket): void;

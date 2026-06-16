@@ -70,9 +70,9 @@ export declare class CirclesController {
                 lastActiveAt: Date | null;
             };
         } & {
-            circleId: string;
             id: string;
             userId: string;
+            circleId: string;
             role: string;
             status: string;
             joinedAt: Date;
@@ -97,6 +97,13 @@ export declare class CirclesController {
         disbandedAt: Date | null;
         canvasState: import("@prisma/client/runtime/client").JsonValue | null;
         ownerId: string;
+    }>;
+    getCanvas(req: {
+        user: {
+            id: string;
+        };
+    }, circleId: string): Promise<{
+        strokes: any[];
     }>;
     deleteCircle(req: {
         user: {

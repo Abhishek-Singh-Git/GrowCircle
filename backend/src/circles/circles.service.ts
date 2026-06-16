@@ -285,6 +285,16 @@ export class CirclesService {
     return membership;
   }
 
+  // ── CANVAS STATE ──────────────────────────────────────────────────────
+  async getCanvasState(userId: string, circleId: string) {
+    await this.validateMembership(userId, circleId);
+    const circle = await this.prisma.circle.findUnique({
+      where: { id: circleId },
+      select: { canvasState: true },
+    });
+    return { strokes: (circle?.canvasState as any[]) || [] };
+  }
+
   // ── HELPERS ───────────────────────────────────────────────────────────
   private generateInviteCode(): string {
     return crypto.randomBytes(4).toString('hex').toUpperCase(); // 8-char hex code
