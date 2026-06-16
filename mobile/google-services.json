@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "219698102764-qpncbvmv6a73vq5thnatrcttikur9vji.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.growcircle.app",
+            "certificate_hash": "f44a6d506e22588d45e56a33a112e0773acaf9c4"
+          }
+        },
+        {
           "client_id": "219698102764-51h2o4j548fgrkb1k97d7govg5bqaelv.apps.googleusercontent.com",
           "client_type": 3
         }
