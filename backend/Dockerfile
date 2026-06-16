@@ -19,24 +19,24 @@ RUN npx prisma generate
 COPY . .
 RUN npm run build
 
+# Prune devDependencies to keep node_modules minimal and production-ready
+RUN npm prune --omit=dev
+
 # Production Stage
 FROM node:22-alpine
 
 WORKDIR /app
 
-# Prisma needs openssl
+# Prisma/Postgres native client needs openssl
 RUN apk add --no-cache openssl
 
-# Install production dependencies only
+# Copy package configurations
 COPY package*.json ./
 COPY prisma ./prisma/
-COPY prisma.config.ts ./
-RUN npm ci --omit=dev
 
-# Generate Prisma client for production
-RUN npx prisma generate
-
-# Copy built artifacts from builder
+# Copy pre-built production dependencies (including compiled native modules like bcrypt)
+COPY --from=builder /app/node_modules ./node_modules
+# Copy compiled NestJS application code
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001
