@@ -63,6 +63,7 @@ export class NudgesService {
       throw new ForbiddenException('User has blocked nudges from you');
     }
 
+    // Removed goalId creation from nudge as the goal_id column has been removed from the database schema.
     const nudge = await this.prisma.nudgeLog.create({
       data: {
         senderId,
@@ -87,7 +88,7 @@ export class NudgesService {
       }
     } catch (err) {
       // Non-fatal: nudge was already saved to DB
-      console.error('Failed to emit nudge.sent event:', err);
+      console.error('Failed to emit nudge.sent event: ', err);
     }
 
     return nudge;

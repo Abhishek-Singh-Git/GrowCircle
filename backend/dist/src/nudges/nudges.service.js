@@ -76,7 +76,7 @@ let NudgesService = class NudgesService {
             }
         }
         catch (err) {
-            console.error('Failed to emit nudge.sent event:', err);
+            console.error('Failed to emit nudge.sent event: ', err);
         }
         return nudge;
     }
